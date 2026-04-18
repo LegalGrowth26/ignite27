@@ -74,7 +74,7 @@ Use:
 - **VIP** (uppercase)
 - **exhibitor** (lowercase)
 - **headline sponsor** (lowercase)
-- **the day** or **event day** when referring to 31 January
+- **the day** or **event day** when referring to 21 January
 
 Avoid:
 - "attendee" in customer-facing copy (it sounds bureaucratic). Use
