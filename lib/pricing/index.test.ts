@@ -60,7 +60,7 @@ describe("getCurrentPricing — per window snapshots", () => {
   });
 
   it("event_day: exhibitor is null, charity uplift is £5", () => {
-    expect(getCurrentPricing(uk("2027-01-31T10:00:00"))).toEqual({
+    expect(getCurrentPricing(uk("2027-01-21T10:00:00"))).toEqual({
       window: "event_day",
       delegate: { regular: 6900, vip: 15900, lunchAddOn: LUNCH_ADDON_PENCE },
       exhibitor: null,
@@ -75,7 +75,7 @@ describe("getCurrentPricing — guard-rail errors propagate from getActiveWindow
   });
 
   it("throws after event day ends", () => {
-    expect(() => getCurrentPricing(uk("2027-02-01T00:00:00"))).toThrow(BookingsClosedError);
+    expect(() => getCurrentPricing(uk("2027-01-22T00:00:00"))).toThrow(BookingsClosedError);
   });
 });
 
@@ -104,8 +104,8 @@ describe("acceptance scenarios — user-specified instants", () => {
     expect(p.delegate.regular).toBe(5900);
   });
 
-  it("case 5: 31 Jan 2027 12:00 UK is event_day, regular + uplift = £74, exhibitor throws", () => {
-    const instant = uk("2027-01-31T12:00:00");
+  it("case 5: 21 Jan 2027 12:00 UK is event_day, regular + uplift = £74, exhibitor throws", () => {
+    const instant = uk("2027-01-21T12:00:00");
     const p = getCurrentPricing(instant);
     expect(p.window).toBe("event_day");
     expect(p.delegate.regular).toBe(6900);
@@ -117,7 +117,7 @@ describe("acceptance scenarios — user-specified instants", () => {
     );
   });
 
-  it("case 6: 1 Feb 2027 00:00 UK throws BookingsClosedError", () => {
-    expect(() => getActiveWindow(uk("2027-02-01T00:00:00"))).toThrow(BookingsClosedError);
+  it("case 6: 22 Jan 2027 00:00 UK throws BookingsClosedError", () => {
+    expect(() => getActiveWindow(uk("2027-01-22T00:00:00"))).toThrow(BookingsClosedError);
   });
 });

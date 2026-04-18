@@ -44,12 +44,12 @@ export const PRICING_WINDOWS: readonly PricingWindowBoundary[] = [
   {
     window: "window_4",
     opensAt: ukLocal("2027-01-01T00:00:00"),
-    closesAt: ukLocal("2027-01-31T00:00:00"),
+    closesAt: ukLocal("2027-01-21T00:00:00"),
   },
   {
     window: "event_day",
-    opensAt: ukLocal("2027-01-31T00:00:00"),
-    closesAt: ukLocal("2027-02-01T00:00:00"),
+    opensAt: ukLocal("2027-01-21T00:00:00"),
+    closesAt: ukLocal("2027-01-22T00:00:00"),
   },
 ];
 
@@ -62,4 +62,4 @@ export const CHRISTMAS_DROP: PricingWindowBoundary = {
 };
 
 export const BOOKINGS_OPEN_AT: Date = ukLocal("2026-06-30T09:00:00");
-export const BOOKINGS_CLOSE_AT: Date = ukLocal("2027-02-01T00:00:00");
+export const BOOKINGS_CLOSE_AT: Date = ukLocal("2027-01-22T00:00:00");
