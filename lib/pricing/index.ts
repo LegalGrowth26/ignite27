@@ -38,6 +38,7 @@ export {
   BookingsNotOpenError,
   getActiveWindow,
 } from "./engine";
+export { formatPoundsFromPence } from "./format";
 export {
   EVENT_DAY_CHARITY_UPLIFT_PENCE,
   ExhibitorBookingsClosedOnEventDayError,
