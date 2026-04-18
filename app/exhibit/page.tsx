@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Exhibit at Ignite 27",
   description:
-    "Reserve one of 50 exhibitor stands at Ignite 27. Sunday 31 January 2027 at Kelham Hall, Newark.",
+    "Reserve one of 50 exhibitor stands at Ignite 27. Thursday 21 January 2027 at Kelham Hall, Newark.",
 };
 
 type ExhibitPricing =
@@ -94,7 +94,7 @@ function Hero() {
           <p className="text-eyebrow uppercase text-ignite-red">Exhibit at Ignite 27</p>
           <h1 className="mt-5 text-h1">A room worth standing in.</h1>
           <p className="mt-5 max-w-2xl text-lead text-white/80">
-            50 exhibitor stands at Kelham Hall on Sunday 31 January 2027. The delegates came to
+            50 exhibitor stands at Kelham Hall on Thursday 21 January 2027. The delegates came to
             meet businesses like yours, not to collect pens.
           </p>
         </div>
@@ -187,7 +187,7 @@ function WhyExhibit() {
     },
     {
       title: "One focused day",
-      body: "Not a week-long expo. Full delegate attention, compressed into Sunday 31 January 2027.",
+      body: "Not a week-long expo. Full delegate attention, compressed into Thursday 21 January 2027.",
     },
     {
       title: "Two people, two lunches",
@@ -289,7 +289,7 @@ function ClosingCta() {
       />
       <Container className="relative py-20 md:py-28">
         <div className="max-w-3xl">
-          <p className="text-eyebrow uppercase text-ignite-red">Sunday 31 January 2027</p>
+          <p className="text-eyebrow uppercase text-ignite-red">Thursday 21 January 2027</p>
           <p className="mt-4 text-h1">Reserve your stand.</p>
           <p className="mt-5 text-lead text-white/80">
             50 spaces at The Renaissance at Kelham Hall, Newark.

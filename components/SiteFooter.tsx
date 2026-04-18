@@ -76,7 +76,7 @@ export function SiteFooter() {
           <div className="max-w-sm">
             <LogoWordmark tone="dark" />
             <p className="mt-4 text-small text-white/70">
-              Sunday 31 January 2027. The Renaissance at Kelham Hall, Newark.
+              Thursday 21 January 2027. The Renaissance at Kelham Hall, Newark.
             </p>
             <ul className="mt-6 flex items-center gap-3">
               {SOCIALS.map((s) => (

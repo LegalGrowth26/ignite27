@@ -99,7 +99,7 @@ function Hero() {
       <Container className="relative py-24 sm:py-28 md:py-36 lg:py-44">
         <div className="max-w-4xl">
           <p className="text-eyebrow uppercase text-ignite-red">
-            Sunday 31 January 2027. Kelham Hall, Newark.
+            Thursday 21 January 2027. Kelham Hall, Newark.
           </p>
           <h1 className="mt-6 text-display">
             A business day worth turning up for.
@@ -420,7 +420,7 @@ function ClosingCta() {
       />
       <Container className="relative py-24 md:py-32">
         <div className="max-w-3xl">
-          <p className="text-eyebrow uppercase text-ignite-red">Sunday 31 January 2027</p>
+          <p className="text-eyebrow uppercase text-ignite-red">Thursday 21 January 2027</p>
           <p className="mt-4 text-h1">
             Kelham Hall, Newark. Book your place.
           </p>

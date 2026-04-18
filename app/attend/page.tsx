@@ -19,7 +19,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Attend Ignite 27",
   description:
-    "Book your place at Ignite 27. Sunday 31 January 2027 at Kelham Hall, Newark.",
+    "Book your place at Ignite 27. Thursday 21 January 2027 at Kelham Hall, Newark.",
 };
 
 type AttendPricing =
@@ -42,7 +42,7 @@ const WINDOW_1_REGULAR_PENCE = 3900;
 const WINDOW_1_VIP_PENCE = 9900;
 
 const REGULAR_INCLUDES: readonly string[] = [
-  "Full-day access, Sunday 31 January 2027",
+  "Full-day access, Thursday 21 January 2027",
   "Keynotes, main-stage sessions and workshops",
   "Exhibitor zone and networking throughout",
   "Coffee and refreshments on the house",
@@ -79,7 +79,7 @@ const FAQS: ReadonlyArray<{ q: string; a: React.ReactNode }> = [
     q: "Can I cancel?",
     a: (
       <>
-        Yes, up to 30 December 2026, minus Stripe&apos;s processing fee. See the{" "}
+        Yes, up to 20 December 2026, minus Stripe&apos;s processing fee. See the{" "}
         <Link href="/refund-policy" className="underline underline-offset-4 hover:text-ignite-red">
           refund policy
         </Link>{" "}
@@ -120,7 +120,7 @@ function Hero() {
           <p className="text-eyebrow uppercase text-ignite-red">Attend Ignite 27</p>
           <h1 className="mt-5 text-h1">Your place at Ignite 27.</h1>
           <p className="mt-5 max-w-2xl text-lead text-white/80">
-            Sunday 31 January 2027. Kelham Hall, Newark. Pick Regular or VIP below and book your
+            Thursday 21 January 2027. Kelham Hall, Newark. Pick Regular or VIP below and book your
             place.
           </p>
         </div>
@@ -275,7 +275,7 @@ function ClosingCta() {
       />
       <Container className="relative py-20 md:py-28">
         <div className="max-w-3xl">
-          <p className="text-eyebrow uppercase text-ignite-red">Sunday 31 January 2027</p>
+          <p className="text-eyebrow uppercase text-ignite-red">Thursday 21 January 2027</p>
           <p className="mt-4 text-h1">Book your place at Ignite 27.</p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:gap-4">
             <Button href="/attend/book?ticket=regular" variant="primary" size="lg">
