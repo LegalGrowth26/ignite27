@@ -50,13 +50,21 @@ function vatLine(vatPence: number): string {
   return `(includes VAT of ${formatPoundsFromPence(vatPence)}).`;
 }
 
-async function generateSetPasswordLink(email: string): Promise<string> {
+export async function generateSetPasswordLink(email: string): Promise<string> {
   const supabase = createSupabaseServiceClient();
   const siteUrl = env.siteUrl().replace(/\/$/, "");
+  // IMPORTANT: route the recovery link through /auth/callback, not directly
+  // to /auth/set-password. Supabase returns a one-time `code` query param
+  // that must be exchanged for a session via exchangeCodeForSession (done
+  // inside /auth/callback). Skipping /auth/callback and sending the user
+  // straight to /auth/set-password leaves the browser with no Supabase
+  // session, so the subsequent updateUser({ password }) call fails and the
+  // user sees a misleading "link expired" error. Do not change this back.
+  const redirectTo = `${siteUrl}/auth/callback?next=/auth/set-password`;
   const { data, error } = await supabase.auth.admin.generateLink({
     type: "recovery",
     email,
-    options: { redirectTo: `${siteUrl}/auth/set-password` },
+    options: { redirectTo },
   });
   if (error || !data.properties?.action_link) {
     throw new Error(`failed to generate set-password link: ${error?.message ?? "no link"}`);
