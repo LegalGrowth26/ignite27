@@ -120,7 +120,7 @@ describe("createDelegateCheckoutSession", () => {
     const result = await createDelegateCheckoutSession({
       intent: { ...validIntent, lunchIncluded: false },
       termsAcceptedIp: "10.0.0.1",
-      now: uk("2026-07-10T12:00:00"),
+      pricingNow: uk("2026-07-10T12:00:00"),
     });
     expect(createMock).toHaveBeenCalledTimes(1);
     const params = createMock.mock.calls[0]?.[0] as {
@@ -147,7 +147,7 @@ describe("createDelegateCheckoutSession", () => {
     await createDelegateCheckoutSession({
       intent: validIntent,
       termsAcceptedIp: "10.0.0.1",
-      now: uk("2026-07-10T12:00:00"),
+      pricingNow: uk("2026-07-10T12:00:00"),
     });
     const params = createMock.mock.calls[0]?.[0] as {
       line_items: Array<{ price_data: { unit_amount: number; product_data: { name: string } } }>;
@@ -162,7 +162,7 @@ describe("createDelegateCheckoutSession", () => {
     await createDelegateCheckoutSession({
       intent: { ...validIntent, lunchIncluded: false },
       termsAcceptedIp: "10.0.0.1",
-      now: uk("2027-01-21T10:00:00"),
+      pricingNow: uk("2027-01-21T10:00:00"),
     });
     const params = createMock.mock.calls[0]?.[0] as {
       line_items: Array<{ price_data: { unit_amount: number; product_data: { name: string } } }>;
@@ -177,7 +177,7 @@ describe("createDelegateCheckoutSession", () => {
       createDelegateCheckoutSession({
         intent: validIntent,
         termsAcceptedIp: "10.0.0.1",
-        now: uk("2026-06-29T00:00:00"),
+        pricingNow: uk("2026-06-29T00:00:00"),
       }),
     ).rejects.toBeInstanceOf(BookingsNotOpenForCheckoutError);
     expect(createMock).not.toHaveBeenCalled();
@@ -188,9 +188,45 @@ describe("createDelegateCheckoutSession", () => {
       createDelegateCheckoutSession({
         intent: validIntent,
         termsAcceptedIp: "10.0.0.1",
-        now: uk("2027-01-22T00:00:00"),
+        pricingNow: uk("2027-01-22T00:00:00"),
       }),
     ).rejects.toBeInstanceOf(BookingsClosedForCheckoutError);
     expect(createMock).not.toHaveBeenCalled();
+  });
+
+  it("anchors expires_at and termsAcceptedAt to real wall-clock time, not pricingNow", async () => {
+    // pricingNow is far in the future (inside Window 4). Under the old bug
+    // Stripe would see expires_at ~9 months out and reject. Under the fix,
+    // both expires_at and termsAcceptedAt must sit near the real now.
+    const callStart = Date.now();
+    await createDelegateCheckoutSession({
+      intent: { ...validIntent, lunchIncluded: false },
+      termsAcceptedIp: "10.0.0.1",
+      pricingNow: uk("2027-01-15T12:00:00"),
+    });
+    const callEnd = Date.now();
+
+    const params = createMock.mock.calls[0]?.[0] as {
+      expires_at: number;
+      metadata: Record<string, string>;
+      line_items: Array<{ price_data: { unit_amount: number } }>;
+    };
+
+    // expires_at (Unix seconds) must be within 24h of real now, and >= realNow.
+    const expiresMs = params.expires_at * 1000;
+    const twentyFourHoursMs = 24 * 60 * 60 * 1000;
+    expect(expiresMs).toBeGreaterThanOrEqual(callStart);
+    expect(expiresMs - callEnd).toBeLessThan(twentyFourHoursMs);
+
+    // termsAcceptedAt should be within a couple of seconds of real now, not
+    // mid-January 2027.
+    const termsMs = new Date(params.metadata.terms_accepted_at ?? "").getTime();
+    expect(termsMs).toBeGreaterThanOrEqual(callStart);
+    expect(termsMs).toBeLessThanOrEqual(callEnd);
+
+    // Pricing must reflect Window 4 (£69 Regular), proving pricingNow still
+    // drives the pricing-window selection as intended.
+    expect(params.line_items[0]?.price_data.unit_amount).toBe(6900);
+    expect(params.metadata.pricing_window).toBe("window_4");
   });
 });

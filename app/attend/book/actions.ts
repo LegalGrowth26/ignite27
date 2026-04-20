@@ -46,7 +46,7 @@ export async function createCheckoutSessionAction(
     const result = await createDelegateCheckoutSession({
       intent: validation.intent,
       termsAcceptedIp: ip,
-      now: resolveBookingNow(),
+      pricingNow: resolveBookingNow(),
     });
     return { ok: true, url: result.url };
   } catch (err) {

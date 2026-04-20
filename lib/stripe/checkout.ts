@@ -18,7 +18,12 @@ import { getStripe } from "./client";
 export interface CreateDelegateCheckoutSessionInput {
   intent: DelegateBookingIntent;
   termsAcceptedIp: string;
-  now: Date;
+  // The instant used for pricing-window selection only. May be shifted by
+  // BOOKING_TEST_OVERRIDE_DATE (see lib/bookings/test-override.ts). This
+  // function internally uses real wall-clock time for any timestamp that
+  // Stripe or a future audit reads, so callers can safely pass an
+  // override-shifted value here.
+  pricingNow: Date;
 }
 
 export interface DelegateCheckoutSessionResult {
@@ -134,11 +139,19 @@ function buildLineItems(
 export async function createDelegateCheckoutSession(
   input: CreateDelegateCheckoutSessionInput,
 ): Promise<DelegateCheckoutSessionResult> {
-  const { intent, termsAcceptedIp, now } = input;
+  const { intent, termsAcceptedIp, pricingNow } = input;
+
+  // pricingNow decides which pricing window applies. It can be shifted by the
+  // BOOKING_TEST_OVERRIDE_DATE env var so we can exercise the flow before
+  // Window 1 opens. Anything Stripe reads (expires_at) or we persist as a
+  // real-world audit event (terms acceptance) must use real wall-clock time:
+  // Stripe validates expires_at against its own clock, and termsAcceptedAt is
+  // the legal record of when the user ticked the box.
+  const realNow = new Date();
 
   let pricing: DelegatePricingSnapshot;
   try {
-    pricing = computeDelegatePricing(intent, now);
+    pricing = computeDelegatePricing(intent, pricingNow);
   } catch (err) {
     if (err instanceof BookingsNotOpenError) {
       throw new BookingsNotOpenForCheckoutError();
@@ -150,7 +163,7 @@ export async function createDelegateCheckoutSession(
   }
 
   const bookingReference = generateBookingReference();
-  const termsAcceptedAt = now.toISOString();
+  const termsAcceptedAt = realNow.toISOString();
   const metadataObject = intentToMetadata(
     intent,
     pricing,
@@ -183,7 +196,7 @@ export async function createDelegateCheckoutSession(
     success_url: successUrl,
     cancel_url: cancelUrl,
     allow_promotion_codes: false,
-    expires_at: Math.floor(now.getTime() / 1000) + 30 * 60,
+    expires_at: Math.floor(realNow.getTime() / 1000) + 30 * 60,
   };
   const session = await stripe.checkout.sessions.create(params);
 
