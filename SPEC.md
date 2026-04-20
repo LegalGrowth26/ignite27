@@ -464,6 +464,56 @@ verified domain on Resend.
 
 ---
 
+## Test mode overrides
+
+The booking flow has one environment-variable override, used only for
+pre-launch verification of the Stripe Checkout round-trip before Window 1
+opens. It is not a feature, it is a short-lived testing aid. It must be
+unset before 09:00 on Tuesday 30 June 2026.
+
+### `BOOKING_TEST_OVERRIDE_DATE`
+
+Set to an ISO 8601 instant (e.g. `2026-07-15T10:00:00Z`) to make the
+delegate booking page and the server-side checkout-session creation treat
+that instant as "now" when calling `getCurrentPricing`. The chosen date
+determines which pricing window applies and therefore what Stripe charges.
+
+Scope: the override affects **only** the booking flow.
+- `/attend/book` page pricing calculation.
+- The server action that creates the Stripe Checkout Session.
+
+It does **not** affect:
+- Home page live-pricing preview.
+- `/attend` or `/exhibit` page pricing.
+- The Stripe webhook handler (which reads already-persisted metadata).
+- The refund-policy dates or anything else.
+
+### Defence in depth
+
+The override refuses to activate when `NEXT_PUBLIC_ENVIRONMENT` is
+`production` (or `prod`) unless a second variable
+`ALLOW_OVERRIDE_IN_PRODUCTION=true` is also set. Attempting to activate
+without the allow flag throws a `BookingOverrideConfigError` and surfaces
+as a 500 on the booking page.
+
+### Visible banner
+
+When active, `/attend/book` renders a red banner at the top reading
+`TEST MODE: using override date <date>. Remove BOOKING_TEST_OVERRIDE_DATE
+env var to disable.` The banner is server-rendered from the same source
+of truth the pricing engine consumes, so it cannot drift.
+
+### Pre-launch checklist
+
+Before 30 June 2026 Window 1 opens, an operator must:
+
+- Unset `BOOKING_TEST_OVERRIDE_DATE` in Vercel (all environments).
+- Unset `ALLOW_OVERRIDE_IN_PRODUCTION` in Vercel (all environments).
+- Redeploy.
+- Visit `/attend/book?ticket=regular` and confirm the red banner is gone.
+
+---
+
 ## Decision log convention
 
 When a non-obvious product decision is made during the build, write a

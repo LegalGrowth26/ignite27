@@ -7,6 +7,10 @@ import { Section } from "@/components/Section";
 import { SectionHeader } from "@/components/SectionHeader";
 import type { DelegateTicketType } from "@/lib/bookings/intent";
 import {
+  getBookingOverrideRaw,
+  resolveBookingNow,
+} from "@/lib/bookings/test-override";
+import {
   BookingsClosedError,
   BookingsNotOpenError,
   getCurrentPricing,
@@ -47,12 +51,27 @@ type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 export default async function BookingPage(props: { searchParams: SearchParams }) {
   const searchParams = await props.searchParams;
   const ticketType = parseTicketType(searchParams.ticket);
-  const state = resolvePricing(new Date());
+  const overrideRaw = getBookingOverrideRaw();
+  const state = resolvePricing(resolveBookingNow());
 
   return (
     <Section tone="light">
       <Container>
         <div className="mx-auto max-w-3xl">
+          {overrideRaw ? (
+            <div
+              role="status"
+              className="mb-6 rounded-xl border-2 border-ignite-red bg-ignite-red/10 p-4 text-small text-ignite-ink"
+            >
+              <p className="font-semibold text-ignite-red">
+                TEST MODE: using override date {overrideRaw}.
+              </p>
+              <p className="mt-1">
+                Remove <code className="font-mono">BOOKING_TEST_OVERRIDE_DATE</code> env
+                var to disable.
+              </p>
+            </div>
+          ) : null}
           <SectionHeader
             eyebrow={ticketType === "vip" ? "VIP ticket" : "Regular ticket"}
             heading={

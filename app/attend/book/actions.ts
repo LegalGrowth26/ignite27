@@ -10,6 +10,7 @@ import {
   validateDelegateBookingIntent,
   type IntentFieldError,
 } from "@/lib/bookings/intent";
+import { resolveBookingNow } from "@/lib/bookings/test-override";
 
 export type CreateCheckoutSessionActionResult =
   | { ok: true; url: string }
@@ -45,7 +46,7 @@ export async function createCheckoutSessionAction(
     const result = await createDelegateCheckoutSession({
       intent: validation.intent,
       termsAcceptedIp: ip,
-      now: new Date(),
+      now: resolveBookingNow(),
     });
     return { ok: true, url: result.url };
   } catch (err) {
