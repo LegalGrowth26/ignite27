@@ -16,6 +16,8 @@
     "email:dev": "email dev --dir emails"
   },
   "dependencies": {
+    "@react-email/components": "^1.0.12",
+    "@react-email/render": "^2.0.7",
     "@stripe/stripe-js": "^4.8.0",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.45.6",
