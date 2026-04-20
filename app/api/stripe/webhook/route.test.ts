@@ -120,6 +120,7 @@ describe("POST /api/stripe/webhook", () => {
       bookingReference: "I27-ABCDEFG",
       userId: "u1",
       authUserId: "au1",
+      confirmationEmailSentAt: null,
     });
     sendConfirmation.mockResolvedValue(undefined);
 
@@ -137,7 +138,7 @@ describe("POST /api/stripe/webhook", () => {
     expect(arg.vatAmountPence).toBe(123);
   });
 
-  it("is idempotent on duplicate webhook (isNew=false skips email send)", async () => {
+  it("branch 2: existing booking with email NOT yet sent retries the confirmation send", async () => {
     constructEvent.mockReturnValue({
       id: "evt_2",
       type: "checkout.session.completed",
@@ -150,6 +151,51 @@ describe("POST /api/stripe/webhook", () => {
       bookingReference: "I27-ABCDEFG",
       userId: "u1",
       authUserId: null,
+      confirmationEmailSentAt: null,
+    });
+    sendConfirmation.mockResolvedValue(undefined);
+
+    const res = await POST(buildRequest("{}", "sig"));
+    expect(res.status).toBe(200);
+    expect(sendConfirmation).toHaveBeenCalledTimes(1);
+  });
+
+  it("branch 2: existing booking retry where send fails still returns 200", async () => {
+    constructEvent.mockReturnValue({
+      id: "evt_2b",
+      type: "checkout.session.completed",
+      created: 1700000000,
+      data: { object: buildSession() },
+    });
+    createBooking.mockResolvedValue({
+      isNew: false,
+      bookingId: "b1",
+      bookingReference: "I27-ABCDEFG",
+      userId: "u1",
+      authUserId: null,
+      confirmationEmailSentAt: null,
+    });
+    sendConfirmation.mockRejectedValue(new Error("resend still down"));
+
+    const res = await POST(buildRequest("{}", "sig"));
+    expect(res.status).toBe(200);
+    expect(sendConfirmation).toHaveBeenCalledTimes(1);
+  });
+
+  it("branch 3: existing booking with email already sent does not resend", async () => {
+    constructEvent.mockReturnValue({
+      id: "evt_2c",
+      type: "checkout.session.completed",
+      created: 1700000000,
+      data: { object: buildSession() },
+    });
+    createBooking.mockResolvedValue({
+      isNew: false,
+      bookingId: "b1",
+      bookingReference: "I27-ABCDEFG",
+      userId: "u1",
+      authUserId: null,
+      confirmationEmailSentAt: "2026-04-20T10:00:00.000Z",
     });
 
     const res = await POST(buildRequest("{}", "sig"));
@@ -157,7 +203,7 @@ describe("POST /api/stripe/webhook", () => {
     expect(sendConfirmation).not.toHaveBeenCalled();
   });
 
-  it("does not fail when email send throws (logs and continues)", async () => {
+  it("branch 1: new booking where email send throws still returns 200", async () => {
     constructEvent.mockReturnValue({
       id: "evt_3",
       type: "checkout.session.completed",
@@ -170,6 +216,7 @@ describe("POST /api/stripe/webhook", () => {
       bookingReference: "I27-ABCDEFG",
       userId: "u1",
       authUserId: "au1",
+      confirmationEmailSentAt: null,
     });
     sendConfirmation.mockRejectedValue(new Error("resend down"));
 

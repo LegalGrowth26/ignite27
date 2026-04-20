@@ -3,13 +3,15 @@ import type { ParsedDelegateMetadata } from "./intent";
 
 // Result returned by the booking-creation path. `isNew` is false when the
 // webhook was a retry and we returned the already-stored booking without
-// duplicating work.
+// duplicating work. `confirmationEmailSentAt` is the flag the webhook uses
+// to decide whether to retry the confirmation email on a duplicate event.
 export interface CreatedBookingResult {
   isNew: boolean;
   bookingId: string;
   bookingReference: string;
   userId: string;
   authUserId: string | null;
+  confirmationEmailSentAt: string | null;
 }
 
 export class BookingCreationError extends Error {
@@ -29,17 +31,29 @@ interface CreateInput {
 }
 
 // Look up a booking by its Stripe Checkout session id. Used for idempotency.
+// The webhook handler also reads confirmation_email_sent_at so it can decide
+// whether to retry the confirmation email on a duplicate event.
 async function findBookingByStripeSessionId(
   client: SupabaseClient,
   sessionId: string,
-): Promise<{ id: string; user_id: string; booking_reference: string | null } | null> {
+): Promise<{
+  id: string;
+  user_id: string;
+  booking_reference: string | null;
+  confirmation_email_sent_at: string | null;
+} | null> {
   const { data, error } = await client
     .from("bookings")
-    .select("id, user_id, booking_reference")
+    .select("id, user_id, booking_reference, confirmation_email_sent_at")
     .eq("stripe_checkout_session_id", sessionId)
     .maybeSingle();
   if (error) throw new BookingCreationError("select booking failed", error);
-  return data as { id: string; user_id: string; booking_reference: string | null } | null;
+  return data as {
+    id: string;
+    user_id: string;
+    booking_reference: string | null;
+    confirmation_email_sent_at: string | null;
+  } | null;
 }
 
 // Return the users row for an email if it exists.
@@ -188,6 +202,7 @@ export async function createDelegateBookingFromCheckoutSession(
       bookingReference: existing.booking_reference ?? parsed.bookingReference,
       userId: existing.user_id,
       authUserId: null,
+      confirmationEmailSentAt: existing.confirmation_email_sent_at,
     };
   }
 
@@ -208,6 +223,14 @@ export async function createDelegateBookingFromCheckoutSession(
     marketingOptIn: intent.marketingOptIn,
   });
 
+  // TODO: the bookings insert and booking_attendees insert below are not
+  // atomic. If the attendees insert fails after the bookings insert succeeds
+  // we leave an orphan bookings row with no attendee. The correct fix is a
+  // Postgres stored procedure wrapping both inserts in a single transaction
+  // (invoked here via supabase.rpc). Tracked as a follow-up; for now the
+  // webhook logs and returns 200, and Stripe retries will find the orphan
+  // via the idempotency guard and no-op on branch 3, leaving the orphan for
+  // admin cleanup.
   const { data: bookingRow, error: bookingErr } = await client
     .from("bookings")
     .insert({
@@ -274,6 +297,7 @@ export async function createDelegateBookingFromCheckoutSession(
     bookingReference,
     userId: appUserId,
     authUserId,
+    confirmationEmailSentAt: null,
   };
 }
 
