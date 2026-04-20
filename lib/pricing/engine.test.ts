@@ -68,31 +68,31 @@ describe("getActiveWindow — window_3 -> window_4 boundary (1 Jan 2027 00:00 UK
   });
 });
 
-describe("getActiveWindow — window_4 -> event_day boundary (31 Jan 2027 00:00 UK)", () => {
-  it("23:59 on 30 Jan is window_4", () => {
-    expect(getActiveWindow(uk("2027-01-30T23:59:00"))).toBe("window_4");
+describe("getActiveWindow — window_4 -> event_day boundary (21 Jan 2027 00:00 UK)", () => {
+  it("23:59 on 20 Jan is window_4", () => {
+    expect(getActiveWindow(uk("2027-01-20T23:59:00"))).toBe("window_4");
   });
 
-  it("00:00 on 31 Jan is event_day", () => {
-    expect(getActiveWindow(uk("2027-01-31T00:00:00"))).toBe("event_day");
+  it("00:00 on 21 Jan is event_day", () => {
+    expect(getActiveWindow(uk("2027-01-21T00:00:00"))).toBe("event_day");
   });
 
   it("09:30 on event day is event_day", () => {
-    expect(getActiveWindow(uk("2027-01-31T09:30:00"))).toBe("event_day");
+    expect(getActiveWindow(uk("2027-01-21T09:30:00"))).toBe("event_day");
   });
 
-  it("23:59 on 31 Jan is event_day", () => {
-    expect(getActiveWindow(uk("2027-01-31T23:59:00"))).toBe("event_day");
+  it("23:59 on 21 Jan is event_day", () => {
+    expect(getActiveWindow(uk("2027-01-21T23:59:00"))).toBe("event_day");
   });
 });
 
-describe("getActiveWindow — bookings-closed boundary (1 Feb 2027 00:00 UK)", () => {
-  it("00:00 on 1 Feb 2027 throws", () => {
-    expect(() => getActiveWindow(uk("2027-02-01T00:00:00"))).toThrow(BookingsClosedError);
+describe("getActiveWindow — bookings-closed boundary (22 Jan 2027 00:00 UK)", () => {
+  it("00:00 on 22 Jan 2027 throws", () => {
+    expect(() => getActiveWindow(uk("2027-01-22T00:00:00"))).toThrow(BookingsClosedError);
   });
 
-  it("00:01 on 1 Feb 2027 throws", () => {
-    expect(() => getActiveWindow(uk("2027-02-01T00:01:00"))).toThrow(BookingsClosedError);
+  it("00:01 on 22 Jan 2027 throws", () => {
+    expect(() => getActiveWindow(uk("2027-01-22T00:01:00"))).toThrow(BookingsClosedError);
   });
 
   it("far future throws", () => {

@@ -28,7 +28,7 @@ For brand voice and copy rules, see `COPYWRITING.md`.
 ## Event basics
 
 - **Name:** Ignite 27
-- **Date:** Sunday 31 January 2027
+- **Date:** Thursday 21 January 2027
 - **Time:** 09:30 to 16:30
 - **Venue:** The Renaissance at Kelham Hall, Main Street, Newark, NG23 5QX
 - **Domain:** ignite27.co.uk
@@ -83,7 +83,7 @@ phase is out of scope for that phase.
 - Richer CMS editing in admin: speaker management, sponsor logos,
   homepage content, FAQ editing.
 - Badge PDF generator built and proofed (so it can be tested in December
-  before printer deadline in early January).
+  before the 8 January 2027 printer deadline).
 
 ### Phase 3 — ship by Sunday 20 December 2026
 
@@ -91,14 +91,15 @@ phase is out of scope for that phase.
 - Mobile-first staff scanner page with role-based access.
 - Scan-to-invalidate logic with green/red states.
 - Lunch scan flow.
-- Badge PDFs finalised and sent to printer in early January.
+- Badge PDFs finalised and sent to printer in early January, ideally by
+  8 January 2027.
 - Advanced MI: check-ins, no-shows, referral performance, window-by-window
   revenue breakdown.
 
 **Phase 3 operational requirement:** QR scanning must be built and tested
 end-to-end in staging by early December 2026, with a live rehearsal at
 the venue (or replicating venue WiFi conditions) in January 2027 before
-event day. The risk is operational, not technical.
+21 January. The risk is operational, not technical.
 
 ### Out of scope for the 27 build
 
@@ -186,8 +187,8 @@ All times are UK local time (Europe/London, handles BST/GMT automatically).
 | 2 | Thu 2 Jul 2026, 09:00 | Sun 19 Jul 2026, 23:59 | Public |
 | 3 | Mon 20 Jul 2026, 00:00 | Thu 31 Dec 2026, 23:59 | Public |
 | Christmas drop | Fri 25 Dec 2026, 00:00 | Fri 25 Dec 2026, 23:59 | Public, prices revert to Window 2 silently, overriding Window 3 |
-| 4 | Fri 1 Jan 2027, 00:00 | Sat 30 Jan 2027, 23:59 | Public |
-| Event day | Sun 31 Jan 2027, 00:00 | Sun 31 Jan 2027, end of event | Public, +£5 charity uplift, delegate only (no exhibitor sales) |
+| 4 | Fri 1 Jan 2027, 00:00 | Wed 20 Jan 2027, 23:59 | Public |
+| Event day | Thu 21 Jan 2027, 00:00 | Thu 21 Jan 2027, end of event | Public, +£5 charity uplift, delegate only (no exhibitor sales) |
 
 **Booking is open continuously from 09:00 on 30 June 2026 onward.**
 Pricing is determined automatically by whichever window is active at the
@@ -278,11 +279,11 @@ job title, dietary requirement, badge QR URL.
 
 ### Customer-facing rules (date-specific)
 
-- **Up to and including 30 December 2026:** refund allowed minus
+- **Up to and including 20 December 2026:** refund allowed minus
   Stripe processing fees.
-- **31 December 2026 to 16 January 2027 inclusive:** refund at organiser
+- **21 December 2026 to 6 January 2027 inclusive:** refund at organiser
   discretion. No automatic right to refund.
-- **17 January 2027 onward:** no refunds.
+- **7 January 2027 onward:** no refunds.
 
 Stripe processing fees are non-refundable in all cases and are borne by
 the purchaser. There is no separate organiser admin fee.

@@ -14,7 +14,7 @@ const poppins = Poppins({
 export const metadata: Metadata = {
   title: "Ignite 27",
   description:
-    "Ignite 27. Sunday 31 January 2027. The Renaissance at Kelham Hall, Newark.",
+    "Ignite 27. Thursday 21 January 2027. The Renaissance at Kelham Hall, Newark.",
 };
 
 export default function RootLayout({

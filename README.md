@@ -1,6 +1,6 @@
 # Ignite 27
 
-Booking platform for Ignite 27, Sunday 31 January 2027 at Kelham Hall, Newark.
+Booking platform for Ignite 27, Thursday 21 January 2027 at Kelham Hall, Newark.
 
 For product rules read `SPEC.md`. For coding conventions read `CLAUDE.md`. For
 brand voice and copy read `COPYWRITING.md`. If you are uncertain about a rule,
