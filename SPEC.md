@@ -464,6 +464,40 @@ verified domain on Resend.
 
 ---
 
+## Stripe webhook idempotency and retry
+
+The `checkout.session.completed` webhook handler at
+`/api/stripe/webhook` is idempotent and retry-safe. When an event
+arrives we look up the matching row in `bookings` by
+`stripe_checkout_session_id` and branch:
+
+1. **No existing booking.** Create the booking and attendee rows,
+   attempt the confirmation email. On a successful Resend dispatch,
+   set `bookings.confirmation_email_sent_at`.
+2. **Existing booking with `confirmation_email_sent_at` still NULL.**
+   Skip the DB write (already done), attempt the confirmation email.
+   On a successful dispatch, set the flag. This is the retry path
+   that recovers a first attempt that persisted the booking but
+   failed at Resend.
+3. **Existing booking with `confirmation_email_sent_at` set.** No-op.
+   The customer has already been emailed.
+
+Email failures at any stage are logged and the webhook returns 200
+so Stripe does not retry-storm on a transient email outage.
+`confirmation_email_sent_at` stays NULL; Stripe's next scheduled retry
+(up to three days) re-enters branch 2 and tries again. An admin can
+also re-trigger from the Stripe dashboard ("Resend event") or from
+the account area.
+
+Concurrent duplicate deliveries from Stripe are rare but possible.
+The handler accepts the risk of a double-email in that case rather
+than marking the flag before the Resend call completes (which would
+trade a visible double-send for a silent false-success if the process
+crashed mid-send). If we ever observe double-sends in practice a
+follow-up can add a Postgres advisory lock around the retry path.
+
+---
+
 ## Test mode overrides
 
 The booking flow has one environment-variable override, used only for

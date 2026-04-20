@@ -97,7 +97,21 @@ export async function sendDelegateConfirmationEmail(
   });
 
   if (result.dispatched) {
-    const supabase = createSupabaseServiceClient();
-    await markConfirmationEmailSent(supabase, bookingId);
+    // A DB failure writing confirmation_email_sent_at must not poison the
+    // overall send result: the email has already left Resend. Log it and
+    // move on. The flag stays null, which means the next Stripe webhook
+    // retry will send a second email, which is an acceptable cost of a
+    // rare double-delivery for the legal clarity of having the flag track
+    // only confirmed writes.
+    try {
+      const supabase = createSupabaseServiceClient();
+      await markConfirmationEmailSent(supabase, bookingId);
+    } catch (err) {
+      console.error(
+        "[send-confirmation] markConfirmationEmailSent failed after successful Resend dispatch",
+        bookingId,
+        err,
+      );
+    }
   }
 }

@@ -36,7 +36,12 @@ function buildParsed(overrides: Partial<ParsedDelegateMetadata> = {}): ParsedDel
 
 // A minimal Supabase stub that supports the chain the creation module uses.
 function buildStubClient(state: {
-  existingBookingForSession?: { id: string; user_id: string; booking_reference: string | null };
+  existingBookingForSession?: {
+    id: string;
+    user_id: string;
+    booking_reference: string | null;
+    confirmation_email_sent_at: string | null;
+  };
   existingUserByEmail?: { id: string; auth_user_id: string | null };
   createUserError?: { status?: number; message?: string };
   createdAuthUserId?: string;
@@ -159,6 +164,7 @@ describe("createDelegateBookingFromCheckoutSession", () => {
     });
 
     expect(result.isNew).toBe(true);
+    expect(result.confirmationEmailSentAt).toBeNull();
     expect(calls.bookingsInsert).toHaveBeenCalledTimes(1);
     expect(calls.bookingAttendeesInsert).toHaveBeenCalledTimes(1);
     expect(calls.usersInsert).toHaveBeenCalledTimes(1);
@@ -169,12 +175,13 @@ describe("createDelegateBookingFromCheckoutSession", () => {
     expect(bookingRow.payment_status).toBe("paid");
   });
 
-  it("is idempotent when a booking with this session id already exists", async () => {
+  it("is idempotent when a booking with this session id already exists (email not yet sent)", async () => {
     const { client, calls } = buildStubClient({
       existingBookingForSession: {
         id: "existing-id",
         user_id: "existing-user",
         booking_reference: "I27-EXISTS",
+        confirmation_email_sent_at: null,
       },
     });
     const parsed = buildParsed();
@@ -191,8 +198,34 @@ describe("createDelegateBookingFromCheckoutSession", () => {
     expect(result.isNew).toBe(false);
     expect(result.bookingId).toBe("existing-id");
     expect(result.bookingReference).toBe("I27-EXISTS");
+    expect(result.confirmationEmailSentAt).toBeNull();
     expect(calls.bookingsInsert).not.toHaveBeenCalled();
     expect(calls.bookingAttendeesInsert).not.toHaveBeenCalled();
+  });
+
+  it("surfaces confirmation_email_sent_at when the existing booking already had an email sent", async () => {
+    const sentAt = "2026-04-20T10:00:00.000Z";
+    const { client } = buildStubClient({
+      existingBookingForSession: {
+        id: "existing-id",
+        user_id: "existing-user",
+        booking_reference: "I27-EXISTS",
+        confirmation_email_sent_at: sentAt,
+      },
+    });
+    const parsed = buildParsed();
+
+    const result = await createDelegateBookingFromCheckoutSession({
+      client,
+      parsed,
+      stripeCheckoutSessionId: "cs_test_dup_already_emailed",
+      stripePaymentIntentId: "pi_test",
+      vatAmountPence: 0,
+      paidAt: new Date(),
+    });
+
+    expect(result.isNew).toBe(false);
+    expect(result.confirmationEmailSentAt).toBe(sentAt);
   });
 
   it("links an existing users row to a newly-created auth user when auth_user_id was null", async () => {

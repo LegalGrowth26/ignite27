@@ -97,17 +97,58 @@ async function handleCheckoutSessionCompleted(event: Stripe.Event): Promise<void
     paidAt: new Date((event.created ?? Math.floor(Date.now() / 1000)) * 1000),
   });
 
-  if (!result.isNew) {
-    console.info(
-      "[stripe-webhook] duplicate webhook, booking already exists",
-      session.id,
-      result.bookingId,
-    );
+  // Three-branch idempotency + retry logic. See SPEC.md "Stripe webhook
+  // idempotency and retry".
+  //
+  // 1. Fresh booking: created above, attempt email.
+  // 2. Existing booking with confirmation_email_sent_at NULL: skip the DB
+  //    write (done previously), attempt email. This recovers a first
+  //    attempt that succeeded at the DB but failed at Resend; Stripe
+  //    retries (up to 3 days) drive us through this branch until the
+  //    email dispatches.
+  // 3. Existing booking with confirmation_email_sent_at set: no-op.
+  //
+  // Concurrent-webhook note: Stripe very rarely delivers the same event
+  // twice in quick succession. Both deliveries could see the flag NULL
+  // and both could dispatch the email, giving the customer two identical
+  // emails. We accept this: a visible, self-correcting failure mode is
+  // preferable to marking the flag before the Resend call returns (which
+  // would risk silently marking-sent-but-not-actually-sent on a mid-send
+  // crash). Double-sends are expected to be extremely rare; if we see
+  // them in practice, a follow-up PR can add a Postgres advisory lock.
+
+  if (result.isNew) {
+    await trySendConfirmation(result, parsed, vatAmountPence, "new booking");
     return;
   }
 
-  // Email send failures are logged but never fail the webhook.
-  // The confirmation_email_sent_at flag stays null so admin can resend.
+  if (result.confirmationEmailSentAt === null) {
+    console.info(
+      "[stripe-webhook] retrying confirmation email for existing booking",
+      session.id,
+      result.bookingId,
+    );
+    await trySendConfirmation(result, parsed, vatAmountPence, "retry");
+    return;
+  }
+
+  console.info(
+    "[stripe-webhook] duplicate webhook, email already sent",
+    session.id,
+    result.bookingId,
+    result.confirmationEmailSentAt,
+  );
+}
+
+async function trySendConfirmation(
+  result: {
+    bookingId: string;
+    bookingReference: string;
+  },
+  parsed: Parameters<typeof sendDelegateConfirmationEmail>[0]["parsed"],
+  vatAmountPence: number,
+  pathLabel: "new booking" | "retry",
+): Promise<void> {
   try {
     await sendDelegateConfirmationEmail({
       bookingId: result.bookingId,
@@ -116,8 +157,12 @@ async function handleCheckoutSessionCompleted(event: Stripe.Event): Promise<void
       vatAmountPence,
     });
   } catch (err) {
+    // Logged but swallowed. The webhook still returns 200 so Stripe does
+    // not retry-storm on a transient email outage. confirmation_email_sent_at
+    // stays NULL and Stripe's next scheduled retry (up to 3 days) will
+    // re-enter branch 2 of the idempotency logic above.
     console.error(
-      "[stripe-webhook] confirmation email failed (continuing)",
+      `[stripe-webhook] confirmation email failed on ${pathLabel} (continuing)`,
       result.bookingId,
       err,
     );
