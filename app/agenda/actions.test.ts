@@ -48,7 +48,7 @@ describe("subscribeAgendaUpdatesAction", () => {
     expect(row).toMatchObject({
       email: "ada@example.com",
       source: "agenda_page",
-      wants_agenda_alert: true,
+      wants_topic_alert: true,
       wants_marketing: false,
     });
     expect(options).toEqual({ onConflict: "email,source" });
@@ -89,7 +89,7 @@ describe("subscribeAgendaUpdatesAction", () => {
 
     expect(result.ok).toBe(false);
     if (result.ok) return;
-    expect(result.error).toMatch(/agenda alert/i);
+    expect(result.error).toMatch(/tick the box/i);
     expect(upsertMock).not.toHaveBeenCalled();
   });
 

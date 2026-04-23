@@ -1,35 +1,35 @@
 import type { Metadata } from "next";
-import { AgendaSignupForm } from "@/components/AgendaSignupForm";
 import { Button } from "@/components/Button";
 import { Container } from "@/components/Container";
 import { Section } from "@/components/Section";
 import { SectionHeader } from "@/components/SectionHeader";
+import { SpeakersSignupForm } from "@/components/SpeakersSignupForm";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Agenda — Ignite 27",
+  title: "Speakers — Ignite 27",
   description:
-    "The full Ignite 27 agenda is on the way. Leave your email and we will tell you the moment it is announced.",
+    "Speakers for Ignite 27 are being announced. Leave your email and we will tell you each time one is confirmed.",
 };
 
-export default function AgendaPage() {
+export default function SpeakersPage() {
   return (
     <>
       <Section tone="light">
         <Container>
           <div className="mx-auto max-w-2xl">
             <SectionHeader
-              eyebrow="Agenda"
-              heading="The full Ignite 27 lineup is on the way."
-              lede="We're locking in speakers, workshops, and the running order. Drop your email and we'll let you know the moment it's announced."
+              eyebrow="Speakers"
+              heading="Speakers being announced."
+              lede="We're booking the lineup for Ignite 27. Drop your email and you'll be the first to hear when each speaker is confirmed."
               as="h1"
             />
             <div className="mt-10">
-              <AgendaSignupForm />
+              <SpeakersSignupForm />
             </div>
             <p className="mt-6 text-small text-ignite-muted">
-              One email, once the agenda is live.
+              One email, when speakers are confirmed.
             </p>
           </div>
         </Container>

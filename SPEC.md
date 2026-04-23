@@ -498,6 +498,32 @@ follow-up can add a Postgres advisory lock around the retry path.
 
 ---
 
+## Email signup captures
+
+Pre-content pages that want to collect emails from visitors waiting
+for an announcement (currently `/agenda` and `/speakers`, and any
+similar future page) write into a single table,
+`public.email_signups`. Each row is scoped by a `source` string
+identifying which page the signup came from, and a
+`(email, source)` unique constraint means re-submitting the same
+surface updates consent flags rather than duplicating.
+
+The opt-in boolean on the row is `wants_topic_alert`. It simply
+indicates that the user consented to receive alerts about whatever
+topic the row's `source` represents. The `source` column is the
+authoritative subject; the boolean is just "did they consent at
+all". The column was introduced as `wants_agenda_alert` in migration
+`20260421000000_email_signups.sql` when `/agenda` was the only
+capture surface; it was renamed to `wants_topic_alert` in migration
+`20260423000000_rename_consent_column.sql` once `/speakers` and
+future pages meant the `agenda` prefix had become misleading.
+
+Writes to the table happen only via server actions using the
+service-role Supabase client. RLS denies all anon/authenticated
+access except super-admin read; there are no public policies.
+
+---
+
 ## Test mode overrides
 
 The booking flow has one environment-variable override, used only for
