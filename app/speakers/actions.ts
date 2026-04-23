@@ -5,20 +5,20 @@ import {
   type SubscribeToEmailListResult,
 } from "@/lib/email-signups/subscribe";
 
-export type SubscribeAgendaUpdatesResult = SubscribeToEmailListResult;
+export type SubscribeSpeakersUpdatesResult = SubscribeToEmailListResult;
 
-const AGENDA_SOURCE = "agenda_page";
+const SPEAKERS_SOURCE = "speakers_page";
 
-export async function subscribeAgendaUpdatesAction(
+export async function subscribeSpeakersUpdatesAction(
   rawInput: unknown,
-): Promise<SubscribeAgendaUpdatesResult> {
+): Promise<SubscribeSpeakersUpdatesResult> {
   const raw = (typeof rawInput === "object" && rawInput !== null
     ? rawInput
     : {}) as Record<string, unknown>;
   return subscribeToEmailList({
-    source: AGENDA_SOURCE,
+    source: SPEAKERS_SOURCE,
     email: raw.email,
-    wantsAlert: raw.wantsAgendaAlert,
+    wantsAlert: raw.wantsSpeakersAlert,
     wantsMarketing: raw.wantsMarketing,
   });
 }
