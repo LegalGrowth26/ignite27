@@ -142,13 +142,13 @@ function PricingSection({ pricing }: { pricing: AttendPricing }) {
     : formatPoundsFromPence(pricing.pricing.delegate.vip.incVatPence);
   const lunchLabel = formatPoundsFromPence(LUNCH_ADDON_INC_VAT_PENCE);
 
-  const chip = isPreOpen ? "Window 1 preview" : undefined;
+  const chip = isPreOpen ? "Launch preview" : undefined;
 
   const regularCta = isPreOpen
-    ? { disabledLabel: "Bookings open 30 June" as const }
+    ? { disabledLabel: "Bookings open 1 August 2026" as const }
     : { label: "Book your place", href: "/attend/book?ticket=regular" };
   const vipCta = isPreOpen
-    ? { disabledLabel: "Bookings open 30 June" as const }
+    ? { disabledLabel: "Bookings open 1 August 2026" as const }
     : { label: "Book your place as VIP", href: "/attend/book?ticket=vip" };
 
   return (
@@ -156,10 +156,10 @@ function PricingSection({ pricing }: { pricing: AttendPricing }) {
       <Container>
         <SectionHeader
           eyebrow="Pricing"
-          heading={isPreOpen ? "Bookings open 30 June." : "Today's pricing."}
+          heading={isPreOpen ? "Bookings open 1 August 2026." : "Today's pricing."}
           lede={
             isPreOpen
-              ? "Bookings open 09:00, Tuesday 30 June 2026. Below are the Window 1 preview prices."
+              ? "Bookings open 09:00, Saturday 1 August 2026. Below are the launch preview prices."
               : "Prices rise as we get closer to the day. Book early, pay less."
           }
         />

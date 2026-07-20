@@ -71,8 +71,9 @@ async function findUserByEmail(
 }
 
 // Ensure a Supabase auth user exists for this email. If the user exists,
-// return their id. If not, create one with a random password (they'll set
-// their own via the magic-link-to-set-password flow).
+// return their id. If not, create one with a random password (they'll
+// set their own via the Supabase recovery-link → /auth/set-password
+// flow in the booking confirmation email).
 async function ensureAuthUser(
   client: SupabaseClient,
   email: string,

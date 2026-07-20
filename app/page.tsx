@@ -329,23 +329,24 @@ function PreOpenPricing() {
       <div className="rounded-2xl border border-ignite-line p-6 md:col-span-2">
         <p className="text-eyebrow uppercase text-ignite-red">Bookings open soon</p>
         <p className="mt-3 text-h2 font-semibold">
-          Bookings open 09:00, Tuesday 30 June 2026.
+          Bookings open 09:00, Saturday 1 August 2026.
         </p>
         <p className="mt-3 text-body text-ignite-muted">
-          Window 1 is Ignite 26 alumni only, via magic link. Window 2 opens to everyone on 2 July at
-          09:00.
+          Launch pricing runs for 72 hours from open, then standard pricing until
+          Christmas. Late pricing runs 1 to 18 January 2027. Bookings close 17:00,
+          Monday 18 January 2027.
         </p>
       </div>
       <div className="rounded-2xl border border-ignite-line p-6">
-        <p className="text-eyebrow uppercase text-ignite-red">Window 1 preview</p>
+        <p className="text-eyebrow uppercase text-ignite-red">Launch preview</p>
         <dl className="mt-4 space-y-3 text-body">
           <div className="flex items-baseline justify-between gap-4">
             <dt className="text-ignite-ink">Regular</dt>
-            <dd className="text-h3">£39</dd>
+            <dd className="text-h3">£30</dd>
           </div>
           <div className="flex items-baseline justify-between gap-4">
             <dt className="text-ignite-ink">VIP, lunch included</dt>
-            <dd className="text-h3">£99</dd>
+            <dd className="text-h3">£82.80</dd>
           </div>
           <div className="flex items-baseline justify-between gap-4 text-ignite-muted">
             <dt>Add lunch to Regular</dt>

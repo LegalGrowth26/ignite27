@@ -75,10 +75,9 @@ this file, stop and flag it rather than picking one.
 ## What to test, what not to test
 
 Write unit tests for:
-- The pricing engine (every window boundary, Christmas Day, event-day
-  uplift, lunch add-on, exhibitor pricing).
+- The pricing engine (every period boundary, Christmas Day, BST/GMT
+  spot-check, lunch add-on, VAT arithmetic, exhibitor stand cap).
 - Refund eligibility logic (every date boundary).
-- Window 1 eligibility checking.
 - Workshop priority access logic (phase 2).
 - QR token generation and validation (phase 3).
 
@@ -86,7 +85,6 @@ Write end-to-end tests for:
 - Delegate booking happy path.
 - Exhibitor booking happy path.
 - Cancellation request flow.
-- Window 1 magic-link flow.
 - Scanner happy path (phase 3).
 
 Do not test:

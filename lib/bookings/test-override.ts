@@ -2,8 +2,10 @@
 //
 // When BOOKING_TEST_OVERRIDE_DATE is set to a valid ISO 8601 date, the
 // booking flow treats that instant as "now" when deciding the pricing
-// window. This lets us exercise the full Stripe Checkout round-trip
-// before Window 1 actually opens on 30 June 2026.
+// period. This lets us exercise the full Stripe Checkout round-trip
+// before the launch period actually opens on 1 August 2026 09:00 UK,
+// and also to hit the standard / late periods without waiting for
+// real time.
 //
 // The override MUST NOT affect live pricing displays on the home page,
 // Attend page, or Exhibit page. Those call getCurrentPricing(new Date())
