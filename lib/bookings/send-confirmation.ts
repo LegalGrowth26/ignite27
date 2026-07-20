@@ -16,6 +16,11 @@ export interface SendDelegateConfirmationInput {
   bookingReference: string;
   parsed: ParsedDelegateMetadata;
   vatAmountPence: number;
+  // Actual amount the customer was charged, from Stripe's session
+  // amount_total (post-discount, post-tax). For comp bookings this is 0.
+  // Defaults to the metadata gross so callers that predate the promo-code
+  // work keep their previous behaviour.
+  grossPaidPence?: number;
 }
 
 function ticketTypeLabel(parsed: ParsedDelegateMetadata): string {
@@ -80,13 +85,17 @@ export async function sendDelegateConfirmationEmail(
 
   const setPasswordUrl = await generateSetPasswordLink(parsed.intent.email);
 
+  const grossPaidPence = input.grossPaidPence ?? parsed.pricing.grossIncVatPence;
+  const pricePaid =
+    grossPaidPence === 0 ? "£0 (comp)" : formatPoundsFromPence(grossPaidPence);
+
   const props: DelegateConfirmationProps = {
     firstName: parsed.intent.firstName,
     bookingReference,
     ticketTypeLabel: ticketTypeLabel(parsed),
     lunchLine: lunchLine(parsed),
     dietaryLabel: dietaryLabel(parsed),
-    pricePaid: formatPoundsFromPence(parsed.pricing.grossIncVatPence),
+    pricePaid,
     vatLine: vatLine(vatAmountPence),
     accountUrl: `${siteUrl}/account`,
     setPasswordUrl,

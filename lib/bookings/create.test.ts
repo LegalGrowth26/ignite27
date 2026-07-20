@@ -178,6 +178,60 @@ describe("createDelegateBookingFromCheckoutSession", () => {
     expect(bookingRow.stripe_checkout_session_id).toBe("cs_test_new");
     expect(bookingRow.booking_type).toBe("delegate");
     expect(bookingRow.payment_status).toBe("paid");
+    // Absent promo → all three columns null.
+    expect(bookingRow.promo_code).toBeNull();
+    expect(bookingRow.promo_code_id).toBeNull();
+    expect(bookingRow.discount_pence).toBeNull();
+  });
+
+  it("persists promo_code / promo_code_id / discount_pence when a code was used", async () => {
+    const { client, calls } = buildStubClient({});
+    const parsed = buildParsed();
+
+    await createDelegateBookingFromCheckoutSession({
+      client,
+      parsed,
+      stripeCheckoutSessionId: "cs_test_promo",
+      stripePaymentIntentId: "pi_test",
+      vatAmountPence: 560,
+      paidAt: new Date(),
+      promo: {
+        code: "STEPHINE20",
+        promotionCodeId: "promo_test_id",
+        discountPence: 700,
+      },
+    });
+
+    const row = calls.bookingsInsert.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(row.promo_code).toBe("STEPHINE20");
+    expect(row.promo_code_id).toBe("promo_test_id");
+    expect(row.discount_pence).toBe(700);
+    expect(row.payment_status).toBe("paid");
+  });
+
+  it("records payment_status 'comp' when passed for a 100%-off booking", async () => {
+    const { client, calls } = buildStubClient({});
+    const parsed = buildParsed();
+
+    await createDelegateBookingFromCheckoutSession({
+      client,
+      parsed,
+      stripeCheckoutSessionId: "cs_test_comp",
+      stripePaymentIntentId: null,
+      vatAmountPence: 0,
+      paidAt: new Date(),
+      paymentStatus: "comp",
+      promo: {
+        code: "TEAMCOMP",
+        promotionCodeId: "promo_comp_id",
+        discountPence: 3500,
+      },
+    });
+
+    const row = calls.bookingsInsert.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(row.payment_status).toBe("comp");
+    expect(row.promo_code).toBe("TEAMCOMP");
+    expect(row.discount_pence).toBe(3500);
   });
 
   it("is idempotent when a booking with this session id already exists (email not yet sent)", async () => {

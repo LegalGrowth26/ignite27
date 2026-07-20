@@ -28,6 +28,8 @@ interface BookingDetail {
   pricing_period: string;
   gross_amount_pence: number;
   vat_amount_pence: number;
+  discount_pence: number | null;
+  promo_code: string | null;
   lunch_included: boolean;
   payment_status: string;
   booking_status: string;
@@ -110,7 +112,8 @@ export default async function BookingDetailPage({
     .from("bookings")
     .select(
       `id, booking_reference, booking_type, ticket_type, pricing_period,
-       gross_amount_pence, vat_amount_pence, lunch_included,
+       gross_amount_pence, vat_amount_pence, discount_pence, promo_code,
+       lunch_included,
        payment_status, booking_status, created_at, confirmation_email_sent_at,
        booking_attendees (
          first_name, surname, email, mobile, company, job_title,
@@ -169,6 +172,16 @@ export default async function BookingDetailPage({
             <DetailRow label="Booked" value={formatDate(booking.created_at)} />
             <DetailRow label="Total paid" value={formatPoundsFromPence(booking.gross_amount_pence)} />
             <DetailRow label="VAT" value={formatPoundsFromPence(booking.vat_amount_pence)} />
+            {booking.promo_code ? (
+              <DetailRow
+                label="Discount code"
+                value={
+                  booking.discount_pence
+                    ? `${booking.promo_code} (${formatPoundsFromPence(booking.discount_pence)} off)`
+                    : booking.promo_code
+                }
+              />
+            ) : null}
             <DetailRow label="Lunch" value={booking.lunch_included ? "Included" : "Not added"} />
             <DetailRow label="Payment status" value={booking.payment_status} />
             <DetailRow label="Booking status" value={booking.booking_status} />
