@@ -7,7 +7,7 @@ import { SectionHeader } from "@/components/SectionHeader";
 export const metadata: Metadata = {
   title: "Contact — Ignite 27",
   description:
-    "Get in touch about Ignite 27. Tom Stansfield at Lincolnshire Marketing and Paul at Business Unfinished handle everything: delegate, exhibitor, and sponsorship enquiries.",
+    "Get in touch about Ignite 27. Tom Stansfield at Lincolnshire Marketing and Paul Green at Business Unfinished handle everything: delegate, exhibitor, and sponsorship enquiries.",
 };
 
 const ENQUIRY_SUBJECT = "IGNITE 27 enquiry";
@@ -27,7 +27,7 @@ const ORGANISERS: readonly Organiser[] = [
     email: "tom@lincolnshiremarketing.co.uk",
   },
   {
-    name: "Paul",
+    name: "Paul Green",
     company: "Business Unfinished",
     email: "paul@businessunfinished.co.uk",
   },
@@ -46,7 +46,7 @@ export default function ContactPage() {
             <SectionHeader
               eyebrow="Contact"
               heading="Talk to us."
-              lede="Ignite 27 is run by Tom Stansfield at Lincolnshire Marketing and Paul at Business Unfinished. Either of us is happy to hear from you — pick whoever, we sort it out from there."
+              lede="Ignite 27 is run by Tom Stansfield at Lincolnshire Marketing and Paul Green at Business Unfinished. Either of us is happy to hear from you — pick whoever, we sort it out from there."
               as="h1"
             />
           </div>
