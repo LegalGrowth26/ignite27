@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/Button";
 import { Container } from "@/components/Container";
@@ -47,13 +48,40 @@ const VALUE_PROPS: ReadonlyArray<{ title: string; body: string }> = [
 ];
 
 // TODO: replace with real Ignite 26 photography before the site goes live.
-const LAST_YEAR_PHOTOS: ReadonlyArray<{ seed: string; alt: string; span?: string }> = [
-  { seed: "ignite-crowd", alt: "Delegates gathered in the main hall at Ignite 26, mid-session", span: "md:col-span-2 md:row-span-2" },
-  { seed: "ignite-speaker", alt: "A speaker on stage at Ignite 26 addressing the room" },
-  { seed: "ignite-coffee", alt: "Delegates in conversation during a coffee break at Ignite 26" },
-  { seed: "ignite-exhibit", alt: "Exhibitors speaking with a delegate at a stand at Ignite 26" },
-  { seed: "ignite-networking", alt: "A small group of delegates in conversation in the Kelham Hall foyer" },
-  { seed: "ignite-venue", alt: "Interior of The Renaissance at Kelham Hall set for Ignite 26" },
+// Eight highlights chosen from the 38-photo library in
+// public/images/photos/. All landscape aspect (1600x1067). The first
+// entry spans a 2x2 tile on desktop so the grid reads as a proper
+// gallery, not eight equal cells. Swap in a different set by editing
+// the src values — the display srcs live next to their -thumb
+// counterparts, so `photo-05.webp` and `photo-05-thumb.webp` are the
+// same image at 1600px and 400px.
+const LAST_YEAR_PHOTOS: ReadonlyArray<{ src: string; alt: string; span?: string }> = [
+  {
+    src: "/images/photos/photo-01.webp",
+    alt: "Delegates gathered in the main hall at Ignite 26, mid-session",
+    span: "md:col-span-2 md:row-span-2",
+  },
+  { src: "/images/photos/photo-06.webp", alt: "A speaker on stage at Ignite 26 addressing the room" },
+  { src: "/images/photos/photo-10.webp", alt: "Delegates in conversation during a coffee break at Ignite 26" },
+  { src: "/images/photos/photo-14.webp", alt: "Exhibitors speaking with a delegate at a stand at Ignite 26" },
+  { src: "/images/photos/photo-18.webp", alt: "A small group of delegates in conversation in the Kelham Hall foyer" },
+  { src: "/images/photos/photo-23.webp", alt: "Interior of The Renaissance at Kelham Hall set for Ignite 26" },
+  { src: "/images/photos/photo-27.webp", alt: "Delegates networking between sessions at Ignite 26" },
+  { src: "/images/photos/photo-32.webp", alt: "Wide view of the Ignite 26 main hall from the balcony" },
+];
+
+// Eight partner logos from the site's existing partners strip. Files
+// live in public/images/partners/ and are padded to a consistent aspect
+// so the strip lines up. href stays "#" until real destinations arrive.
+const PARTNER_LOGOS: ReadonlyArray<{ src: string; alt: string; href: string }> = [
+  { src: "/images/partners/partner-01.webp", alt: "Partner 1 logo", href: "#" },
+  { src: "/images/partners/partner-02.webp", alt: "Partner 2 logo", href: "#" },
+  { src: "/images/partners/partner-03.webp", alt: "Partner 3 logo", href: "#" },
+  { src: "/images/partners/partner-04.webp", alt: "Partner 4 logo", href: "#" },
+  { src: "/images/partners/partner-05.webp", alt: "Partner 5 logo", href: "#" },
+  { src: "/images/partners/partner-06.webp", alt: "Partner 6 logo", href: "#" },
+  { src: "/images/partners/partner-07.webp", alt: "Partner 7 logo", href: "#" },
+  { src: "/images/partners/partner-08.webp", alt: "Partner 8 logo", href: "#" },
 ];
 
 export default function HomePage() {
@@ -77,6 +105,17 @@ export default function HomePage() {
 function Hero() {
   return (
     <section className="relative isolate overflow-hidden bg-ignite-black text-ignite-white">
+      {/* Real photography behind the red wash. next/image with priority
+          + fill so the LCP element loads early and the layout doesn't
+          shift when it arrives. */}
+      <Image
+        src="/images/brand/hero-main.webp"
+        alt=""
+        fill
+        priority
+        sizes="100vw"
+        className="pointer-events-none absolute inset-0 -z-10 object-cover opacity-40"
+      />
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
@@ -185,15 +224,16 @@ function LastYear() {
         <div className="mt-12 grid auto-rows-[180px] grid-cols-2 gap-3 sm:auto-rows-[220px] md:grid-cols-4">
           {LAST_YEAR_PHOTOS.map((photo) => (
             <figure
-              key={photo.seed}
+              key={photo.src}
               className={`relative overflow-hidden rounded-xl bg-ignite-line ${photo.span ?? ""}`}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={`https://picsum.photos/seed/${photo.seed}/900/700`}
+              <Image
+                src={photo.src}
                 alt={photo.alt}
+                fill
                 loading="lazy"
-                className="h-full w-full object-cover"
+                sizes="(min-width: 768px) 25vw, 50vw"
+                className="object-cover"
               />
             </figure>
           ))}
@@ -271,13 +311,21 @@ function PartnersStrip() {
           lede="Ignite 27 is made possible by sponsors and partners you'll recognise. Full line-up announced closer to the day."
         />
         <ul className="mt-12 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-8">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <li
-              key={i}
-              aria-hidden
-              className="flex aspect-[3/2] items-center justify-center rounded-lg border border-dashed border-ignite-line bg-ignite-white text-eyebrow uppercase text-ignite-muted"
-            >
-              Logo
+          {PARTNER_LOGOS.map((p) => (
+            <li key={p.src}>
+              <a
+                href={p.href}
+                className="flex aspect-[3/2] items-center justify-center rounded-lg border border-ignite-line bg-ignite-white p-3 transition-colors hover:border-ignite-red/40"
+              >
+                <Image
+                  src={p.src}
+                  alt={p.alt}
+                  width={200}
+                  height={120}
+                  loading="lazy"
+                  className="max-h-full max-w-full object-contain"
+                />
+              </a>
             </li>
           ))}
         </ul>
