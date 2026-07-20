@@ -8,7 +8,7 @@ import { Section } from "@/components/Section";
 import { SectionHeader } from "@/components/SectionHeader";
 import {
   BookingsNotOpenError,
-  formatPoundsFromPence,
+  formatExVatWithGross,
   getCurrentPricing,
   type CurrentPricing,
 } from "@/lib/pricing";
@@ -36,7 +36,10 @@ function resolveExhibitPricing(now: Date): ExhibitPricing {
   }
 }
 
-const WINDOW_1_EXHIBITOR_PENCE = 20000;
+// Launch-period exhibitor preview price (£189 + VAT = £226.80 inc-VAT),
+// shown in the pre-open state as "£189 + VAT (£226.80)".
+const LAUNCH_EXHIBITOR_EX_VAT_PENCE = 18900;
+const LAUNCH_EXHIBITOR_INC_VAT_PENCE = 22680;
 
 const EXHIBITOR_INCLUDES: readonly string[] = [
   "1 exhibitor space",
@@ -45,7 +48,8 @@ const EXHIBITOR_INCLUDES: readonly string[] = [
 ];
 
 // TODO: wire this to the live count from the database once the exhibitor
-// booking flow is built. For now the number is hardcoded.
+// booking flow is built. For now the number is hardcoded to match
+// EXHIBITOR_STAND_CAP.
 const EXHIBITOR_SPACES_REMAINING = 50;
 const EXHIBITOR_SPACES_TOTAL = 50;
 
@@ -54,7 +58,7 @@ const EXHIBIT_STEPS: readonly BookingStep[] = [
     label: "Your details",
     body: "Company, main contact, two people attending, dietary.",
   },
-  { label: "Pay", body: "Secure card payment via Stripe. VAT-inclusive." },
+  { label: "Pay", body: "Secure card payment via Stripe. VAT added at checkout." },
   {
     label: "We assign your stand",
     body: "Confirmed within a working day.",
@@ -105,45 +109,29 @@ function Hero() {
 
 function PricingSection({ pricing }: { pricing: ExhibitPricing }) {
   const isPreOpen = pricing.status === "pre_open";
-  const isEventDayClosed =
-    pricing.status === "live" && pricing.pricing.exhibitor === null;
 
-  let heading: string;
-  let lede: string;
+  // Step 6 will rewrite this heading/lede copy to the pricing-v2 wording.
+  const heading = isPreOpen ? "Bookings open 1 August 2026." : "Today's pricing.";
+  const lede = isPreOpen
+    ? "Bookings open 09:00, Saturday 1 August 2026. Below is the launch preview price."
+    : "Each exhibitor booking includes two attendee places and two lunches.";
 
-  if (isPreOpen) {
-    heading = "Bookings open 30 June.";
-    lede =
-      "Bookings open 09:00, Tuesday 30 June 2026. Below is the Window 1 preview price.";
-  } else if (isEventDayClosed) {
-    heading = "Exhibitor bookings are closed on the day.";
-    lede = "See you next year. In the meantime, catch us at Ignite 27 as a delegate.";
-  } else {
-    heading = "Today's pricing.";
-    lede = "Each exhibitor booking includes two attendee places and two lunches.";
-  }
+  const extraNote = `${EXHIBITOR_SPACES_REMAINING} of ${EXHIBITOR_SPACES_TOTAL} spaces remaining.`;
 
-  const extraNote = isEventDayClosed
-    ? undefined
-    : `${EXHIBITOR_SPACES_REMAINING} of ${EXHIBITOR_SPACES_TOTAL} spaces remaining.`;
+  const priceLabel = isPreOpen
+    ? formatExVatWithGross(LAUNCH_EXHIBITOR_EX_VAT_PENCE, LAUNCH_EXHIBITOR_INC_VAT_PENCE)
+    : pricing.status === "live"
+      ? formatExVatWithGross(
+          pricing.pricing.exhibitor.exVatPence,
+          pricing.pricing.exhibitor.incVatPence,
+        )
+      : "Closed";
 
-  let priceLabel = "Closed";
-  if (isPreOpen) {
-    priceLabel = formatPoundsFromPence(WINDOW_1_EXHIBITOR_PENCE);
-  } else if (pricing.status === "live" && pricing.pricing.exhibitor !== null) {
-    priceLabel = formatPoundsFromPence(pricing.pricing.exhibitor);
-  }
+  const cta: { label: string; href: string } | { disabledLabel: string } = isPreOpen
+    ? { disabledLabel: "Bookings open 1 August 2026" }
+    : { label: "Reserve your stand", href: "/exhibit/book" };
 
-  let cta: { label: string; href: string } | { disabledLabel: string };
-  if (isPreOpen) {
-    cta = { disabledLabel: "Bookings open 30 June" };
-  } else if (isEventDayClosed) {
-    cta = { disabledLabel: "Bookings closed" };
-  } else {
-    cta = { label: "Reserve your stand", href: "/exhibit/book" };
-  }
-
-  const chip = isPreOpen ? "Window 1 preview" : undefined;
+  const chip = isPreOpen ? "Launch preview" : undefined;
 
   return (
     <Section tone="light">
@@ -165,7 +153,8 @@ function PricingSection({ pricing }: { pricing: ExhibitPricing }) {
           </div>
         </div>
         <p className="mt-8 text-small text-ignite-muted">
-          Prices are VAT-inclusive. See the{" "}
+          Prices shown are ex-VAT with the VAT-inclusive total in
+          brackets. See the{" "}
           <Link
             href="/refund-policy"
             className="underline underline-offset-4 hover:text-ignite-red"

@@ -75,10 +75,9 @@ this file, stop and flag it rather than picking one.
 ## What to test, what not to test
 
 Write unit tests for:
-- The pricing engine (every window boundary, Christmas Day, event-day
-  uplift, lunch add-on, exhibitor pricing).
+- The pricing engine (every period boundary, Christmas Day, BST/GMT
+  spot-check, lunch add-on, VAT arithmetic, exhibitor stand cap).
 - Refund eligibility logic (every date boundary).
-- Window 1 eligibility checking.
 - Workshop priority access logic (phase 2).
 - QR token generation and validation (phase 3).
 
@@ -86,7 +85,6 @@ Write end-to-end tests for:
 - Delegate booking happy path.
 - Exhibitor booking happy path.
 - Cancellation request flow.
-- Window 1 magic-link flow.
 - Scanner happy path (phase 3).
 
 Do not test:
@@ -122,9 +120,13 @@ Do not test:
   call is a no-op.
 - Refunds are manual via Stripe dashboard for phase 1. Do not build
   refund automation.
-- VAT: Stripe is configured to record VAT on each transaction. Prices
-  passed to Checkout are VAT-inclusive (the price the customer sees and
-  pays). Stripe receipts show the VAT breakdown.
+- VAT: Stripe Tax is enabled via `automatic_tax: { enabled: true }`.
+  Line items are passed **ex-VAT** with `tax_behavior: "exclusive"`;
+  Stripe adds 20% UK VAT on top and shows the ex-VAT amount, VAT, and
+  total on the receipt. The one exception is the £15 lunch add-on,
+  which is defined inc-VAT (£12.50 ex + £2.50 VAT) so the "£15 flat"
+  customer-facing figure reads exactly — its `unit_amount` passed to
+  Stripe is still the ex-VAT value (1250 pence).
 
 ---
 

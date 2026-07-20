@@ -71,8 +71,9 @@ async function findUserByEmail(
 }
 
 // Ensure a Supabase auth user exists for this email. If the user exists,
-// return their id. If not, create one with a random password (they'll set
-// their own via the magic-link-to-set-password flow).
+// return their id. If not, create one with a random password (they'll
+// set their own via the Supabase recovery-link → /auth/set-password
+// flow in the booking confirmation email).
 async function ensureAuthUser(
   client: SupabaseClient,
   email: string,
@@ -238,10 +239,9 @@ export async function createDelegateBookingFromCheckoutSession(
       booking_reference: bookingReference,
       booking_type: "delegate",
       ticket_type: intent.ticketType,
-      pricing_window: pricing.window,
-      gross_amount_pence: pricing.grossAmountPence,
+      pricing_period: pricing.period,
+      gross_amount_pence: pricing.grossIncVatPence,
       vat_amount_pence: vatAmountPence,
-      charity_uplift_pence: pricing.charityUpliftPence,
       currency: "gbp",
       lunch_included:
         intent.ticketType === "vip" ? true : intent.lunchIncluded,

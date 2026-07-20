@@ -15,13 +15,12 @@ For brand voice and copy rules, see `COPYWRITING.md`.
 
 - [ ] Clean `previous_bookers_ignite26.csv` produced from Stripe + TOMCRM +
       spreadsheets, with email, first name, surname, company, booking type.
-      **Owner: Tom. Deadline: end of February 2026.**
+      **Owner: Tom. Deadline: end of February 2026.** Retained as a marketing
+      list for the launch invite; no longer gates booking access.
 - [ ] Confirm exhibitor stand allocation UX: simple text field on booking
       record (phase 1 default) vs. visual floor plan (later, if needed).
 - [ ] Confirm printer requirements for badge PDFs (paper size, bleed, CMYK
       vs RGB) before phase 3 build starts.
-- [ ] Confirm whether Window 1 fallback (Stripe Payment Links + manual
-      import) is required, by end of May 2026.
 
 ---
 
@@ -45,29 +44,29 @@ phase is out of scope for that phase.
 
 ### Phase 1 — ship by Tuesday 23 June 2026
 
-(One week buffer before Window 1 opens at 09:00 on 30 June 2026.)
+(Buffer before the launch pricing period opens at 09:00 on Saturday
+1 August 2026.)
 
 - Public marketing site: Home, Attend, Exhibit, Sponsors, Partners, Venue,
   FAQ, Contact, Login, Terms, Refund Policy, Privacy Policy. Speakers and
   Agenda pages exist as "to be announced" placeholders.
 - Date-driven pricing engine (see Pricing section).
-- Previous-bookers seed import from CSV.
-- Window 1 magic-link eligibility flow with manual organiser override.
 - Delegate booking flow (Regular and VIP, optional lunch add-on).
-- Exhibitor booking flow (company + 2 attendees + 2 lunches).
-- Stripe Checkout integration with webhook handling, VAT-inclusive pricing,
-  VAT shown on receipts.
+- Exhibitor booking flow (company + 2 attendees + 2 lunches), capped by
+  `EXHIBITOR_STAND_CAP`.
+- Stripe Checkout integration with webhook handling, VAT-exclusive pricing
+  (VAT shown as a separate line on receipts).
 - Password-protected user account area: view booking, view ticket reference,
   view refund policy, request cancellation, resend confirmation email,
   request a correction to attendee details.
 - Transactional emails via Resend: booking confirmation (delegate),
-  booking confirmation (exhibitor), magic link, password reset,
+  booking confirmation (exhibitor), password reset,
   cancellation request received, correction request received.
 - Cancellation-request mechanism (form submission to organisers, refunds
   processed manually via Stripe dashboard).
 - Organiser dashboard (basic): list bookings, filter by type/date,
   view revenue totals, view dietary breakdown, action cancellation
-  requests, manual override for Window 1 eligibility.
+  requests.
 - CSV exports (named exports — see CSV Exports section).
 - Legal pages with checkbox acceptance logged at point of purchase.
 
@@ -93,7 +92,7 @@ phase is out of scope for that phase.
 - Lunch scan flow.
 - Badge PDFs finalised and sent to printer in early January, ideally by
   8 January 2027.
-- Advanced MI: check-ins, no-shows, referral performance, window-by-window
+- Advanced MI: check-ins, no-shows, referral performance, period-by-period
   revenue breakdown.
 
 **Phase 3 operational requirement:** QR scanning must be built and tested
@@ -130,45 +129,70 @@ the venue (or replicating venue WiFi conditions) in January 2027 before
 
 ## Pricing
 
-All pricing is in GBP and **VAT-inclusive**. The platform's operating
-company is VAT-registered. Stripe is configured to record VAT on each
-transaction and Stripe receipts show the VAT breakdown. Public-facing
-prices on the site are the inclusive price the customer pays.
+All prices are in GBP and **ex-VAT**. VAT is added at the UK standard
+rate of 20%. The platform's operating company is VAT-registered. Stripe
+is configured to record VAT as an **exclusive** tax rate; receipts show
+the ex-VAT price, the VAT amount, and the total.
 
-### Delegate pricing
+**Public price displays show both figures**, e.g. "£25 + VAT (£30)". The
+customer sees exactly what they pay. Lunch is the one exception (see
+below): it is defined inc-VAT and shown flat.
 
-| Window     | Regular | VIP  |
-|------------|---------|------|
-| 1          | £39     | £99  |
-| 2          | £49     | £119 |
-| 3          | £59     | £139 |
-| 4          | £69     | £159 |
-| Event day  | £74     | £164 |
+Sponsorship pricing is held in this file but **not displayed publicly**;
+sponsorship is enquiry-led.
 
-Lunch add-on for Regular delegates: **£15 fixed across all windows.**
-VIP price always includes lunch.
+### Delegate pricing (lunch NOT included)
 
-Event-day pricing is Window 4 plus a £5 charity uplift per ticket. The
-£5 uplift goes to the **Lincoln City Foundation** and appears on the
-Stripe receipt as a separate line item: "Lincoln City Foundation donation."
+| Period   | Price (ex-VAT) |
+|----------|----------------|
+| Launch   | £25            |
+| Standard | £35            |
+| Late     | £45            |
+
+Optional lunch add-on for delegates: **£15 inc-VAT** (£12.50 ex-VAT +
+£2.50 VAT). Displayed to customers as "£15" flat. Stripe records it
+with the correct VAT breakdown.
+
+### VIP pricing (lunch INCLUDED)
+
+| Period   | Price (ex-VAT) |
+|----------|----------------|
+| Launch   | £69            |
+| Standard | £85            |
+| Late     | £99            |
+
+VIP tickets always include lunch. There is no lunch add-on for VIPs.
 
 ### Exhibitor pricing
 
-| Window | Price |
-|--------|-------|
-| 1      | £200  |
-| 2      | £250  |
-| 3      | £325  |
-| 4      | £400  |
+| Period               | Price (ex-VAT) |
+|----------------------|----------------|
+| Launch               | £189           |
+| Standard (and Late)  | £249           |
 
 Each exhibitor booking includes 2 attendee places and 2 lunches.
-**Exhibitor bookings are not available on event day.**
 
-### Sponsorship
+There is no separate Late price for exhibitors: sales continue at £249
+into January until either (a) the stand cap is reached, or (b) bookings
+close on Monday 18 January 2027, 17:00 UK, whichever comes first.
 
-Enquiry-led only. **Do not display sponsorship pricing publicly.**
-Enquiries route to tom@lincolnshiremarketing.co.uk and
-paul@businessunfinished.co.uk.
+**Stand cap:** `EXHIBITOR_STAND_CAP` (config constant in
+`lib/pricing/exhibitor.ts`, set to **50**; may be raised later). Only
+PAID exhibitor bookings count toward the cap; abandoned Stripe checkouts
+do not. When the cap is reached, the exhibitor booking UI shows "sold
+out" and the server refuses further exhibitor checkouts.
+
+### Sponsorship (ex-VAT, not shown publicly)
+
+| Tier          | Price (ex-VAT) | Spots |
+|---------------|----------------|-------|
+| Headline      | £3,500         | 1     |
+| Speakers Den  | £2,500         | 1     |
+| Partner       | £1,000 each    | 5     |
+
+**Enquiry-led. Do not display sponsorship pricing publicly.** Enquiries
+route to tom@lincolnshiremarketing.co.uk and paul@businessunfinished.co.uk.
+No checkout flow for sponsorship.
 
 ### Partners
 
@@ -177,62 +201,34 @@ Enquiries route as above.
 
 ---
 
-## Pricing windows
+## Pricing periods
 
 All times are UK local time (Europe/London, handles BST/GMT automatically).
+Periods are half-open intervals `[opens, closes)`. There are no gaps and
+no event-day sales.
 
-| Window | Opens | Closes | Eligibility |
-|--------|-------|--------|-------------|
-| 1 | Tue 30 Jun 2026, 09:00 | Thu 2 Jul 2026, 09:00 | Previous Ignite 26 paid bookers only, via magic link |
-| 2 | Thu 2 Jul 2026, 09:00 | Sun 19 Jul 2026, 23:59 | Public |
-| 3 | Mon 20 Jul 2026, 00:00 | Thu 31 Dec 2026, 23:59 | Public |
-| Christmas drop | Fri 25 Dec 2026, 00:00 | Fri 25 Dec 2026, 23:59 | Public, prices revert to Window 2 silently, overriding Window 3 |
-| 4 | Fri 1 Jan 2027, 00:00 | Wed 20 Jan 2027, 23:59 | Public |
-| Event day | Thu 21 Jan 2027, 00:00 | Thu 21 Jan 2027, end of event | Public, +£5 charity uplift, delegate only (no exhibitor sales) |
+| Period   | Opens                    | Closes                    |
+|----------|--------------------------|---------------------------|
+| Launch   | Sat 1 Aug 2026, 09:00    | Tue 4 Aug 2026, 09:00     |
+| Standard | Tue 4 Aug 2026, 09:00    | Thu 31 Dec 2026, 23:59    |
+| Late     | Fri 1 Jan 2027, 00:00    | Mon 18 Jan 2027, 17:00    |
 
-**Booking is open continuously from 09:00 on 30 June 2026 onward.**
-Pricing is determined automatically by whichever window is active at the
-moment of checkout. There are no closed gaps between windows. The Christmas
-Day drop is intentionally undocumented publicly. The pricing function
-returns Window 2 prices for any request on 25 December 2026.
+**Bookings close entirely at Monday 18 January 2027, 17:00 UK.** After
+that instant, `getCurrentPricing` throws `BookingsClosedError` and every
+booking surface blocks new checkouts. There are no on-the-day or
+event-day sales of any kind, delegate or exhibitor.
 
----
+Before Saturday 1 August 2026 at 09:00 UK, `getCurrentPricing` throws
+`BookingsNotOpenError`. The booking pages catch it and render a
+"Bookings open 09:00, Saturday 1 August 2026" state with a disabled CTA.
 
-## Window 1 eligibility
+### Alumni launch invite (marketing, not gating)
 
-- Eligibility = anyone with a paid Ignite 26 booking (delegate or exhibitor).
-- Source list = `previous_bookers_ignite26.csv` seeded into a
-  `previous_bookers` table on first deployment.
-- Source CSV is reconciled from Stripe (truth source for "paid"), enriched
-  with name/company/booking type from TOMCRM and spreadsheets.
-- During Window 1, the Attend and Exhibit pages show an email entry form
-  before pricing/checkout is revealed.
-- User enters email; if email matches a row in `previous_bookers`, a magic
-  link is sent via Resend; clicking the link grants a session that unlocks
-  Window 1 pricing for that user.
-- If email does not match, the user is shown a polite message
-  ("Window 1 is for Ignite 26 alumni only. Window 2 opens 2 July at
-  09:00") and a form to join the waiting list.
-
-### Manual eligibility override
-
-Edge cases will occur. Examples: alumnus has changed email address;
-exhibitor paid for the team under one email so colleagues do not
-self-match; someone paid on behalf of someone else. The admin dashboard
-includes a "grant Window 1 access" action where Tom or Paul can manually
-add an email to the eligibility list, triggering a magic link to that
-address. All overrides are logged with admin identity and reason.
-
-### Fallback
-
-If the platform is not ready by 23 June 2026, Window 1 runs manually:
-- Stripe Payment Links created for Regular, VIP, and Exhibitor at Window 1
-  prices.
-- A Tally form captures booker details and dietary requirements.
-- Bookings are imported into the platform once it goes live, with original
-  purchase timestamps preserved.
-
-Decision on whether to invoke the fallback to be made by end of May 2026.
+Previous Ignite 26 paid bookers are invited by email to book during the
+launch period. This is a marketing send, not a technical eligibility
+gate: booking is fully public from the moment launch opens. The
+`previous_bookers` table survives as the source list for that marketing
+send; the magic-link and eligibility-override machinery is removed.
 
 ---
 
@@ -245,7 +241,8 @@ Decision on whether to invoke the fallback to be made by end of May 2026.
 3. Enter attendee details (see schema).
 4. Tick checkbox accepting Terms and Refund Policy. Acceptance is logged
    with timestamp and IP address.
-5. Stripe Checkout (one-off payment, VAT-inclusive).
+5. Stripe Checkout (one-off payment, VAT-exclusive: VAT shown as a
+   separate line on the receipt).
 6. On webhook success, create or update user account (link by email),
    create booking record, send confirmation email.
 7. Redirect to account area showing booking confirmation.
@@ -383,7 +380,7 @@ single-click download. Exports are timestamped in the filename.
 ### Phase 1
 - **Attendees** — every individual person attending (delegate, VIP, both
   exhibitor attendees), with name, email, company, ticket type, dietary
-  requirement, lunch flag, payment date, payment window.
+  requirement, lunch flag, payment date, payment period.
 - **Exhibitors** — exhibitor company list with main contact, both
   attendees, payment status, stand allocation field.
 - **Lunch list** — every person with a lunch entitlement (VIPs, Regulars
@@ -391,8 +388,8 @@ single-click download. Exports are timestamped in the filename.
   dietary requirement.
 - **Dietary summary** — counts and named individuals per dietary
   requirement (none, vegetarian, vegan, gluten-free).
-- **Revenue by window** — total revenue and ticket counts grouped by
-  pricing window, with VAT breakdown.
+- **Revenue by period** — total revenue and ticket counts grouped by
+  pricing period (launch / standard / late), with VAT breakdown.
 
 ### Phase 2 adds
 - **Workshop bookings** — every workshop with bookers, contact details,
@@ -414,14 +411,13 @@ All exports are UTF-8 CSV with a header row, ordered for human review
 ## Admin dashboard (phase 1 minimal, expands through phases)
 
 ### Phase 1
-- Booking list with filters (type, window, date range).
+- Booking list with filters (type, period, date range).
 - Revenue totals by booking type, with VAT breakdown.
 - Dietary breakdown (count per requirement).
-- Exhibitor space remaining count.
+- Exhibitor stands remaining count (against `EXHIBITOR_STAND_CAP`).
 - All phase 1 CSV exports.
 - Cancellation requests inbox.
 - Correction requests inbox.
-- Manual Window 1 eligibility override (grant + log).
 
 ### Phase 2 adds
 - Speaker management (CRUD).
@@ -444,7 +440,6 @@ All exports are UTF-8 CSV with a header row, ordered for human review
 Phase 1:
 - Booking confirmation (delegate)
 - Booking confirmation (exhibitor)
-- Window 1 magic link
 - Password reset
 - Cancellation request received
 - Cancellation actioned (manual trigger from admin)
@@ -527,16 +522,16 @@ access except super-admin read; there are no public policies.
 ## Test mode overrides
 
 The booking flow has one environment-variable override, used only for
-pre-launch verification of the Stripe Checkout round-trip before Window 1
-opens. It is not a feature, it is a short-lived testing aid. It must be
-unset before 09:00 on Tuesday 30 June 2026.
+pre-launch verification of the Stripe Checkout round-trip before the
+launch pricing period opens. It is not a feature, it is a short-lived
+testing aid. It must be unset before 09:00 on Saturday 1 August 2026.
 
 ### `BOOKING_TEST_OVERRIDE_DATE`
 
-Set to an ISO 8601 instant (e.g. `2026-07-15T10:00:00Z`) to make the
+Set to an ISO 8601 instant (e.g. `2026-08-02T10:00:00Z`) to make the
 delegate booking page and the server-side checkout-session creation treat
 that instant as "now" when calling `getCurrentPricing`. The chosen date
-determines which pricing window applies and therefore what Stripe charges.
+determines which pricing period applies and therefore what Stripe charges.
 
 Scope: the override affects **only** the booking flow.
 - `/attend/book` page pricing calculation.
@@ -565,7 +560,7 @@ of truth the pricing engine consumes, so it cannot drift.
 
 ### Pre-launch checklist
 
-Before 30 June 2026 Window 1 opens, an operator must:
+Before 1 August 2026 09:00 UK (launch opens), an operator must:
 
 - Unset `BOOKING_TEST_OVERRIDE_DATE` in Vercel (all environments).
 - Unset `ALLOW_OVERRIDE_IN_PRODUCTION` in Vercel (all environments).

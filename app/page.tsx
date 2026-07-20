@@ -5,6 +5,7 @@ import { Section } from "@/components/Section";
 import { SectionHeader } from "@/components/SectionHeader";
 import {
   BookingsNotOpenError,
+  formatExVatWithGross,
   getCurrentPricing,
   type CurrentPricing,
 } from "@/lib/pricing";
@@ -54,10 +55,6 @@ const LAST_YEAR_PHOTOS: ReadonlyArray<{ seed: string; alt: string; span?: string
   { seed: "ignite-networking", alt: "A small group of delegates in conversation in the Kelham Hall foyer" },
   { seed: "ignite-venue", alt: "Interior of The Renaissance at Kelham Hall set for Ignite 26" },
 ];
-
-function formatPoundsFromPence(pence: number): string {
-  return `£${(pence / 100).toFixed(pence % 100 === 0 ? 0 : 2)}`;
-}
 
 export default function HomePage() {
   const preview = resolvePricingPreview(new Date());
@@ -329,23 +326,24 @@ function PreOpenPricing() {
       <div className="rounded-2xl border border-ignite-line p-6 md:col-span-2">
         <p className="text-eyebrow uppercase text-ignite-red">Bookings open soon</p>
         <p className="mt-3 text-h2 font-semibold">
-          Bookings open 09:00, Tuesday 30 June 2026.
+          Bookings open 09:00, Saturday 1 August 2026.
         </p>
         <p className="mt-3 text-body text-ignite-muted">
-          Window 1 is Ignite 26 alumni only, via magic link. Window 2 opens to everyone on 2 July at
-          09:00.
+          Launch pricing runs for 72 hours from open, then standard pricing until
+          Christmas. Late pricing runs 1 to 18 January 2027. Bookings close 17:00,
+          Monday 18 January 2027.
         </p>
       </div>
       <div className="rounded-2xl border border-ignite-line p-6">
-        <p className="text-eyebrow uppercase text-ignite-red">Window 1 preview</p>
+        <p className="text-eyebrow uppercase text-ignite-red">Launch preview</p>
         <dl className="mt-4 space-y-3 text-body">
           <div className="flex items-baseline justify-between gap-4">
             <dt className="text-ignite-ink">Regular</dt>
-            <dd className="text-h3">£39</dd>
+            <dd className="text-h3">£25 + VAT (£30)</dd>
           </div>
           <div className="flex items-baseline justify-between gap-4">
             <dt className="text-ignite-ink">VIP, lunch included</dt>
-            <dd className="text-h3">£99</dd>
+            <dd className="text-h3">£69 + VAT (£82.80)</dd>
           </div>
           <div className="flex items-baseline justify-between gap-4 text-ignite-muted">
             <dt>Add lunch to Regular</dt>
@@ -358,13 +356,18 @@ function PreOpenPricing() {
 }
 
 function LivePricing({ pricing }: { pricing: CurrentPricing }) {
-  const regular = formatPoundsFromPence(pricing.delegate.regular);
-  const vip = formatPoundsFromPence(pricing.delegate.vip);
-  const lunch = formatPoundsFromPence(pricing.delegate.lunchAddOn);
-  const exhibitor =
-    pricing.exhibitor === null ? null : formatPoundsFromPence(pricing.exhibitor);
-  const uplift =
-    pricing.charityUplift > 0 ? formatPoundsFromPence(pricing.charityUplift) : null;
+  const regular = formatExVatWithGross(
+    pricing.delegate.regular.exVatPence,
+    pricing.delegate.regular.incVatPence,
+  );
+  const vip = formatExVatWithGross(
+    pricing.delegate.vip.exVatPence,
+    pricing.delegate.vip.incVatPence,
+  );
+  const exhibitor = formatExVatWithGross(
+    pricing.exhibitor.exVatPence,
+    pricing.exhibitor.incVatPence,
+  );
 
   return (
     <>
@@ -372,19 +375,9 @@ function LivePricing({ pricing }: { pricing: CurrentPricing }) {
       <PricingCard title="VIP" price={vip} note="Lunch included." />
       <PricingCard
         title="Exhibitor"
-        price={exhibitor ?? "Closed"}
-        note={
-          exhibitor
-            ? "Two people, two lunches."
-            : "Exhibitor bookings are not available on event day."
-        }
+        price={exhibitor}
+        note="Two people, two lunches."
       />
-      {uplift ? (
-        <p className="md:col-span-3 text-small text-ignite-muted">
-          Event-day tickets include a {uplift} donation to the Lincoln City Foundation, itemised on
-          your receipt.
-        </p>
-      ) : null}
     </>
   );
 }

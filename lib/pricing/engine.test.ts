@@ -3,153 +3,110 @@ import { describe, expect, it } from "vitest";
 import {
   BookingsClosedError,
   BookingsNotOpenError,
-  getActiveWindow,
+  getActivePeriod,
 } from "./engine";
-import { PRICING_TIMEZONE } from "./windows";
+import {
+  BOOKINGS_CLOSE_AT,
+  BOOKINGS_OPEN_AT,
+  PRICING_TIMEZONE,
+} from "./periods";
 
-// Helper: build a UTC Date from a UK-local wall-clock ISO string.
 const uk = (iso: string) => fromZonedTime(iso, PRICING_TIMEZONE);
 
-describe("getActiveWindow — bookings-open boundary", () => {
-  it("throws before 30 Jun 2026 09:00 UK", () => {
-    expect(() => getActiveWindow(uk("2026-06-30T08:59:00"))).toThrow(BookingsNotOpenError);
-    expect(() => getActiveWindow(uk("2026-06-29T23:59:59"))).toThrow(BookingsNotOpenError);
-    expect(() => getActiveWindow(uk("2020-01-01T00:00:00"))).toThrow(BookingsNotOpenError);
+describe("getActivePeriod — pre-open guard", () => {
+  it("throws BookingsNotOpenError days before launch", () => {
+    expect(() => getActivePeriod(uk("2026-06-29T00:00:00"))).toThrow(
+      BookingsNotOpenError,
+    );
   });
 
-  it("returns window_1 at exactly 30 Jun 2026 09:00 UK", () => {
-    expect(getActiveWindow(uk("2026-06-30T09:00:00"))).toBe("window_1");
+  it("throws BookingsNotOpenError one second before launch opens", () => {
+    const before = new Date(BOOKINGS_OPEN_AT.getTime() - 1000);
+    expect(() => getActivePeriod(before)).toThrow(BookingsNotOpenError);
   });
 
-  it("returns window_1 one minute after open", () => {
-    expect(getActiveWindow(uk("2026-06-30T09:01:00"))).toBe("window_1");
-  });
-});
-
-describe("getActiveWindow — window_1 -> window_2 boundary (2 Jul 2026 09:00 UK)", () => {
-  it("minute before is window_1", () => {
-    expect(getActiveWindow(uk("2026-07-02T08:59:00"))).toBe("window_1");
-  });
-
-  it("exact boundary is window_2", () => {
-    expect(getActiveWindow(uk("2026-07-02T09:00:00"))).toBe("window_2");
-  });
-
-  it("minute after is window_2", () => {
-    expect(getActiveWindow(uk("2026-07-02T09:01:00"))).toBe("window_2");
+  it("opens exactly at the launch instant (inclusive lower bound)", () => {
+    expect(getActivePeriod(BOOKINGS_OPEN_AT)).toBe("launch");
   });
 });
 
-describe("getActiveWindow — window_2 -> window_3 boundary (20 Jul 2026 00:00 UK)", () => {
-  it("23:59 on 19 Jul is window_2", () => {
-    expect(getActiveWindow(uk("2026-07-19T23:59:00"))).toBe("window_2");
+describe("getActivePeriod — launch period", () => {
+  it("returns launch just after open (1 Aug 2026 09:00 UK)", () => {
+    expect(getActivePeriod(uk("2026-08-01T09:00:01"))).toBe("launch");
   });
 
-  it("00:00 on 20 Jul is window_3", () => {
-    expect(getActiveWindow(uk("2026-07-20T00:00:00"))).toBe("window_3");
+  it("returns launch inside the window (2 Aug 2026 10:00 UK)", () => {
+    expect(getActivePeriod(uk("2026-08-02T10:00:00"))).toBe("launch");
   });
 
-  it("00:01 on 20 Jul is window_3", () => {
-    expect(getActiveWindow(uk("2026-07-20T00:01:00"))).toBe("window_3");
-  });
-});
-
-describe("getActiveWindow — window_3 -> window_4 boundary (1 Jan 2027 00:00 UK)", () => {
-  it("23:59 on 31 Dec 2026 is window_3", () => {
-    expect(getActiveWindow(uk("2026-12-31T23:59:00"))).toBe("window_3");
-  });
-
-  it("00:00 on 1 Jan 2027 is window_4", () => {
-    expect(getActiveWindow(uk("2027-01-01T00:00:00"))).toBe("window_4");
-  });
-
-  it("00:01 on 1 Jan 2027 is window_4", () => {
-    expect(getActiveWindow(uk("2027-01-01T00:01:00"))).toBe("window_4");
+  it("returns launch one second before it closes", () => {
+    expect(getActivePeriod(uk("2026-08-04T08:59:59"))).toBe("launch");
   });
 });
 
-describe("getActiveWindow — window_4 -> event_day boundary (21 Jan 2027 00:00 UK)", () => {
-  it("23:59 on 20 Jan is window_4", () => {
-    expect(getActiveWindow(uk("2027-01-20T23:59:00"))).toBe("window_4");
+describe("getActivePeriod — standard period", () => {
+  it("returns standard exactly at the launch → standard transition", () => {
+    // Half-open [opens, closes): 4 Aug 09:00 belongs to standard, not launch.
+    expect(getActivePeriod(uk("2026-08-04T09:00:00"))).toBe("standard");
   });
 
-  it("00:00 on 21 Jan is event_day", () => {
-    expect(getActiveWindow(uk("2027-01-21T00:00:00"))).toBe("event_day");
+  it("returns standard in early autumn", () => {
+    expect(getActivePeriod(uk("2026-09-15T12:00:00"))).toBe("standard");
   });
 
-  it("09:30 on event day is event_day", () => {
-    expect(getActiveWindow(uk("2027-01-21T09:30:00"))).toBe("event_day");
+  it("BST/GMT spot-check: last day of BST (Sun 25 Oct 2026) is still standard", () => {
+    // 25 Oct 2026 was the day the UK clocks went back. The engine must
+    // still map a UK-local 12:00 that day to standard regardless of DST.
+    expect(getActivePeriod(uk("2026-10-25T12:00:00"))).toBe("standard");
   });
 
-  it("23:59 on 21 Jan is event_day", () => {
-    expect(getActiveWindow(uk("2027-01-21T23:59:00"))).toBe("event_day");
-  });
-});
-
-describe("getActiveWindow — bookings-closed boundary (22 Jan 2027 00:00 UK)", () => {
-  it("00:00 on 22 Jan 2027 throws", () => {
-    expect(() => getActiveWindow(uk("2027-01-22T00:00:00"))).toThrow(BookingsClosedError);
+  it("returns standard on Christmas Day 2026", () => {
+    expect(getActivePeriod(uk("2026-12-25T12:00:00"))).toBe("standard");
   });
 
-  it("00:01 on 22 Jan 2027 throws", () => {
-    expect(() => getActiveWindow(uk("2027-01-22T00:01:00"))).toThrow(BookingsClosedError);
-  });
-
-  it("far future throws", () => {
-    expect(() => getActiveWindow(uk("2030-01-01T00:00:00"))).toThrow(BookingsClosedError);
+  it("returns standard one second before New Year 2027", () => {
+    expect(getActivePeriod(uk("2026-12-31T23:59:59"))).toBe("standard");
   });
 });
 
-describe("getActiveWindow — Christmas drop overlay", () => {
-  it("23:59 on 24 Dec 2026 is window_3 (drop has not started)", () => {
-    expect(getActiveWindow(uk("2026-12-24T23:59:00"))).toBe("window_3");
+describe("getActivePeriod — late period", () => {
+  it("returns late exactly at the standard → late transition", () => {
+    // Half-open: 1 Jan 2027 00:00 belongs to late.
+    expect(getActivePeriod(uk("2027-01-01T00:00:00"))).toBe("late");
   });
 
-  it("00:00 on 25 Dec 2026 is christmas_drop", () => {
-    expect(getActiveWindow(uk("2026-12-25T00:00:00"))).toBe("christmas_drop");
+  it("returns late in early January", () => {
+    expect(getActivePeriod(uk("2027-01-10T12:00:00"))).toBe("late");
   });
 
-  it("12:00 on 25 Dec 2026 is christmas_drop", () => {
-    expect(getActiveWindow(uk("2026-12-25T12:00:00"))).toBe("christmas_drop");
-  });
-
-  it("23:59 on 25 Dec 2026 is christmas_drop", () => {
-    expect(getActiveWindow(uk("2026-12-25T23:59:00"))).toBe("christmas_drop");
-  });
-
-  it("00:00 on 26 Dec 2026 falls back to window_3", () => {
-    expect(getActiveWindow(uk("2026-12-26T00:00:00"))).toBe("window_3");
+  it("returns late one second before bookings close (18 Jan 2027 16:59:59 UK)", () => {
+    expect(getActivePeriod(uk("2027-01-18T16:59:59"))).toBe("late");
   });
 });
 
-describe("getActiveWindow — BST/GMT transition on 25 Oct 2026", () => {
-  // 25 Oct 2026: at 02:00 BST clocks go back to 01:00 GMT.
-  // All instants fall within Window 3. Use UTC literals so there is no
-  // ambiguity around the repeated 01:00 UK-local hour.
-
-  it("22:00 UTC on 24 Oct 2026 (23:00 BST) is window_3", () => {
-    expect(getActiveWindow(new Date("2026-10-24T22:00:00Z"))).toBe("window_3");
+describe("getActivePeriod — post-close guard", () => {
+  it("throws BookingsClosedError exactly at the close instant", () => {
+    // Half-open close: 18 Jan 17:00 already counts as closed.
+    expect(() => getActivePeriod(BOOKINGS_CLOSE_AT)).toThrow(
+      BookingsClosedError,
+    );
   });
 
-  it("00:30 UTC on 25 Oct 2026 (01:30 BST, pre-fallback) is window_3", () => {
-    expect(getActiveWindow(new Date("2026-10-25T00:30:00Z"))).toBe("window_3");
+  it("throws BookingsClosedError one minute after close (18 Jan 17:01 UK)", () => {
+    expect(() => getActivePeriod(uk("2027-01-18T17:01:00"))).toThrow(
+      BookingsClosedError,
+    );
   });
 
-  it("01:30 UTC on 25 Oct 2026 (01:30 GMT, post-fallback) is window_3", () => {
-    expect(getActiveWindow(new Date("2026-10-25T01:30:00Z"))).toBe("window_3");
+  it("throws BookingsClosedError on event day (21 Jan 2027) — no event-day sales in v2", () => {
+    expect(() => getActivePeriod(uk("2027-01-21T09:00:00"))).toThrow(
+      BookingsClosedError,
+    );
   });
 
-  it("12:00 UTC on 25 Oct 2026 (12:00 GMT) is window_3", () => {
-    expect(getActiveWindow(new Date("2026-10-25T12:00:00Z"))).toBe("window_3");
-  });
-
-  it("window_1 boundary is in BST: 08:00 UTC = 09:00 BST on 30 Jun 2026", () => {
-    expect(getActiveWindow(new Date("2026-06-30T08:00:00Z"))).toBe("window_1");
-    expect(() => getActiveWindow(new Date("2026-06-30T07:59:00Z"))).toThrow(BookingsNotOpenError);
-  });
-
-  it("window_4 boundary is in GMT: 00:00 UTC = 00:00 GMT on 1 Jan 2027", () => {
-    expect(getActiveWindow(new Date("2027-01-01T00:00:00Z"))).toBe("window_4");
-    expect(getActiveWindow(new Date("2026-12-31T23:59:00Z"))).toBe("window_3");
+  it("throws BookingsClosedError long after the event", () => {
+    expect(() => getActivePeriod(uk("2027-06-01T00:00:00"))).toThrow(
+      BookingsClosedError,
+    );
   });
 });

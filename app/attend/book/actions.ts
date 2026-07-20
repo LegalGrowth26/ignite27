@@ -56,7 +56,7 @@ export async function createCheckoutSessionAction(
         errors: [
           {
             field: "form",
-            message: "Bookings open 09:00, Tuesday 30 June 2026. Try again then.",
+            message: "Bookings open 09:00, Saturday 1 August 2026. Try again then.",
           },
         ],
       };

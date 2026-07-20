@@ -78,7 +78,7 @@ export default async function BookingPage(props: { searchParams: SearchParams })
               state.status === "live"
                 ? "Your details, then payment."
                 : state.status === "pre_open"
-                  ? "Bookings open 30 June."
+                  ? "Bookings open 1 August 2026."
                   : "Bookings are closed."
             }
             lede={
@@ -92,20 +92,25 @@ export default async function BookingPage(props: { searchParams: SearchParams })
             <div className="mt-10">
               <BookingForm
                 ticketType={ticketType}
-                ticketPricePence={
+                ticketExVatPence={
                   ticketType === "vip"
-                    ? state.pricing.delegate.vip
-                    : state.pricing.delegate.regular
+                    ? state.pricing.delegate.vip.exVatPence
+                    : state.pricing.delegate.regular.exVatPence
                 }
-                lunchAddOnPence={state.pricing.delegate.lunchAddOn}
-                charityUpliftPence={state.pricing.charityUplift}
-                windowLabel={formatWindowLabel(state.pricing.window)}
+                ticketIncVatPence={
+                  ticketType === "vip"
+                    ? state.pricing.delegate.vip.incVatPence
+                    : state.pricing.delegate.regular.incVatPence
+                }
+                lunchAddOnExVatPence={state.pricing.delegate.lunchAddOn.exVatPence}
+                lunchAddOnIncVatPence={state.pricing.delegate.lunchAddOn.incVatPence}
+                periodLabel={formatPeriodLabel(state.pricing.period)}
               />
             </div>
           ) : state.status === "pre_open" ? (
             <div className="mt-8 rounded-2xl border border-ignite-line bg-ignite-cream p-6">
               <p className="text-body text-ignite-ink">
-                Bookings open 09:00, Tuesday 30 June 2026. Come back then.
+                Bookings open 09:00, Saturday 1 August 2026. Come back then.
               </p>
               <div className="mt-4">
                 <Button href="/attend" variant="secondary" size="md">
@@ -134,19 +139,13 @@ export default async function BookingPage(props: { searchParams: SearchParams })
   );
 }
 
-function formatWindowLabel(window: CurrentPricing["window"]): string {
-  switch (window) {
-    case "window_1":
-      return "Window 1 pricing";
-    case "window_2":
-      return "Window 2 pricing";
-    case "window_3":
-      return "Window 3 pricing";
-    case "christmas_drop":
-      return "Window 2 pricing";
-    case "window_4":
-      return "Window 4 pricing";
-    case "event_day":
-      return "Event-day pricing";
+function formatPeriodLabel(period: CurrentPricing["period"]): string {
+  switch (period) {
+    case "launch":
+      return "Launch pricing";
+    case "standard":
+      return "Standard pricing";
+    case "late":
+      return "Late pricing";
   }
 }

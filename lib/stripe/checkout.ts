@@ -52,23 +52,26 @@ export function computeDelegatePricing(
   now: Date,
 ): DelegatePricingSnapshot {
   const current = getCurrentPricing(now);
-  const ticketPricePence =
-    intent.ticketType === "vip" ? current.delegate.vip : current.delegate.regular;
+
+  const ticket = intent.ticketType === "vip" ? current.delegate.vip : current.delegate.regular;
   // VIP includes lunch already; no separate lunch line.
-  // Regular with the lunch add-on gets a separate £15 line.
-  const lunchPricePence =
-    intent.ticketType === "regular" && intent.lunchIncluded
-      ? current.delegate.lunchAddOn
-      : 0;
-  const charityUpliftPence = current.charityUplift;
-  const grossAmountPence = ticketPricePence + lunchPricePence + charityUpliftPence;
+  // Regular with the lunch add-on gets a separate line item.
+  const includeLunchLine = intent.ticketType === "regular" && intent.lunchIncluded;
+  const lunch = includeLunchLine
+    ? current.delegate.lunchAddOn
+    : { exVatPence: 0, vatPence: 0, incVatPence: 0 };
 
   return {
-    window: current.window,
-    ticketPricePence,
-    lunchPricePence,
-    charityUpliftPence,
-    grossAmountPence,
+    period: current.period,
+    ticketExVatPence: ticket.exVatPence,
+    ticketVatPence: ticket.vatPence,
+    ticketIncVatPence: ticket.incVatPence,
+    lunchExVatPence: lunch.exVatPence,
+    lunchVatPence: lunch.vatPence,
+    lunchIncVatPence: lunch.incVatPence,
+    grossExVatPence: ticket.exVatPence + lunch.exVatPence,
+    grossVatPence: ticket.vatPence + lunch.vatPence,
+    grossIncVatPence: ticket.incVatPence + lunch.incVatPence,
   };
 }
 
@@ -88,13 +91,20 @@ function buildLineItems(
   intent: DelegateBookingIntent,
   pricing: DelegatePricingSnapshot,
 ): Stripe.Checkout.SessionCreateParams.LineItem[] {
+  // Pricing v2: line items are ex-VAT and tax_behavior is "exclusive". With
+  // automatic_tax enabled, Stripe Tax adds 20% UK VAT on top and shows it as
+  // a separate line on the receipt. The customer-charged total is unchanged
+  // versus the previous inclusive presentation (e.g. a £25+VAT delegate
+  // ticket still charges £30 in total), but tax reporting and any future
+  // discount codes apply cleanly to the ex-VAT base — the discount reduces
+  // the ex-VAT amount and VAT is recomputed on the discounted total.
   const items: Stripe.Checkout.SessionCreateParams.LineItem[] = [
     {
       quantity: 1,
       price_data: {
         currency: "gbp",
-        unit_amount: pricing.ticketPricePence,
-        tax_behavior: "inclusive",
+        unit_amount: pricing.ticketExVatPence,
+        tax_behavior: "exclusive",
         product_data: {
           name: ticketProductName(intent),
           description: ticketProductDescription(intent),
@@ -103,31 +113,16 @@ function buildLineItems(
     },
   ];
 
-  if (pricing.lunchPricePence > 0) {
+  if (pricing.lunchExVatPence > 0) {
     items.push({
       quantity: 1,
       price_data: {
         currency: "gbp",
-        unit_amount: pricing.lunchPricePence,
-        tax_behavior: "inclusive",
+        unit_amount: pricing.lunchExVatPence,
+        tax_behavior: "exclusive",
         product_data: {
           name: "Lunch at Ignite 27",
           description: "Hot lunch on the day, dietary options catered for.",
-        },
-      },
-    });
-  }
-
-  if (pricing.charityUpliftPence > 0) {
-    items.push({
-      quantity: 1,
-      price_data: {
-        currency: "gbp",
-        unit_amount: pricing.charityUpliftPence,
-        tax_behavior: "inclusive",
-        product_data: {
-          name: "Lincoln City Foundation donation",
-          description: "£5 charity uplift for event-day bookings.",
         },
       },
     });
@@ -141,12 +136,12 @@ export async function createDelegateCheckoutSession(
 ): Promise<DelegateCheckoutSessionResult> {
   const { intent, termsAcceptedIp, pricingNow } = input;
 
-  // pricingNow decides which pricing window applies. It can be shifted by the
-  // BOOKING_TEST_OVERRIDE_DATE env var so we can exercise the flow before
-  // Window 1 opens. Anything Stripe reads (expires_at) or we persist as a
-  // real-world audit event (terms acceptance) must use real wall-clock time:
-  // Stripe validates expires_at against its own clock, and termsAcceptedAt is
-  // the legal record of when the user ticked the box.
+  // pricingNow decides which pricing period applies. It can be shifted by the
+  // BOOKING_TEST_OVERRIDE_DATE env var so we can exercise the flow before the
+  // launch period opens. Anything Stripe reads (expires_at) or we persist as
+  // a real-world audit event (terms acceptance) must use real wall-clock
+  // time: Stripe validates expires_at against its own clock, and
+  // termsAcceptedAt is the legal record of when the user ticked the box.
   const realNow = new Date();
 
   let pricing: DelegatePricingSnapshot;

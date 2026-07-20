@@ -8,9 +8,10 @@ import { Section } from "@/components/Section";
 import { SectionHeader } from "@/components/SectionHeader";
 import {
   BookingsNotOpenError,
+  formatExVatWithGross,
   formatPoundsFromPence,
   getCurrentPricing,
-  LUNCH_ADDON_PENCE,
+  LUNCH_ADDON_INC_VAT_PENCE,
   type CurrentPricing,
 } from "@/lib/pricing";
 
@@ -37,9 +38,12 @@ function resolveAttendPricing(now: Date): AttendPricing {
   }
 }
 
-// Window 1 previews, used only when bookings have not opened yet.
-const WINDOW_1_REGULAR_PENCE = 3900;
-const WINDOW_1_VIP_PENCE = 9900;
+// Launch-period preview prices, shown when bookings have not opened yet.
+// Both ex-VAT and inc-VAT are needed so we can render "£25 + VAT (£30)".
+const LAUNCH_REGULAR_EX_VAT_PENCE = 2500;
+const LAUNCH_REGULAR_INC_VAT_PENCE = 3000;
+const LAUNCH_VIP_EX_VAT_PENCE = 6900;
+const LAUNCH_VIP_INC_VAT_PENCE = 8280;
 
 const REGULAR_INCLUDES: readonly string[] = [
   "Full-day access, Thursday 21 January 2027",
@@ -58,7 +62,7 @@ const VIP_INCLUDES: readonly string[] = [
 const ATTEND_STEPS: readonly BookingStep[] = [
   { label: "Choose", body: "Regular or VIP. Add lunch if you want it." },
   { label: "Your details", body: "Name, email, company, dietary. Quick form." },
-  { label: "Pay", body: "Secure card payment via Stripe. VAT-inclusive." },
+  { label: "Pay", body: "Secure card payment via Stripe. VAT added at checkout." },
   { label: "Confirmed", body: "Ticket in your inbox, diary entry done." },
 ];
 
@@ -133,20 +137,26 @@ function PricingSection({ pricing }: { pricing: AttendPricing }) {
   const isPreOpen = pricing.status === "pre_open";
 
   const regularPrice = isPreOpen
-    ? formatPoundsFromPence(WINDOW_1_REGULAR_PENCE)
-    : formatPoundsFromPence(pricing.pricing.delegate.regular);
+    ? formatExVatWithGross(LAUNCH_REGULAR_EX_VAT_PENCE, LAUNCH_REGULAR_INC_VAT_PENCE)
+    : formatExVatWithGross(
+        pricing.pricing.delegate.regular.exVatPence,
+        pricing.pricing.delegate.regular.incVatPence,
+      );
   const vipPrice = isPreOpen
-    ? formatPoundsFromPence(WINDOW_1_VIP_PENCE)
-    : formatPoundsFromPence(pricing.pricing.delegate.vip);
-  const lunchLabel = formatPoundsFromPence(LUNCH_ADDON_PENCE);
+    ? formatExVatWithGross(LAUNCH_VIP_EX_VAT_PENCE, LAUNCH_VIP_INC_VAT_PENCE)
+    : formatExVatWithGross(
+        pricing.pricing.delegate.vip.exVatPence,
+        pricing.pricing.delegate.vip.incVatPence,
+      );
+  const lunchLabel = formatPoundsFromPence(LUNCH_ADDON_INC_VAT_PENCE);
 
-  const chip = isPreOpen ? "Window 1 preview" : undefined;
+  const chip = isPreOpen ? "Launch preview" : undefined;
 
   const regularCta = isPreOpen
-    ? { disabledLabel: "Bookings open 30 June" as const }
+    ? { disabledLabel: "Bookings open 1 August 2026" as const }
     : { label: "Book your place", href: "/attend/book?ticket=regular" };
   const vipCta = isPreOpen
-    ? { disabledLabel: "Bookings open 30 June" as const }
+    ? { disabledLabel: "Bookings open 1 August 2026" as const }
     : { label: "Book your place as VIP", href: "/attend/book?ticket=vip" };
 
   return (
@@ -154,10 +164,10 @@ function PricingSection({ pricing }: { pricing: AttendPricing }) {
       <Container>
         <SectionHeader
           eyebrow="Pricing"
-          heading={isPreOpen ? "Bookings open 30 June." : "Today's pricing."}
+          heading={isPreOpen ? "Bookings open 1 August 2026." : "Today's pricing."}
           lede={
             isPreOpen
-              ? "Bookings open 09:00, Tuesday 30 June 2026. Below are the Window 1 preview prices."
+              ? "Bookings open 09:00, Saturday 1 August 2026. Below are the launch preview prices."
               : "Prices rise as we get closer to the day. Book early, pay less."
           }
         />
@@ -182,7 +192,8 @@ function PricingSection({ pricing }: { pricing: AttendPricing }) {
           />
         </div>
         <p className="mt-8 text-small text-ignite-muted">
-          Prices are VAT-inclusive. See the{" "}
+          Prices shown are ex-VAT with the VAT-inclusive total in
+          brackets. Lunch is £15 flat, already VAT-inclusive. See the{" "}
           <Link
             href="/refund-policy"
             className="underline underline-offset-4 hover:text-ignite-red"

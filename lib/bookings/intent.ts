@@ -194,14 +194,23 @@ export function validateDelegateBookingIntent(input: unknown): IntentValidationR
 // Stripe metadata encoding.
 // Stripe limits: 50 keys per object, each value <= 500 chars, each key <= 40
 // chars. We store everything flat as strings.
+//
+// Pricing v2 snapshot: ex-VAT is the source of truth for tickets, lunch
+// is defined inc-VAT (and both breakdowns are carried). Every amount is
+// integer pence.
 // -----------------------------------------------------------------------------
 
 export interface DelegatePricingSnapshot {
-  window: string;
-  ticketPricePence: number;
-  lunchPricePence: number;
-  charityUpliftPence: number;
-  grossAmountPence: number;
+  period: string;
+  ticketExVatPence: number;
+  ticketVatPence: number;
+  ticketIncVatPence: number;
+  lunchExVatPence: number;
+  lunchVatPence: number;
+  lunchIncVatPence: number;
+  grossExVatPence: number;
+  grossVatPence: number;
+  grossIncVatPence: number;
 }
 
 export interface DelegateIntentMetadata {
@@ -209,11 +218,16 @@ export interface DelegateIntentMetadata {
   booking_type: "delegate";
   ticket_type: DelegateTicketType;
   lunch_included: string;
-  pricing_window: string;
-  ticket_price_pence: string;
-  lunch_price_pence: string;
-  charity_uplift_pence: string;
-  gross_amount_pence: string;
+  pricing_period: string;
+  ticket_ex_vat_pence: string;
+  ticket_vat_pence: string;
+  ticket_inc_vat_pence: string;
+  lunch_ex_vat_pence: string;
+  lunch_vat_pence: string;
+  lunch_inc_vat_pence: string;
+  gross_ex_vat_pence: string;
+  gross_vat_pence: string;
+  gross_inc_vat_pence: string;
   first_name: string;
   surname: string;
   email: string;
@@ -240,11 +254,16 @@ export function intentToMetadata(
     booking_type: "delegate",
     ticket_type: intent.ticketType,
     lunch_included: String(intent.lunchIncluded),
-    pricing_window: pricing.window,
-    ticket_price_pence: String(pricing.ticketPricePence),
-    lunch_price_pence: String(pricing.lunchPricePence),
-    charity_uplift_pence: String(pricing.charityUpliftPence),
-    gross_amount_pence: String(pricing.grossAmountPence),
+    pricing_period: pricing.period,
+    ticket_ex_vat_pence: String(pricing.ticketExVatPence),
+    ticket_vat_pence: String(pricing.ticketVatPence),
+    ticket_inc_vat_pence: String(pricing.ticketIncVatPence),
+    lunch_ex_vat_pence: String(pricing.lunchExVatPence),
+    lunch_vat_pence: String(pricing.lunchVatPence),
+    lunch_inc_vat_pence: String(pricing.lunchIncVatPence),
+    gross_ex_vat_pence: String(pricing.grossExVatPence),
+    gross_vat_pence: String(pricing.grossVatPence),
+    gross_inc_vat_pence: String(pricing.grossIncVatPence),
     first_name: intent.firstName,
     surname: intent.surname,
     email: intent.email,
@@ -334,11 +353,16 @@ export function metadataToParsed(metadata: Record<string, string | null>): Parse
       termsAccepted: true,
     },
     pricing: {
-      window: requireMetadataField(metadata, "pricing_window"),
-      ticketPricePence: parseIntMetadata(metadata, "ticket_price_pence"),
-      lunchPricePence: parseIntMetadata(metadata, "lunch_price_pence"),
-      charityUpliftPence: parseIntMetadata(metadata, "charity_uplift_pence"),
-      grossAmountPence: parseIntMetadata(metadata, "gross_amount_pence"),
+      period: requireMetadataField(metadata, "pricing_period"),
+      ticketExVatPence: parseIntMetadata(metadata, "ticket_ex_vat_pence"),
+      ticketVatPence: parseIntMetadata(metadata, "ticket_vat_pence"),
+      ticketIncVatPence: parseIntMetadata(metadata, "ticket_inc_vat_pence"),
+      lunchExVatPence: parseIntMetadata(metadata, "lunch_ex_vat_pence"),
+      lunchVatPence: parseIntMetadata(metadata, "lunch_vat_pence"),
+      lunchIncVatPence: parseIntMetadata(metadata, "lunch_inc_vat_pence"),
+      grossExVatPence: parseIntMetadata(metadata, "gross_ex_vat_pence"),
+      grossVatPence: parseIntMetadata(metadata, "gross_vat_pence"),
+      grossIncVatPence: parseIntMetadata(metadata, "gross_inc_vat_pence"),
     },
   };
 }

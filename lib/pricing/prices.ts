@@ -1,72 +1,68 @@
-import type { PricingWindow } from "./windows";
+import type { PricingPeriod } from "./periods";
 
 export type DelegateTicketType = "regular" | "vip";
 
-export class ExhibitorBookingsClosedOnEventDayError extends Error {
-  constructor() {
-    super("exhibitor bookings closed on event day");
-    this.name = "ExhibitorBookingsClosedOnEventDayError";
-  }
+export interface PriceAmounts {
+  exVatPence: number;
+  vatPence: number;
+  incVatPence: number;
 }
 
-// All prices are VAT-inclusive integer pence. Tables are lifted verbatim from
-// SPEC.md. Christmas drop reverts silently to Window 2. Event day delegate
-// prices are the Window 4 figures: the £5 charity uplift is returned by
-// getCharityUplift so Stripe can show it as a separate line item.
-const REGULAR_PRICES_PENCE: Record<PricingWindow, number> = {
-  window_1: 3900,
-  window_2: 4900,
-  window_3: 5900,
-  christmas_drop: 4900,
-  window_4: 6900,
-  event_day: 6900,
-};
+export const VAT_RATE = 0.2;
 
-const VIP_PRICES_PENCE: Record<PricingWindow, number> = {
-  window_1: 9900,
-  window_2: 11900,
-  window_3: 13900,
-  christmas_drop: 11900,
-  window_4: 15900,
-  event_day: 15900,
-};
-
-const EXHIBITOR_PRICES_PENCE: Record<Exclude<PricingWindow, "event_day">, number> = {
-  window_1: 20000,
-  window_2: 25000,
-  window_3: 32500,
-  christmas_drop: 25000,
-  window_4: 40000,
-};
-
-export const LUNCH_ADDON_PENCE = 1500;
-export const EVENT_DAY_CHARITY_UPLIFT_PENCE = 500;
-
-export function getDelegatePrice(window: PricingWindow, ticketType: "vip"): number;
-export function getDelegatePrice(
-  window: PricingWindow,
-  ticketType: "regular",
-  withLunch: boolean,
-): number;
-export function getDelegatePrice(
-  window: PricingWindow,
-  ticketType: DelegateTicketType,
-  withLunch?: boolean,
-): number {
-  if (ticketType === "vip") {
-    return VIP_PRICES_PENCE[window];
-  }
-  const base = REGULAR_PRICES_PENCE[window];
-  return base + (withLunch ? LUNCH_ADDON_PENCE : 0);
+// Derive a PriceAmounts from an ex-VAT source. All new-model tickets are
+// defined ex-VAT and every listed value rounds to exact pence at 20%
+// (e.g. 2500 × 0.2 = 500, no fractional pence).
+export function priceFromExVat(exVatPence: number): PriceAmounts {
+  const vatPence = Math.round(exVatPence * VAT_RATE);
+  return { exVatPence, vatPence, incVatPence: exVatPence + vatPence };
 }
 
-export function getExhibitorPrice(window: PricingWindow): number {
-  if (window === "event_day") {
-    throw new ExhibitorBookingsClosedOnEventDayError();
-  }
-  return EXHIBITOR_PRICES_PENCE[window];
+// Derive a PriceAmounts from an inc-VAT source. The lunch add-on is the
+// only price defined this way, so the customer-facing "£15 flat" is
+// exact. 1500 / 1.2 = 1250 (ex) + 250 (VAT).
+export function priceFromIncVat(incVatPence: number): PriceAmounts {
+  const exVatPence = Math.round(incVatPence / (1 + VAT_RATE));
+  const vatPence = incVatPence - exVatPence;
+  return { exVatPence, vatPence, incVatPence };
 }
 
-export function getCharityUplift(window: PricingWindow): number {
-  return window === "event_day" ? EVENT_DAY_CHARITY_UPLIFT_PENCE : 0;
+const DELEGATE_EX_VAT_PENCE: Record<PricingPeriod, number> = {
+  launch: 2500,
+  standard: 3500,
+  late: 4500,
+};
+
+const VIP_EX_VAT_PENCE: Record<PricingPeriod, number> = {
+  launch: 6900,
+  standard: 8500,
+  late: 9900,
+};
+
+// Exhibitor: no separate late price; standard price continues through
+// the late period until the stand cap or bookings-close, whichever first.
+const EXHIBITOR_EX_VAT_PENCE: Record<PricingPeriod, number> = {
+  launch: 18900,
+  standard: 24900,
+  late: 24900,
+};
+
+// Lunch add-on is defined inc-VAT so the customer-facing "£15 flat"
+// reads exactly.
+export const LUNCH_ADDON_INC_VAT_PENCE = 1500;
+
+export function getDelegatePrice(period: PricingPeriod): PriceAmounts {
+  return priceFromExVat(DELEGATE_EX_VAT_PENCE[period]);
+}
+
+export function getVipPrice(period: PricingPeriod): PriceAmounts {
+  return priceFromExVat(VIP_EX_VAT_PENCE[period]);
+}
+
+export function getExhibitorPrice(period: PricingPeriod): PriceAmounts {
+  return priceFromExVat(EXHIBITOR_EX_VAT_PENCE[period]);
+}
+
+export function getLunchAddOnPrice(): PriceAmounts {
+  return priceFromIncVat(LUNCH_ADDON_INC_VAT_PENCE);
 }

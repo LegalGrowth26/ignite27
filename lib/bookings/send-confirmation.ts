@@ -46,7 +46,7 @@ function dietaryLabel(parsed: ParsedDelegateMetadata): string {
 }
 
 function vatLine(vatPence: number): string {
-  if (vatPence <= 0) return "VAT-inclusive.";
+  if (vatPence <= 0) return "No VAT applied.";
   return `(includes VAT of ${formatPoundsFromPence(vatPence)}).`;
 }
 
@@ -86,7 +86,7 @@ export async function sendDelegateConfirmationEmail(
     ticketTypeLabel: ticketTypeLabel(parsed),
     lunchLine: lunchLine(parsed),
     dietaryLabel: dietaryLabel(parsed),
-    pricePaid: formatPoundsFromPence(parsed.pricing.grossAmountPence),
+    pricePaid: formatPoundsFromPence(parsed.pricing.grossIncVatPence),
     vatLine: vatLine(vatAmountPence),
     accountUrl: `${siteUrl}/account`,
     setPasswordUrl,

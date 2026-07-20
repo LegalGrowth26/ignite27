@@ -127,11 +127,16 @@ describe("validateDelegateBookingIntent", () => {
 
 describe("intent metadata round-trip", () => {
   const pricing: DelegatePricingSnapshot = {
-    window: "window_2",
-    ticketPricePence: 4900,
-    lunchPricePence: 1500,
-    charityUpliftPence: 0,
-    grossAmountPence: 6400,
+    period: "standard",
+    ticketExVatPence: 3500,
+    ticketVatPence: 700,
+    ticketIncVatPence: 4200,
+    lunchExVatPence: 1250,
+    lunchVatPence: 250,
+    lunchIncVatPence: 1500,
+    grossExVatPence: 4750,
+    grossVatPence: 950,
+    grossIncVatPence: 5700,
   };
 
   it("round-trips a valid intent through Stripe-style metadata", () => {
@@ -154,8 +159,9 @@ describe("intent metadata round-trip", () => {
     expect(parsed.intent.email).toBe(result.intent.email);
     expect(parsed.intent.lunchIncluded).toBe(result.intent.lunchIncluded);
     expect(parsed.intent.marketingOptIn).toBe(result.intent.marketingOptIn);
-    expect(parsed.pricing.ticketPricePence).toBe(4900);
-    expect(parsed.pricing.grossAmountPence).toBe(6400);
+    expect(parsed.pricing.ticketIncVatPence).toBe(4200);
+    expect(parsed.pricing.grossIncVatPence).toBe(5700);
+    expect(parsed.pricing.period).toBe("standard");
   });
 
   it("throws MetadataParseError when booking_type is not delegate", () => {

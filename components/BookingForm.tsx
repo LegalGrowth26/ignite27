@@ -9,15 +9,16 @@ import {
   type DietaryRequirement,
   type IntentFieldError,
 } from "@/lib/bookings/intent";
-import { formatPoundsFromPence } from "@/lib/pricing";
+import { formatExVatWithGross, formatPoundsFromPence } from "@/lib/pricing";
 import { Button } from "./Button";
 
 interface BookingFormProps {
   ticketType: DelegateTicketType;
-  ticketPricePence: number;
-  lunchAddOnPence: number;
-  charityUpliftPence: number;
-  windowLabel: string;
+  ticketExVatPence: number;
+  ticketIncVatPence: number;
+  lunchAddOnExVatPence: number;
+  lunchAddOnIncVatPence: number;
+  periodLabel: string;
 }
 
 const DIETARY_LABELS: Record<DietaryRequirement, string> = {
@@ -46,10 +47,11 @@ const REQ = "text-ignite-red";
 
 export function BookingForm({
   ticketType,
-  ticketPricePence,
-  lunchAddOnPence,
-  charityUpliftPence,
-  windowLabel,
+  ticketExVatPence,
+  ticketIncVatPence,
+  lunchAddOnExVatPence,
+  lunchAddOnIncVatPence,
+  periodLabel,
 }: BookingFormProps) {
   const [lunchIncluded, setLunchIncluded] = useState(false);
   const [dietary, setDietary] = useState<DietaryRequirement>("none");
@@ -59,17 +61,20 @@ export function BookingForm({
   const [isPending, startTransition] = useTransition();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const lunchLinePence =
-    ticketType === "regular" && lunchIncluded ? lunchAddOnPence : 0;
-  const totalPence = ticketPricePence + lunchLinePence + charityUpliftPence;
+  const includeLunch = ticketType === "regular" && lunchIncluded;
+  const lunchExVatPence = includeLunch ? lunchAddOnExVatPence : 0;
+  const lunchIncVatPence = includeLunch ? lunchAddOnIncVatPence : 0;
+  const totalExVatPence = ticketExVatPence + lunchExVatPence;
+  const totalIncVatPence = ticketIncVatPence + lunchIncVatPence;
 
   const ticketLabel = ticketType === "vip" ? "VIP" : "Regular";
+  const lunchLabel = formatPoundsFromPence(lunchAddOnIncVatPence);
   const lunchSummary = useMemo(() => {
     if (ticketType === "vip") return "Lunch included.";
     return lunchIncluded
-      ? `Lunch added, ${formatPoundsFromPence(lunchAddOnPence)}.`
-      : `No lunch. Add for ${formatPoundsFromPence(lunchAddOnPence)}.`;
-  }, [ticketType, lunchIncluded, lunchAddOnPence]);
+      ? `Lunch added, ${lunchLabel}.`
+      : `No lunch. Add for ${lunchLabel}.`;
+  }, [ticketType, lunchIncluded, lunchLabel]);
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -116,16 +121,10 @@ export function BookingForm({
       <input type="hidden" name="ticketType" value={ticketType} />
 
       <div className="rounded-2xl border border-ignite-line bg-ignite-cream p-5">
-        <p className="text-eyebrow uppercase text-ignite-red">{windowLabel}</p>
+        <p className="text-eyebrow uppercase text-ignite-red">{periodLabel}</p>
         <p className="mt-2 text-h3">{ticketLabel} ticket</p>
         <p className="mt-1 text-small text-ignite-muted">{lunchSummary}</p>
-        <p className="mt-3 text-h2">{formatPoundsFromPence(totalPence)}</p>
-        {charityUpliftPence > 0 ? (
-          <p className="mt-1 text-small text-ignite-muted">
-            Includes {formatPoundsFromPence(charityUpliftPence)} Lincoln City Foundation
-            donation (event day).
-          </p>
-        ) : null}
+        <p className="mt-3 text-h2">{formatExVatWithGross(totalExVatPence, totalIncVatPence)}</p>
       </div>
 
       <fieldset className="grid gap-4 sm:grid-cols-2">
@@ -274,7 +273,7 @@ export function BookingForm({
           />
           <span>
             <span className="block text-body font-semibold text-ignite-ink">
-              Add lunch for {formatPoundsFromPence(lunchAddOnPence)}
+              Add lunch for {lunchLabel}
             </span>
             <span className="block text-small text-ignite-muted">
               Hot lunch on the day, dietary options catered for.
@@ -342,14 +341,14 @@ export function BookingForm({
           size="lg"
           type="submit"
           disabled={isSubmitting || isPending}
-          aria-label={`Continue to payment, total ${formatPoundsFromPence(totalPence)}`}
+          aria-label={`Continue to payment, total ${formatExVatWithGross(totalExVatPence, totalIncVatPence)}`}
         >
           {isSubmitting || isPending
             ? "Redirecting to payment..."
-            : `Continue to payment (${formatPoundsFromPence(totalPence)})`}
+            : `Continue to payment (${formatExVatWithGross(totalExVatPence, totalIncVatPence)})`}
         </Button>
         <span className="text-small text-ignite-muted">
-          Secure card payment via Stripe. VAT-inclusive.
+          Secure card payment via Stripe. VAT is added at checkout.
         </span>
       </div>
     </form>
