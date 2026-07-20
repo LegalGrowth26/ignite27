@@ -122,9 +122,13 @@ Do not test:
   call is a no-op.
 - Refunds are manual via Stripe dashboard for phase 1. Do not build
   refund automation.
-- VAT: Stripe is configured to record VAT on each transaction. Prices
-  passed to Checkout are VAT-inclusive (the price the customer sees and
-  pays). Stripe receipts show the VAT breakdown.
+- VAT: Stripe Tax is enabled via `automatic_tax: { enabled: true }`.
+  Line items are passed **ex-VAT** with `tax_behavior: "exclusive"`;
+  Stripe adds 20% UK VAT on top and shows the ex-VAT amount, VAT, and
+  total on the receipt. The one exception is the £15 lunch add-on,
+  which is defined inc-VAT (£12.50 ex + £2.50 VAT) so the "£15 flat"
+  customer-facing figure reads exactly — its `unit_amount` passed to
+  Stripe is still the ex-VAT value (1250 pence).
 
 ---
 

@@ -143,9 +143,10 @@ describe("createDelegateCheckoutSession", () => {
       client_reference_id: string;
     };
     expect(params.line_items).toHaveLength(1);
-    // Step 2 still emits inc-VAT unit amounts with tax_behavior "inclusive"
-    // so total customer charge is unchanged. Step 4 flips to ex-VAT + exclusive.
-    expect(params.line_items[0]?.price_data.unit_amount).toBe(4200); // £35 inc-VAT
+    // Pricing v2: unit_amount is ex-VAT with tax_behavior "exclusive"; Stripe
+    // Tax adds 20% on top, so the customer-charged total (£42) is unchanged
+    // versus the previous inclusive presentation.
+    expect(params.line_items[0]?.price_data.unit_amount).toBe(3500); // £35 ex-VAT
     expect(params.success_url).toContain("/attend/book/success?session_id={CHECKOUT_SESSION_ID}");
     expect(params.cancel_url).toContain("/attend/book/cancel");
     expect(params.customer_email).toBe(validIntent.email);
@@ -155,6 +156,27 @@ describe("createDelegateCheckoutSession", () => {
     expect(params.metadata.terms_accepted_ip).toBe("10.0.0.1");
     expect(params.client_reference_id).toMatch(/^I27-[A-Z2-9]{7}$/);
     expect(result.url).toBe("https://checkout.stripe.test/cs_test_123");
+  });
+
+  it("uses ex-VAT unit amounts + tax_behavior 'exclusive' with automatic_tax enabled", async () => {
+    // Pricing v2 flip: Stripe Tax computes VAT on the ex-VAT base, so line
+    // items expose ex-VAT unit_amount and tax_behavior "exclusive". Total
+    // customer charge is unchanged (£25 + £5 VAT = £30 for launch delegate).
+    await createDelegateCheckoutSession({
+      intent: { ...validIntent, lunchIncluded: true },
+      termsAcceptedIp: "10.0.0.1",
+      pricingNow: IN_LAUNCH,
+    });
+    const params = createMock.mock.calls[0]?.[0] as {
+      line_items: Array<{ price_data: { unit_amount: number; tax_behavior: string } }>;
+      automatic_tax: { enabled: boolean };
+    };
+    expect(params.automatic_tax.enabled).toBe(true);
+    for (const item of params.line_items) {
+      expect(item.price_data.tax_behavior).toBe("exclusive");
+    }
+    expect(params.line_items[0]?.price_data.unit_amount).toBe(2500); // £25 ex-VAT launch
+    expect(params.line_items[1]?.price_data.unit_amount).toBe(1250); // £12.50 ex-VAT lunch
   });
 
   it("includes ticket + lunch line items for regular with lunch", async () => {
@@ -167,8 +189,8 @@ describe("createDelegateCheckoutSession", () => {
       line_items: Array<{ price_data: { unit_amount: number; product_data: { name: string } } }>;
     };
     expect(params.line_items).toHaveLength(2);
-    expect(params.line_items[0]?.price_data.unit_amount).toBe(4200); // £35 inc-VAT
-    expect(params.line_items[1]?.price_data.unit_amount).toBe(1500); // £15 inc-VAT lunch
+    expect(params.line_items[0]?.price_data.unit_amount).toBe(3500); // £35 ex-VAT
+    expect(params.line_items[1]?.price_data.unit_amount).toBe(1250); // £12.50 ex-VAT (£15 inc)
     expect(params.line_items[1]?.price_data.product_data.name).toMatch(/lunch/i);
   });
 
@@ -182,7 +204,7 @@ describe("createDelegateCheckoutSession", () => {
       line_items: Array<{ price_data: { unit_amount: number } }>;
     };
     expect(params.line_items).toHaveLength(1); // no charity uplift ever
-    expect(params.line_items[0]?.price_data.unit_amount).toBe(5400); // £45 inc-VAT
+    expect(params.line_items[0]?.price_data.unit_amount).toBe(4500); // £45 ex-VAT
   });
 
   it("throws BookingsNotOpenForCheckoutError before the launch period opens", async () => {
@@ -234,7 +256,7 @@ describe("createDelegateCheckoutSession", () => {
     expect(termsMs).toBeGreaterThanOrEqual(callStart);
     expect(termsMs).toBeLessThanOrEqual(callEnd);
 
-    expect(params.line_items[0]?.price_data.unit_amount).toBe(5400); // £45 inc-VAT
+    expect(params.line_items[0]?.price_data.unit_amount).toBe(4500); // £45 ex-VAT
     expect(params.metadata.pricing_period).toBe("late");
   });
 });
