@@ -25,10 +25,9 @@ interface BookingDetail {
   booking_reference: string | null;
   booking_type: "delegate" | "exhibitor";
   ticket_type: "regular" | "vip" | "exhibitor";
-  pricing_window: string;
+  pricing_period: string;
   gross_amount_pence: number;
   vat_amount_pence: number;
-  charity_uplift_pence: number;
   lunch_included: boolean;
   payment_status: string;
   booking_status: string;
@@ -59,20 +58,14 @@ const DIETARY_LABELS: Record<DietaryRequirement, string> = {
   other: "Other",
 };
 
-function windowLabel(value: string): string {
+function periodLabel(value: string): string {
   switch (value) {
-    case "window_1":
-      return "Window 1";
-    case "window_2":
-      return "Window 2";
-    case "window_3":
-      return "Window 3";
-    case "christmas_drop":
-      return "Christmas drop (Window 2 prices)";
-    case "window_4":
-      return "Window 4";
-    case "event_day":
-      return "Event day";
+    case "launch":
+      return "Launch";
+    case "standard":
+      return "Standard";
+    case "late":
+      return "Late";
     default:
       return value;
   }
@@ -116,8 +109,8 @@ export default async function BookingDetailPage({
   const { data, error } = await supabase
     .from("bookings")
     .select(
-      `id, booking_reference, booking_type, ticket_type, pricing_window,
-       gross_amount_pence, vat_amount_pence, charity_uplift_pence, lunch_included,
+      `id, booking_reference, booking_type, ticket_type, pricing_period,
+       gross_amount_pence, vat_amount_pence, lunch_included,
        payment_status, booking_status, created_at, confirmation_email_sent_at,
        booking_attendees (
          first_name, surname, email, mobile, company, job_title,
@@ -172,16 +165,10 @@ export default async function BookingDetailPage({
           <dl className="mt-8 grid gap-4 rounded-2xl border border-ignite-line bg-ignite-white p-6 sm:grid-cols-2">
             <DetailRow label="Reference" value={booking.booking_reference ?? "I27-PENDING"} />
             <DetailRow label="Ticket" value={ticketLabel(booking)} />
-            <DetailRow label="Pricing window" value={windowLabel(booking.pricing_window)} />
+            <DetailRow label="Pricing period" value={periodLabel(booking.pricing_period)} />
             <DetailRow label="Booked" value={formatDate(booking.created_at)} />
             <DetailRow label="Total paid" value={formatPoundsFromPence(booking.gross_amount_pence)} />
             <DetailRow label="VAT" value={formatPoundsFromPence(booking.vat_amount_pence)} />
-            {booking.charity_uplift_pence > 0 ? (
-              <DetailRow
-                label="Charity uplift"
-                value={formatPoundsFromPence(booking.charity_uplift_pence)}
-              />
-            ) : null}
             <DetailRow label="Lunch" value={booking.lunch_included ? "Included" : "Not added"} />
             <DetailRow label="Payment status" value={booking.payment_status} />
             <DetailRow label="Booking status" value={booking.booking_status} />

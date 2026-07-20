@@ -10,7 +10,7 @@ import {
   BookingsNotOpenError,
   formatPoundsFromPence,
   getCurrentPricing,
-  LUNCH_ADDON_PENCE,
+  LUNCH_ADDON_INC_VAT_PENCE,
   type CurrentPricing,
 } from "@/lib/pricing";
 
@@ -37,9 +37,11 @@ function resolveAttendPricing(now: Date): AttendPricing {
   }
 }
 
-// Window 1 previews, used only when bookings have not opened yet.
-const WINDOW_1_REGULAR_PENCE = 3900;
-const WINDOW_1_VIP_PENCE = 9900;
+// Launch-period preview prices, shown when bookings have not opened yet.
+// Step 6 will replace both with the "£X + VAT (£Y)" display format and
+// refresh the surrounding copy.
+const LAUNCH_REGULAR_INC_VAT_PENCE = 3000;
+const LAUNCH_VIP_INC_VAT_PENCE = 8280;
 
 const REGULAR_INCLUDES: readonly string[] = [
   "Full-day access, Thursday 21 January 2027",
@@ -133,12 +135,12 @@ function PricingSection({ pricing }: { pricing: AttendPricing }) {
   const isPreOpen = pricing.status === "pre_open";
 
   const regularPrice = isPreOpen
-    ? formatPoundsFromPence(WINDOW_1_REGULAR_PENCE)
-    : formatPoundsFromPence(pricing.pricing.delegate.regular);
+    ? formatPoundsFromPence(LAUNCH_REGULAR_INC_VAT_PENCE)
+    : formatPoundsFromPence(pricing.pricing.delegate.regular.incVatPence);
   const vipPrice = isPreOpen
-    ? formatPoundsFromPence(WINDOW_1_VIP_PENCE)
-    : formatPoundsFromPence(pricing.pricing.delegate.vip);
-  const lunchLabel = formatPoundsFromPence(LUNCH_ADDON_PENCE);
+    ? formatPoundsFromPence(LAUNCH_VIP_INC_VAT_PENCE)
+    : formatPoundsFromPence(pricing.pricing.delegate.vip.incVatPence);
+  const lunchLabel = formatPoundsFromPence(LUNCH_ADDON_INC_VAT_PENCE);
 
   const chip = isPreOpen ? "Window 1 preview" : undefined;
 

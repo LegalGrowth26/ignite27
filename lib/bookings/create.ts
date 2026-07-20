@@ -238,10 +238,9 @@ export async function createDelegateBookingFromCheckoutSession(
       booking_reference: bookingReference,
       booking_type: "delegate",
       ticket_type: intent.ticketType,
-      pricing_window: pricing.window,
-      gross_amount_pence: pricing.grossAmountPence,
+      pricing_period: pricing.period,
+      gross_amount_pence: pricing.grossIncVatPence,
       vat_amount_pence: vatAmountPence,
-      charity_uplift_pence: pricing.charityUpliftPence,
       currency: "gbp",
       lunch_included:
         intent.ticketType === "vip" ? true : intent.lunchIncluded,

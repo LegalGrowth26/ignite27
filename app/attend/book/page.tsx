@@ -94,12 +94,11 @@ export default async function BookingPage(props: { searchParams: SearchParams })
                 ticketType={ticketType}
                 ticketPricePence={
                   ticketType === "vip"
-                    ? state.pricing.delegate.vip
-                    : state.pricing.delegate.regular
+                    ? state.pricing.delegate.vip.incVatPence
+                    : state.pricing.delegate.regular.incVatPence
                 }
-                lunchAddOnPence={state.pricing.delegate.lunchAddOn}
-                charityUpliftPence={state.pricing.charityUplift}
-                windowLabel={formatWindowLabel(state.pricing.window)}
+                lunchAddOnPence={state.pricing.delegate.lunchAddOn.incVatPence}
+                periodLabel={formatPeriodLabel(state.pricing.period)}
               />
             </div>
           ) : state.status === "pre_open" ? (
@@ -134,19 +133,13 @@ export default async function BookingPage(props: { searchParams: SearchParams })
   );
 }
 
-function formatWindowLabel(window: CurrentPricing["window"]): string {
-  switch (window) {
-    case "window_1":
-      return "Window 1 pricing";
-    case "window_2":
-      return "Window 2 pricing";
-    case "window_3":
-      return "Window 3 pricing";
-    case "christmas_drop":
-      return "Window 2 pricing";
-    case "window_4":
-      return "Window 4 pricing";
-    case "event_day":
-      return "Event-day pricing";
+function formatPeriodLabel(period: CurrentPricing["period"]): string {
+  switch (period) {
+    case "launch":
+      return "Launch pricing";
+    case "standard":
+      return "Standard pricing";
+    case "late":
+      return "Late pricing";
   }
 }

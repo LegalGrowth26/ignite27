@@ -36,7 +36,10 @@ function resolveExhibitPricing(now: Date): ExhibitPricing {
   }
 }
 
-const WINDOW_1_EXHIBITOR_PENCE = 20000;
+// Launch-period exhibitor preview price (£189 + VAT = £226.80 inc-VAT).
+// Shown in the pre-open state. Step 6 will replace with the "£X + VAT (£Y)"
+// display format.
+const LAUNCH_EXHIBITOR_INC_VAT_PENCE = 22680;
 
 const EXHIBITOR_INCLUDES: readonly string[] = [
   "1 exhibitor space",
@@ -45,9 +48,10 @@ const EXHIBITOR_INCLUDES: readonly string[] = [
 ];
 
 // TODO: wire this to the live count from the database once the exhibitor
-// booking flow is built. For now the number is hardcoded.
-const EXHIBITOR_SPACES_REMAINING = 50;
-const EXHIBITOR_SPACES_TOTAL = 50;
+// booking flow is built. For now the number is hardcoded to match
+// EXHIBITOR_STAND_CAP.
+const EXHIBITOR_SPACES_REMAINING = 20;
+const EXHIBITOR_SPACES_TOTAL = 20;
 
 const EXHIBIT_STEPS: readonly BookingStep[] = [
   {
@@ -105,45 +109,26 @@ function Hero() {
 
 function PricingSection({ pricing }: { pricing: ExhibitPricing }) {
   const isPreOpen = pricing.status === "pre_open";
-  const isEventDayClosed =
-    pricing.status === "live" && pricing.pricing.exhibitor === null;
 
-  let heading: string;
-  let lede: string;
+  // Step 6 will rewrite this heading/lede copy to the pricing-v2 wording.
+  const heading = isPreOpen ? "Bookings open 30 June." : "Today's pricing.";
+  const lede = isPreOpen
+    ? "Bookings open 09:00, Tuesday 30 June 2026. Below is the launch preview price."
+    : "Each exhibitor booking includes two attendee places and two lunches.";
 
-  if (isPreOpen) {
-    heading = "Bookings open 30 June.";
-    lede =
-      "Bookings open 09:00, Tuesday 30 June 2026. Below is the Window 1 preview price.";
-  } else if (isEventDayClosed) {
-    heading = "Exhibitor bookings are closed on the day.";
-    lede = "See you next year. In the meantime, catch us at Ignite 27 as a delegate.";
-  } else {
-    heading = "Today's pricing.";
-    lede = "Each exhibitor booking includes two attendee places and two lunches.";
-  }
+  const extraNote = `${EXHIBITOR_SPACES_REMAINING} of ${EXHIBITOR_SPACES_TOTAL} spaces remaining.`;
 
-  const extraNote = isEventDayClosed
-    ? undefined
-    : `${EXHIBITOR_SPACES_REMAINING} of ${EXHIBITOR_SPACES_TOTAL} spaces remaining.`;
+  const priceLabel = isPreOpen
+    ? formatPoundsFromPence(LAUNCH_EXHIBITOR_INC_VAT_PENCE)
+    : pricing.status === "live"
+      ? formatPoundsFromPence(pricing.pricing.exhibitor.incVatPence)
+      : "Closed";
 
-  let priceLabel = "Closed";
-  if (isPreOpen) {
-    priceLabel = formatPoundsFromPence(WINDOW_1_EXHIBITOR_PENCE);
-  } else if (pricing.status === "live" && pricing.pricing.exhibitor !== null) {
-    priceLabel = formatPoundsFromPence(pricing.pricing.exhibitor);
-  }
+  const cta: { label: string; href: string } | { disabledLabel: string } = isPreOpen
+    ? { disabledLabel: "Bookings open 30 June" }
+    : { label: "Reserve your stand", href: "/exhibit/book" };
 
-  let cta: { label: string; href: string } | { disabledLabel: string };
-  if (isPreOpen) {
-    cta = { disabledLabel: "Bookings open 30 June" };
-  } else if (isEventDayClosed) {
-    cta = { disabledLabel: "Bookings closed" };
-  } else {
-    cta = { label: "Reserve your stand", href: "/exhibit/book" };
-  }
-
-  const chip = isPreOpen ? "Window 1 preview" : undefined;
+  const chip = isPreOpen ? "Launch preview" : undefined;
 
   return (
     <Section tone="light">

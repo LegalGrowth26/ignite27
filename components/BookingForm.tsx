@@ -16,8 +16,7 @@ interface BookingFormProps {
   ticketType: DelegateTicketType;
   ticketPricePence: number;
   lunchAddOnPence: number;
-  charityUpliftPence: number;
-  windowLabel: string;
+  periodLabel: string;
 }
 
 const DIETARY_LABELS: Record<DietaryRequirement, string> = {
@@ -48,8 +47,7 @@ export function BookingForm({
   ticketType,
   ticketPricePence,
   lunchAddOnPence,
-  charityUpliftPence,
-  windowLabel,
+  periodLabel,
 }: BookingFormProps) {
   const [lunchIncluded, setLunchIncluded] = useState(false);
   const [dietary, setDietary] = useState<DietaryRequirement>("none");
@@ -61,7 +59,7 @@ export function BookingForm({
 
   const lunchLinePence =
     ticketType === "regular" && lunchIncluded ? lunchAddOnPence : 0;
-  const totalPence = ticketPricePence + lunchLinePence + charityUpliftPence;
+  const totalPence = ticketPricePence + lunchLinePence;
 
   const ticketLabel = ticketType === "vip" ? "VIP" : "Regular";
   const lunchSummary = useMemo(() => {
@@ -116,16 +114,10 @@ export function BookingForm({
       <input type="hidden" name="ticketType" value={ticketType} />
 
       <div className="rounded-2xl border border-ignite-line bg-ignite-cream p-5">
-        <p className="text-eyebrow uppercase text-ignite-red">{windowLabel}</p>
+        <p className="text-eyebrow uppercase text-ignite-red">{periodLabel}</p>
         <p className="mt-2 text-h3">{ticketLabel} ticket</p>
         <p className="mt-1 text-small text-ignite-muted">{lunchSummary}</p>
         <p className="mt-3 text-h2">{formatPoundsFromPence(totalPence)}</p>
-        {charityUpliftPence > 0 ? (
-          <p className="mt-1 text-small text-ignite-muted">
-            Includes {formatPoundsFromPence(charityUpliftPence)} Lincoln City Foundation
-            donation (event day).
-          </p>
-        ) : null}
       </div>
 
       <fieldset className="grid gap-4 sm:grid-cols-2">

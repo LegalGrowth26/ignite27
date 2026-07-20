@@ -1,59 +1,68 @@
-import { getActiveWindow } from "./engine";
+import { getActivePeriod } from "./engine";
+import type { PricingPeriod } from "./periods";
 import {
-  getCharityUplift,
   getDelegatePrice,
   getExhibitorPrice,
-  LUNCH_ADDON_PENCE,
+  getLunchAddOnPrice,
+  getVipPrice,
+  type PriceAmounts,
 } from "./prices";
-import type { PricingWindow } from "./windows";
 
 export interface CurrentPricing {
-  window: PricingWindow;
+  period: PricingPeriod;
   delegate: {
-    regular: number;
-    vip: number;
-    lunchAddOn: number;
+    regular: PriceAmounts;
+    vip: PriceAmounts;
+    lunchAddOn: PriceAmounts;
   };
-  exhibitor: number | null;
-  charityUplift: number;
+  exhibitor: PriceAmounts;
 }
 
 export function getCurrentPricing(now: Date): CurrentPricing {
-  const window = getActiveWindow(now);
-
+  const period = getActivePeriod(now);
   return {
-    window,
+    period,
     delegate: {
-      regular: getDelegatePrice(window, "regular", false),
-      vip: getDelegatePrice(window, "vip"),
-      lunchAddOn: LUNCH_ADDON_PENCE,
+      regular: getDelegatePrice(period),
+      vip: getVipPrice(period),
+      lunchAddOn: getLunchAddOnPrice(),
     },
-    exhibitor: window === "event_day" ? null : getExhibitorPrice(window),
-    charityUplift: getCharityUplift(window),
+    exhibitor: getExhibitorPrice(period),
   };
 }
 
 export {
   BookingsClosedError,
   BookingsNotOpenError,
-  getActiveWindow,
+  getActivePeriod,
 } from "./engine";
+
 export { formatPoundsFromPence } from "./format";
+
 export {
-  EVENT_DAY_CHARITY_UPLIFT_PENCE,
-  ExhibitorBookingsClosedOnEventDayError,
-  LUNCH_ADDON_PENCE,
-  getCharityUplift,
+  EXHIBITOR_STAND_CAP,
+  exhibitorStandsRemaining,
+  isExhibitorAvailable,
+} from "./exhibitor";
+
+export {
+  LUNCH_ADDON_INC_VAT_PENCE,
+  VAT_RATE,
   getDelegatePrice,
   getExhibitorPrice,
+  getLunchAddOnPrice,
+  getVipPrice,
+  priceFromExVat,
+  priceFromIncVat,
   type DelegateTicketType,
+  type PriceAmounts,
 } from "./prices";
+
 export {
   BOOKINGS_CLOSE_AT,
   BOOKINGS_OPEN_AT,
-  CHRISTMAS_DROP,
+  PRICING_PERIODS,
   PRICING_TIMEZONE,
-  PRICING_WINDOWS,
-  type PricingWindow,
-  type PricingWindowBoundary,
-} from "./windows";
+  type PricingPeriod,
+  type PricingPeriodBoundary,
+} from "./periods";

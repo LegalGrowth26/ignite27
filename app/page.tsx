@@ -358,13 +358,11 @@ function PreOpenPricing() {
 }
 
 function LivePricing({ pricing }: { pricing: CurrentPricing }) {
-  const regular = formatPoundsFromPence(pricing.delegate.regular);
-  const vip = formatPoundsFromPence(pricing.delegate.vip);
-  const lunch = formatPoundsFromPence(pricing.delegate.lunchAddOn);
-  const exhibitor =
-    pricing.exhibitor === null ? null : formatPoundsFromPence(pricing.exhibitor);
-  const uplift =
-    pricing.charityUplift > 0 ? formatPoundsFromPence(pricing.charityUplift) : null;
+  // Step 2 placeholder: displays inc-VAT totals only. Step 6 rewrites this to
+  // the "£X + VAT (£Y)" format required by the pricing v2 brief.
+  const regular = formatPoundsFromPence(pricing.delegate.regular.incVatPence);
+  const vip = formatPoundsFromPence(pricing.delegate.vip.incVatPence);
+  const exhibitor = formatPoundsFromPence(pricing.exhibitor.incVatPence);
 
   return (
     <>
@@ -372,19 +370,9 @@ function LivePricing({ pricing }: { pricing: CurrentPricing }) {
       <PricingCard title="VIP" price={vip} note="Lunch included." />
       <PricingCard
         title="Exhibitor"
-        price={exhibitor ?? "Closed"}
-        note={
-          exhibitor
-            ? "Two people, two lunches."
-            : "Exhibitor bookings are not available on event day."
-        }
+        price={exhibitor}
+        note="Two people, two lunches."
       />
-      {uplift ? (
-        <p className="md:col-span-3 text-small text-ignite-muted">
-          Event-day tickets include a {uplift} donation to the Lincoln City Foundation, itemised on
-          your receipt.
-        </p>
-      ) : null}
     </>
   );
 }

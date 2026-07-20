@@ -86,7 +86,7 @@ export async function sendDelegateConfirmationEmail(
     ticketTypeLabel: ticketTypeLabel(parsed),
     lunchLine: lunchLine(parsed),
     dietaryLabel: dietaryLabel(parsed),
-    pricePaid: formatPoundsFromPence(parsed.pricing.grossAmountPence),
+    pricePaid: formatPoundsFromPence(parsed.pricing.grossIncVatPence),
     vatLine: vatLine(vatAmountPence),
     accountUrl: `${siteUrl}/account`,
     setPasswordUrl,

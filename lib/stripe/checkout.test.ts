@@ -33,50 +33,61 @@ const vipIntent: DelegateBookingIntent = {
   lunchIncluded: true,
 };
 
+// Pricing-v2 checkpoint dates for the launch / standard / late periods.
+// Launch:   Sat 1 Aug 2026 09:00 UK → Tue 4 Aug 2026 09:00 UK
+// Standard: Tue 4 Aug 2026 09:00 UK → Thu 1 Jan 2027 00:00 UK
+// Late:     Fri 1 Jan 2027 00:00 UK → Mon 18 Jan 2027 17:00 UK
+const IN_LAUNCH    = uk("2026-08-02T10:00:00");
+const IN_STANDARD  = uk("2026-10-01T12:00:00");
+const IN_LATE      = uk("2027-01-10T12:00:00");
+const BEFORE_OPEN  = uk("2026-06-29T00:00:00");
+const AFTER_CLOSE  = uk("2027-01-19T00:00:00");
+
 describe("computeDelegatePricing", () => {
-  it("regular without lunch in window_2", () => {
+  it("regular without lunch in launch period (£25 + VAT)", () => {
     const p = computeDelegatePricing(
       { ...validIntent, lunchIncluded: false },
-      uk("2026-07-10T12:00:00"),
+      IN_LAUNCH,
     );
-    expect(p.window).toBe("window_2");
-    expect(p.ticketPricePence).toBe(4900);
-    expect(p.lunchPricePence).toBe(0);
-    expect(p.charityUpliftPence).toBe(0);
-    expect(p.grossAmountPence).toBe(4900);
+    expect(p.period).toBe("launch");
+    expect(p.ticketExVatPence).toBe(2500);
+    expect(p.ticketVatPence).toBe(500);
+    expect(p.ticketIncVatPence).toBe(3000);
+    expect(p.lunchExVatPence).toBe(0);
+    expect(p.lunchVatPence).toBe(0);
+    expect(p.lunchIncVatPence).toBe(0);
+    expect(p.grossExVatPence).toBe(2500);
+    expect(p.grossVatPence).toBe(500);
+    expect(p.grossIncVatPence).toBe(3000);
   });
 
-  it("regular with lunch adds £15 separately", () => {
-    const p = computeDelegatePricing(validIntent, uk("2026-07-10T12:00:00"));
-    expect(p.lunchPricePence).toBe(1500);
-    expect(p.grossAmountPence).toBe(4900 + 1500);
+  it("regular with lunch adds a £15 inc-VAT line separately", () => {
+    const p = computeDelegatePricing(validIntent, IN_STANDARD);
+    expect(p.period).toBe("standard");
+    expect(p.ticketIncVatPence).toBe(4200);         // £35 + VAT
+    expect(p.lunchIncVatPence).toBe(1500);          // £15 inc-VAT
+    expect(p.lunchExVatPence).toBe(1250);
+    expect(p.lunchVatPence).toBe(250);
+    expect(p.grossIncVatPence).toBe(5700);
   });
 
   it("VIP never adds a separate lunch line (lunch bundled)", () => {
-    const p = computeDelegatePricing(vipIntent, uk("2026-07-10T12:00:00"));
-    expect(p.ticketPricePence).toBe(11900);
-    expect(p.lunchPricePence).toBe(0);
-    expect(p.grossAmountPence).toBe(11900);
+    const p = computeDelegatePricing(vipIntent, IN_LAUNCH);
+    expect(p.ticketExVatPence).toBe(6900);
+    expect(p.ticketIncVatPence).toBe(8280);         // £69 + VAT
+    expect(p.lunchIncVatPence).toBe(0);
+    expect(p.grossIncVatPence).toBe(8280);
   });
 
-  it("event-day regular includes £5 charity uplift", () => {
+  it("late period regular price is £45 + VAT", () => {
     const p = computeDelegatePricing(
       { ...validIntent, lunchIncluded: false },
-      uk("2027-01-21T10:00:00"),
+      IN_LATE,
     );
-    expect(p.window).toBe("event_day");
-    expect(p.ticketPricePence).toBe(6900);
-    expect(p.charityUpliftPence).toBe(500);
-    expect(p.grossAmountPence).toBe(7400);
-  });
-
-  it("Christmas drop reverts to Window 2 prices", () => {
-    const p = computeDelegatePricing(
-      { ...validIntent, lunchIncluded: false },
-      uk("2026-12-25T12:00:00"),
-    );
-    expect(p.window).toBe("christmas_drop");
-    expect(p.ticketPricePence).toBe(4900);
+    expect(p.period).toBe("late");
+    expect(p.ticketExVatPence).toBe(4500);
+    expect(p.ticketVatPence).toBe(900);
+    expect(p.ticketIncVatPence).toBe(5400);
   });
 });
 
@@ -120,7 +131,7 @@ describe("createDelegateCheckoutSession", () => {
     const result = await createDelegateCheckoutSession({
       intent: { ...validIntent, lunchIncluded: false },
       termsAcceptedIp: "10.0.0.1",
-      pricingNow: uk("2026-07-10T12:00:00"),
+      pricingNow: IN_STANDARD,
     });
     expect(createMock).toHaveBeenCalledTimes(1);
     const params = createMock.mock.calls[0]?.[0] as {
@@ -132,12 +143,15 @@ describe("createDelegateCheckoutSession", () => {
       client_reference_id: string;
     };
     expect(params.line_items).toHaveLength(1);
-    expect(params.line_items[0]?.price_data.unit_amount).toBe(4900);
+    // Step 2 still emits inc-VAT unit amounts with tax_behavior "inclusive"
+    // so total customer charge is unchanged. Step 4 flips to ex-VAT + exclusive.
+    expect(params.line_items[0]?.price_data.unit_amount).toBe(4200); // £35 inc-VAT
     expect(params.success_url).toContain("/attend/book/success?session_id={CHECKOUT_SESSION_ID}");
     expect(params.cancel_url).toContain("/attend/book/cancel");
     expect(params.customer_email).toBe(validIntent.email);
     expect(params.metadata.booking_type).toBe("delegate");
     expect(params.metadata.ticket_type).toBe("regular");
+    expect(params.metadata.pricing_period).toBe("standard");
     expect(params.metadata.terms_accepted_ip).toBe("10.0.0.1");
     expect(params.client_reference_id).toMatch(/^I27-[A-Z2-9]{7}$/);
     expect(result.url).toBe("https://checkout.stripe.test/cs_test_123");
@@ -147,62 +161,61 @@ describe("createDelegateCheckoutSession", () => {
     await createDelegateCheckoutSession({
       intent: validIntent,
       termsAcceptedIp: "10.0.0.1",
-      pricingNow: uk("2026-07-10T12:00:00"),
+      pricingNow: IN_STANDARD,
     });
     const params = createMock.mock.calls[0]?.[0] as {
       line_items: Array<{ price_data: { unit_amount: number; product_data: { name: string } } }>;
     };
     expect(params.line_items).toHaveLength(2);
-    expect(params.line_items[0]?.price_data.unit_amount).toBe(4900);
-    expect(params.line_items[1]?.price_data.unit_amount).toBe(1500);
+    expect(params.line_items[0]?.price_data.unit_amount).toBe(4200); // £35 inc-VAT
+    expect(params.line_items[1]?.price_data.unit_amount).toBe(1500); // £15 inc-VAT lunch
     expect(params.line_items[1]?.price_data.product_data.name).toMatch(/lunch/i);
   });
 
-  it("includes charity uplift line on event day", async () => {
+  it("emits only 2 line items maximum (no charity uplift in pricing v2)", async () => {
     await createDelegateCheckoutSession({
       intent: { ...validIntent, lunchIncluded: false },
       termsAcceptedIp: "10.0.0.1",
-      pricingNow: uk("2027-01-21T10:00:00"),
+      pricingNow: IN_LATE,
     });
     const params = createMock.mock.calls[0]?.[0] as {
-      line_items: Array<{ price_data: { unit_amount: number; product_data: { name: string } } }>;
+      line_items: Array<{ price_data: { unit_amount: number } }>;
     };
-    expect(params.line_items).toHaveLength(2);
-    expect(params.line_items[1]?.price_data.unit_amount).toBe(500);
-    expect(params.line_items[1]?.price_data.product_data.name).toMatch(/Lincoln City Foundation/);
+    expect(params.line_items).toHaveLength(1); // no charity uplift ever
+    expect(params.line_items[0]?.price_data.unit_amount).toBe(5400); // £45 inc-VAT
   });
 
-  it("throws BookingsNotOpenForCheckoutError before Window 1 opens", async () => {
+  it("throws BookingsNotOpenForCheckoutError before the launch period opens", async () => {
     await expect(
       createDelegateCheckoutSession({
         intent: validIntent,
         termsAcceptedIp: "10.0.0.1",
-        pricingNow: uk("2026-06-29T00:00:00"),
+        pricingNow: BEFORE_OPEN,
       }),
     ).rejects.toBeInstanceOf(BookingsNotOpenForCheckoutError);
     expect(createMock).not.toHaveBeenCalled();
   });
 
-  it("throws BookingsClosedForCheckoutError after event day ends", async () => {
+  it("throws BookingsClosedForCheckoutError after bookings close (18 Jan 17:00)", async () => {
     await expect(
       createDelegateCheckoutSession({
         intent: validIntent,
         termsAcceptedIp: "10.0.0.1",
-        pricingNow: uk("2027-01-22T00:00:00"),
+        pricingNow: AFTER_CLOSE,
       }),
     ).rejects.toBeInstanceOf(BookingsClosedForCheckoutError);
     expect(createMock).not.toHaveBeenCalled();
   });
 
   it("anchors expires_at and termsAcceptedAt to real wall-clock time, not pricingNow", async () => {
-    // pricingNow is far in the future (inside Window 4). Under the old bug
-    // Stripe would see expires_at ~9 months out and reject. Under the fix,
-    // both expires_at and termsAcceptedAt must sit near the real now.
+    // pricingNow is far in the future (inside the late period). Under the
+    // old bug Stripe would see expires_at months out and reject. Both
+    // expires_at and termsAcceptedAt must sit near the real now.
     const callStart = Date.now();
     await createDelegateCheckoutSession({
       intent: { ...validIntent, lunchIncluded: false },
       termsAcceptedIp: "10.0.0.1",
-      pricingNow: uk("2027-01-15T12:00:00"),
+      pricingNow: IN_LATE,
     });
     const callEnd = Date.now();
 
@@ -212,21 +225,16 @@ describe("createDelegateCheckoutSession", () => {
       line_items: Array<{ price_data: { unit_amount: number } }>;
     };
 
-    // expires_at (Unix seconds) must be within 24h of real now, and >= realNow.
     const expiresMs = params.expires_at * 1000;
     const twentyFourHoursMs = 24 * 60 * 60 * 1000;
     expect(expiresMs).toBeGreaterThanOrEqual(callStart);
     expect(expiresMs - callEnd).toBeLessThan(twentyFourHoursMs);
 
-    // termsAcceptedAt should be within a couple of seconds of real now, not
-    // mid-January 2027.
     const termsMs = new Date(params.metadata.terms_accepted_at ?? "").getTime();
     expect(termsMs).toBeGreaterThanOrEqual(callStart);
     expect(termsMs).toBeLessThanOrEqual(callEnd);
 
-    // Pricing must reflect Window 4 (£69 Regular), proving pricingNow still
-    // drives the pricing-window selection as intended.
-    expect(params.line_items[0]?.price_data.unit_amount).toBe(6900);
-    expect(params.metadata.pricing_window).toBe("window_4");
+    expect(params.line_items[0]?.price_data.unit_amount).toBe(5400); // £45 inc-VAT
+    expect(params.metadata.pricing_period).toBe("late");
   });
 });

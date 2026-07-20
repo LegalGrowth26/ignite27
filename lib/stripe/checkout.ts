@@ -52,23 +52,26 @@ export function computeDelegatePricing(
   now: Date,
 ): DelegatePricingSnapshot {
   const current = getCurrentPricing(now);
-  const ticketPricePence =
-    intent.ticketType === "vip" ? current.delegate.vip : current.delegate.regular;
+
+  const ticket = intent.ticketType === "vip" ? current.delegate.vip : current.delegate.regular;
   // VIP includes lunch already; no separate lunch line.
-  // Regular with the lunch add-on gets a separate £15 line.
-  const lunchPricePence =
-    intent.ticketType === "regular" && intent.lunchIncluded
-      ? current.delegate.lunchAddOn
-      : 0;
-  const charityUpliftPence = current.charityUplift;
-  const grossAmountPence = ticketPricePence + lunchPricePence + charityUpliftPence;
+  // Regular with the lunch add-on gets a separate line item.
+  const includeLunchLine = intent.ticketType === "regular" && intent.lunchIncluded;
+  const lunch = includeLunchLine
+    ? current.delegate.lunchAddOn
+    : { exVatPence: 0, vatPence: 0, incVatPence: 0 };
 
   return {
-    window: current.window,
-    ticketPricePence,
-    lunchPricePence,
-    charityUpliftPence,
-    grossAmountPence,
+    period: current.period,
+    ticketExVatPence: ticket.exVatPence,
+    ticketVatPence: ticket.vatPence,
+    ticketIncVatPence: ticket.incVatPence,
+    lunchExVatPence: lunch.exVatPence,
+    lunchVatPence: lunch.vatPence,
+    lunchIncVatPence: lunch.incVatPence,
+    grossExVatPence: ticket.exVatPence + lunch.exVatPence,
+    grossVatPence: ticket.vatPence + lunch.vatPence,
+    grossIncVatPence: ticket.incVatPence + lunch.incVatPence,
   };
 }
 
@@ -88,12 +91,16 @@ function buildLineItems(
   intent: DelegateBookingIntent,
   pricing: DelegatePricingSnapshot,
 ): Stripe.Checkout.SessionCreateParams.LineItem[] {
+  // Step 2 keeps unit_amount = inc-VAT and tax_behavior = "inclusive" so end
+  // charged amount matches the customer-facing "£X + VAT (£Y)" display until
+  // Step 4 flips to Stripe-Tax-exclusive presentation (ex-VAT unit_amount +
+  // tax_behavior "exclusive"). Line items expressed in inc-VAT terms here.
   const items: Stripe.Checkout.SessionCreateParams.LineItem[] = [
     {
       quantity: 1,
       price_data: {
         currency: "gbp",
-        unit_amount: pricing.ticketPricePence,
+        unit_amount: pricing.ticketIncVatPence,
         tax_behavior: "inclusive",
         product_data: {
           name: ticketProductName(intent),
@@ -103,31 +110,16 @@ function buildLineItems(
     },
   ];
 
-  if (pricing.lunchPricePence > 0) {
+  if (pricing.lunchIncVatPence > 0) {
     items.push({
       quantity: 1,
       price_data: {
         currency: "gbp",
-        unit_amount: pricing.lunchPricePence,
+        unit_amount: pricing.lunchIncVatPence,
         tax_behavior: "inclusive",
         product_data: {
           name: "Lunch at Ignite 27",
           description: "Hot lunch on the day, dietary options catered for.",
-        },
-      },
-    });
-  }
-
-  if (pricing.charityUpliftPence > 0) {
-    items.push({
-      quantity: 1,
-      price_data: {
-        currency: "gbp",
-        unit_amount: pricing.charityUpliftPence,
-        tax_behavior: "inclusive",
-        product_data: {
-          name: "Lincoln City Foundation donation",
-          description: "£5 charity uplift for event-day bookings.",
         },
       },
     });
