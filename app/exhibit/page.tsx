@@ -8,7 +8,7 @@ import { Section } from "@/components/Section";
 import { SectionHeader } from "@/components/SectionHeader";
 import {
   BookingsNotOpenError,
-  formatPoundsFromPence,
+  formatExVatWithGross,
   getCurrentPricing,
   type CurrentPricing,
 } from "@/lib/pricing";
@@ -36,9 +36,9 @@ function resolveExhibitPricing(now: Date): ExhibitPricing {
   }
 }
 
-// Launch-period exhibitor preview price (£189 + VAT = £226.80 inc-VAT).
-// Shown in the pre-open state. Step 6 will replace with the "£X + VAT (£Y)"
-// display format.
+// Launch-period exhibitor preview price (£189 + VAT = £226.80 inc-VAT),
+// shown in the pre-open state as "£189 + VAT (£226.80)".
+const LAUNCH_EXHIBITOR_EX_VAT_PENCE = 18900;
 const LAUNCH_EXHIBITOR_INC_VAT_PENCE = 22680;
 
 const EXHIBITOR_INCLUDES: readonly string[] = [
@@ -58,7 +58,7 @@ const EXHIBIT_STEPS: readonly BookingStep[] = [
     label: "Your details",
     body: "Company, main contact, two people attending, dietary.",
   },
-  { label: "Pay", body: "Secure card payment via Stripe. VAT-inclusive." },
+  { label: "Pay", body: "Secure card payment via Stripe. VAT added at checkout." },
   {
     label: "We assign your stand",
     body: "Confirmed within a working day.",
@@ -111,21 +111,24 @@ function PricingSection({ pricing }: { pricing: ExhibitPricing }) {
   const isPreOpen = pricing.status === "pre_open";
 
   // Step 6 will rewrite this heading/lede copy to the pricing-v2 wording.
-  const heading = isPreOpen ? "Bookings open 30 June." : "Today's pricing.";
+  const heading = isPreOpen ? "Bookings open 1 August 2026." : "Today's pricing.";
   const lede = isPreOpen
-    ? "Bookings open 09:00, Tuesday 30 June 2026. Below is the launch preview price."
+    ? "Bookings open 09:00, Saturday 1 August 2026. Below is the launch preview price."
     : "Each exhibitor booking includes two attendee places and two lunches.";
 
   const extraNote = `${EXHIBITOR_SPACES_REMAINING} of ${EXHIBITOR_SPACES_TOTAL} spaces remaining.`;
 
   const priceLabel = isPreOpen
-    ? formatPoundsFromPence(LAUNCH_EXHIBITOR_INC_VAT_PENCE)
+    ? formatExVatWithGross(LAUNCH_EXHIBITOR_EX_VAT_PENCE, LAUNCH_EXHIBITOR_INC_VAT_PENCE)
     : pricing.status === "live"
-      ? formatPoundsFromPence(pricing.pricing.exhibitor.incVatPence)
+      ? formatExVatWithGross(
+          pricing.pricing.exhibitor.exVatPence,
+          pricing.pricing.exhibitor.incVatPence,
+        )
       : "Closed";
 
   const cta: { label: string; href: string } | { disabledLabel: string } = isPreOpen
-    ? { disabledLabel: "Bookings open 30 June" }
+    ? { disabledLabel: "Bookings open 1 August 2026" }
     : { label: "Reserve your stand", href: "/exhibit/book" };
 
   const chip = isPreOpen ? "Launch preview" : undefined;
@@ -150,7 +153,8 @@ function PricingSection({ pricing }: { pricing: ExhibitPricing }) {
           </div>
         </div>
         <p className="mt-8 text-small text-ignite-muted">
-          Prices are VAT-inclusive. See the{" "}
+          Prices shown are ex-VAT with the VAT-inclusive total in
+          brackets. See the{" "}
           <Link
             href="/refund-policy"
             className="underline underline-offset-4 hover:text-ignite-red"

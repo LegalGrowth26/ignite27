@@ -8,6 +8,7 @@ import { Section } from "@/components/Section";
 import { SectionHeader } from "@/components/SectionHeader";
 import {
   BookingsNotOpenError,
+  formatExVatWithGross,
   formatPoundsFromPence,
   getCurrentPricing,
   LUNCH_ADDON_INC_VAT_PENCE,
@@ -38,9 +39,10 @@ function resolveAttendPricing(now: Date): AttendPricing {
 }
 
 // Launch-period preview prices, shown when bookings have not opened yet.
-// Step 6 will replace both with the "£X + VAT (£Y)" display format and
-// refresh the surrounding copy.
+// Both ex-VAT and inc-VAT are needed so we can render "£25 + VAT (£30)".
+const LAUNCH_REGULAR_EX_VAT_PENCE = 2500;
 const LAUNCH_REGULAR_INC_VAT_PENCE = 3000;
+const LAUNCH_VIP_EX_VAT_PENCE = 6900;
 const LAUNCH_VIP_INC_VAT_PENCE = 8280;
 
 const REGULAR_INCLUDES: readonly string[] = [
@@ -60,7 +62,7 @@ const VIP_INCLUDES: readonly string[] = [
 const ATTEND_STEPS: readonly BookingStep[] = [
   { label: "Choose", body: "Regular or VIP. Add lunch if you want it." },
   { label: "Your details", body: "Name, email, company, dietary. Quick form." },
-  { label: "Pay", body: "Secure card payment via Stripe. VAT-inclusive." },
+  { label: "Pay", body: "Secure card payment via Stripe. VAT added at checkout." },
   { label: "Confirmed", body: "Ticket in your inbox, diary entry done." },
 ];
 
@@ -135,11 +137,17 @@ function PricingSection({ pricing }: { pricing: AttendPricing }) {
   const isPreOpen = pricing.status === "pre_open";
 
   const regularPrice = isPreOpen
-    ? formatPoundsFromPence(LAUNCH_REGULAR_INC_VAT_PENCE)
-    : formatPoundsFromPence(pricing.pricing.delegate.regular.incVatPence);
+    ? formatExVatWithGross(LAUNCH_REGULAR_EX_VAT_PENCE, LAUNCH_REGULAR_INC_VAT_PENCE)
+    : formatExVatWithGross(
+        pricing.pricing.delegate.regular.exVatPence,
+        pricing.pricing.delegate.regular.incVatPence,
+      );
   const vipPrice = isPreOpen
-    ? formatPoundsFromPence(LAUNCH_VIP_INC_VAT_PENCE)
-    : formatPoundsFromPence(pricing.pricing.delegate.vip.incVatPence);
+    ? formatExVatWithGross(LAUNCH_VIP_EX_VAT_PENCE, LAUNCH_VIP_INC_VAT_PENCE)
+    : formatExVatWithGross(
+        pricing.pricing.delegate.vip.exVatPence,
+        pricing.pricing.delegate.vip.incVatPence,
+      );
   const lunchLabel = formatPoundsFromPence(LUNCH_ADDON_INC_VAT_PENCE);
 
   const chip = isPreOpen ? "Launch preview" : undefined;
@@ -184,7 +192,8 @@ function PricingSection({ pricing }: { pricing: AttendPricing }) {
           />
         </div>
         <p className="mt-8 text-small text-ignite-muted">
-          Prices are VAT-inclusive. See the{" "}
+          Prices shown are ex-VAT with the VAT-inclusive total in
+          brackets. Lunch is £15 flat, already VAT-inclusive. See the{" "}
           <Link
             href="/refund-policy"
             className="underline underline-offset-4 hover:text-ignite-red"

@@ -37,7 +37,7 @@ export {
   getActivePeriod,
 } from "./engine";
 
-export { formatPoundsFromPence } from "./format";
+export { formatExVatWithGross, formatPoundsFromPence } from "./format";
 
 export {
   EXHIBITOR_STAND_CAP,

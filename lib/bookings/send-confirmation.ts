@@ -46,7 +46,7 @@ function dietaryLabel(parsed: ParsedDelegateMetadata): string {
 }
 
 function vatLine(vatPence: number): string {
-  if (vatPence <= 0) return "VAT-inclusive.";
+  if (vatPence <= 0) return "No VAT applied.";
   return `(includes VAT of ${formatPoundsFromPence(vatPence)}).`;
 }
 

@@ -5,6 +5,7 @@ import { Section } from "@/components/Section";
 import { SectionHeader } from "@/components/SectionHeader";
 import {
   BookingsNotOpenError,
+  formatExVatWithGross,
   getCurrentPricing,
   type CurrentPricing,
 } from "@/lib/pricing";
@@ -54,10 +55,6 @@ const LAST_YEAR_PHOTOS: ReadonlyArray<{ seed: string; alt: string; span?: string
   { seed: "ignite-networking", alt: "A small group of delegates in conversation in the Kelham Hall foyer" },
   { seed: "ignite-venue", alt: "Interior of The Renaissance at Kelham Hall set for Ignite 26" },
 ];
-
-function formatPoundsFromPence(pence: number): string {
-  return `£${(pence / 100).toFixed(pence % 100 === 0 ? 0 : 2)}`;
-}
 
 export default function HomePage() {
   const preview = resolvePricingPreview(new Date());
@@ -342,11 +339,11 @@ function PreOpenPricing() {
         <dl className="mt-4 space-y-3 text-body">
           <div className="flex items-baseline justify-between gap-4">
             <dt className="text-ignite-ink">Regular</dt>
-            <dd className="text-h3">£30</dd>
+            <dd className="text-h3">£25 + VAT (£30)</dd>
           </div>
           <div className="flex items-baseline justify-between gap-4">
             <dt className="text-ignite-ink">VIP, lunch included</dt>
-            <dd className="text-h3">£82.80</dd>
+            <dd className="text-h3">£69 + VAT (£82.80)</dd>
           </div>
           <div className="flex items-baseline justify-between gap-4 text-ignite-muted">
             <dt>Add lunch to Regular</dt>
@@ -359,11 +356,18 @@ function PreOpenPricing() {
 }
 
 function LivePricing({ pricing }: { pricing: CurrentPricing }) {
-  // Step 2 placeholder: displays inc-VAT totals only. Step 6 rewrites this to
-  // the "£X + VAT (£Y)" format required by the pricing v2 brief.
-  const regular = formatPoundsFromPence(pricing.delegate.regular.incVatPence);
-  const vip = formatPoundsFromPence(pricing.delegate.vip.incVatPence);
-  const exhibitor = formatPoundsFromPence(pricing.exhibitor.incVatPence);
+  const regular = formatExVatWithGross(
+    pricing.delegate.regular.exVatPence,
+    pricing.delegate.regular.incVatPence,
+  );
+  const vip = formatExVatWithGross(
+    pricing.delegate.vip.exVatPence,
+    pricing.delegate.vip.incVatPence,
+  );
+  const exhibitor = formatExVatWithGross(
+    pricing.exhibitor.exVatPence,
+    pricing.exhibitor.incVatPence,
+  );
 
   return (
     <>
