@@ -190,7 +190,14 @@ export async function createDelegateCheckoutSession(
     automatic_tax: { enabled: true },
     success_url: successUrl,
     cancel_url: cancelUrl,
-    allow_promotion_codes: false,
+    // Promotion codes are managed entirely in the Stripe Dashboard
+    // (Products → Coupons / Promotion codes). Tom creates codes there;
+    // Stripe controls activation, expiry, usage limits, and which SKUs
+    // a code applies to via the coupon's applies_to setting. Because we
+    // use tax_behavior "exclusive", Stripe applies discounts to the
+    // ex-VAT amount and recomputes VAT on the discounted total — no
+    // app-side arithmetic required.
+    allow_promotion_codes: true,
     expires_at: Math.floor(realNow.getTime() / 1000) + 30 * 60,
   };
   const session = await stripe.checkout.sessions.create(params);
