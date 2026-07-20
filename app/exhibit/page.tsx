@@ -50,8 +50,8 @@ const EXHIBITOR_INCLUDES: readonly string[] = [
 // TODO: wire this to the live count from the database once the exhibitor
 // booking flow is built. For now the number is hardcoded to match
 // EXHIBITOR_STAND_CAP.
-const EXHIBITOR_SPACES_REMAINING = 20;
-const EXHIBITOR_SPACES_TOTAL = 20;
+const EXHIBITOR_SPACES_REMAINING = 50;
+const EXHIBITOR_SPACES_TOTAL = 50;
 
 const EXHIBIT_STEPS: readonly BookingStep[] = [
   {

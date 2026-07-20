@@ -6,9 +6,8 @@ import {
 } from "./exhibitor";
 
 describe("EXHIBITOR_STAND_CAP", () => {
-  it("is a positive integer (placeholder value, TBC)", () => {
-    expect(Number.isInteger(EXHIBITOR_STAND_CAP)).toBe(true);
-    expect(EXHIBITOR_STAND_CAP).toBeGreaterThan(0);
+  it("is 50 (may be raised later)", () => {
+    expect(EXHIBITOR_STAND_CAP).toBe(50);
   });
 });
 

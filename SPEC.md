@@ -21,8 +21,6 @@ For brand voice and copy rules, see `COPYWRITING.md`.
       record (phase 1 default) vs. visual floor plan (later, if needed).
 - [ ] Confirm printer requirements for badge PDFs (paper size, bleed, CMYK
       vs RGB) before phase 3 build starts.
-- [ ] Confirm final value of `EXHIBITOR_STAND_CAP` (currently placeholder
-      of 20 in `lib/pricing/exhibitor.ts`). **Owner: Tom.**
 
 ---
 
@@ -179,10 +177,10 @@ into January until either (a) the stand cap is reached, or (b) bookings
 close on Monday 18 January 2027, 17:00 UK, whichever comes first.
 
 **Stand cap:** `EXHIBITOR_STAND_CAP` (config constant in
-`lib/pricing/exhibitor.ts`, default **20** — TBC). Only PAID exhibitor
-bookings count toward the cap; abandoned Stripe checkouts do not. When
-the cap is reached, the exhibitor booking UI shows "sold out" and the
-server refuses further exhibitor checkouts.
+`lib/pricing/exhibitor.ts`, set to **50**; may be raised later). Only
+PAID exhibitor bookings count toward the cap; abandoned Stripe checkouts
+do not. When the cap is reached, the exhibitor booking UI shows "sold
+out" and the server refuses further exhibitor checkouts.
 
 ### Sponsorship (ex-VAT, not shown publicly)
 
