@@ -1,0 +1,103 @@
+name: Nightly Supabase backup
+
+# Runs pg_dump against the production Supabase database, gzips the
+# result, and uploads it as a workflow artifact with 90-day retention.
+# On failure GitHub's default notifications alert the repo owner.
+#
+# See docs/backups.md for:
+#   - how to set the SUPABASE_DB_URL secret (required)
+#   - how to download a backup
+#   - how to restore into a fresh Postgres
+
+on:
+  # 03:00 UK. GitHub Actions cron runs in UTC and does NOT observe
+  # BST/GMT, so we set 02:00 UTC which is 03:00 UK during BST (spring
+  # forward) and 02:00 UK during GMT (autumn back). Ignite 27 runs
+  # over January (GMT); accept the one-hour drift twice a year rather
+  # than run two crons and have overlapping / missed days at the
+  # transitions.
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: nightly-backup
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      # Loud fail if the secret is missing — better than a silent
+      # 0-byte "backup" artifact that gives false confidence. The
+      # subsequent pg_dump would fail anyway but we surface the reason
+      # explicitly in the job log.
+      - name: Verify SUPABASE_DB_URL secret is set
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "${SUPABASE_DB_URL:-}" ]; then
+            echo "::error::SUPABASE_DB_URL is not set. Add it under"
+            echo "::error::Settings -> Secrets and variables -> Actions."
+            echo "::error::See docs/backups.md for the required format."
+            exit 1
+          fi
+          echo "SUPABASE_DB_URL is set (length=${#SUPABASE_DB_URL})"
+
+      # Supabase Postgres is currently 15. pg_dump versions must be
+      # >= the server version. Ubuntu's default is 14, so we install
+      # the PGDG 15 client explicitly.
+      - name: Install PostgreSQL 15 client
+        run: |
+          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-15
+
+      - name: Compute backup filename
+        id: filename
+        run: |
+          ts="$(date -u +%Y%m%dT%H%M%SZ)"
+          echo "name=ignite27-prod-${ts}.sql.gz" >> "$GITHUB_OUTPUT"
+
+      # --no-owner and --no-privileges keep the dump portable across
+      # environments (the restore target likely won't have the same
+      # role names as Supabase). --clean --if-exists makes the dump
+      # safely re-runnable against an empty target. Pipe straight to
+      # gzip so we never write the plaintext SQL to disk.
+      - name: pg_dump | gzip
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -o pipefail
+          pg_dump \
+            --dbname="${SUPABASE_DB_URL}" \
+            --format=plain \
+            --no-owner \
+            --no-privileges \
+            --clean \
+            --if-exists \
+            --exclude-schema='cron' \
+            --exclude-schema='extensions' \
+            --exclude-schema='graphql*' \
+            --exclude-schema='net' \
+            --exclude-schema='pgsodium*' \
+            --exclude-schema='realtime' \
+            --exclude-schema='storage' \
+            --exclude-schema='supabase_functions' \
+            --exclude-schema='vault' \
+          | gzip -9 > "${{ steps.filename.outputs.name }}"
+          ls -lh "${{ steps.filename.outputs.name }}"
+
+      - name: Upload backup artifact (90-day retention)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.filename.outputs.name }}
+          path: ${{ steps.filename.outputs.name }}
+          retention-days: 90
+          if-no-files-found: error

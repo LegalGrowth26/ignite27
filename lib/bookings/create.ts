@@ -21,6 +21,12 @@ export class BookingCreationError extends Error {
   }
 }
 
+export interface PromoCodeDetails {
+  code: string;
+  promotionCodeId: string;
+  discountPence: number;
+}
+
 interface CreateInput {
   client: SupabaseClient;
   parsed: ParsedDelegateMetadata;
@@ -28,6 +34,12 @@ interface CreateInput {
   stripePaymentIntentId: string | null;
   vatAmountPence: number;
   paidAt: Date;
+  // Non-null only when Stripe reports a promotion code was redeemed.
+  // Null / absent for regular full-price bookings.
+  promo?: PromoCodeDetails | null;
+  // 'paid' for real card payments, 'comp' for 100%-off promotion codes
+  // (Stripe returns payment_status "no_payment_required" on those).
+  paymentStatus?: "paid" | "comp";
 }
 
 // Look up a booking by its Stripe Checkout session id. Used for idempotency.
@@ -192,6 +204,8 @@ export async function createDelegateBookingFromCheckoutSession(
     stripeCheckoutSessionId,
     stripePaymentIntentId,
     vatAmountPence,
+    promo,
+    paymentStatus = "paid",
   } = input;
 
   // Idempotency guard: if we've already processed this session, return.
@@ -247,8 +261,11 @@ export async function createDelegateBookingFromCheckoutSession(
         intent.ticketType === "vip" ? true : intent.lunchIncluded,
       stripe_checkout_session_id: stripeCheckoutSessionId,
       stripe_payment_intent_id: stripePaymentIntentId,
-      payment_status: "paid",
+      payment_status: paymentStatus,
       booking_status: "active",
+      promo_code: promo?.code ?? null,
+      promo_code_id: promo?.promotionCodeId ?? null,
+      discount_pence: promo?.discountPence ?? null,
       terms_accepted_at: termsAcceptedAt,
       terms_accepted_ip: termsAcceptedIp,
     })

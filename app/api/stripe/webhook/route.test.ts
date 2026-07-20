@@ -1,16 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // vi.mock hoists above imports; vi.hoisted lets shared fns live alongside.
-const { constructEvent, createBooking, sendConfirmation } = vi.hoisted(() => ({
+const { constructEvent, createBooking, sendConfirmation, retrieveSession } = vi.hoisted(() => ({
   constructEvent: vi.fn(),
   createBooking: vi.fn(),
   sendConfirmation: vi.fn(),
+  retrieveSession: vi.fn(),
 }));
 
 vi.mock("@/lib/stripe/client", () => ({
   getStripe: () => ({
     webhooks: {
       constructEvent,
+    },
+    checkout: {
+      sessions: {
+        retrieve: retrieveSession,
+      },
     },
   }),
 }));
@@ -48,7 +54,10 @@ function buildSession(overrides: Record<string, unknown> = {}): Record<string, u
     mode: "payment",
     payment_status: "paid",
     payment_intent: "pi_test_xyz",
-    total_details: { amount_tax: 123 },
+    amount_subtotal: 3500,
+    amount_total: 4200,
+    total_details: { amount_tax: 123, breakdown: { discounts: [] } },
+    discounts: [],
     metadata: {
       booking_type: "delegate",
       ticket_type: "regular",
@@ -96,6 +105,11 @@ describe("POST /api/stripe/webhook", () => {
     constructEvent.mockReset();
     createBooking.mockReset();
     sendConfirmation.mockReset();
+    retrieveSession.mockReset();
+    // Default: retrieve returns the same session object the event carried.
+    // Tests that need to inject expanded discounts / different totals
+    // override this per-case.
+    retrieveSession.mockImplementation(async () => buildSession());
   });
 
   it("returns 400 when signature header is missing", async () => {
@@ -227,6 +241,122 @@ describe("POST /api/stripe/webhook", () => {
 
     const res = await POST(buildRequest("{}", "sig"));
     expect(res.status).toBe(200);
+  });
+
+  it("stores promo_code / promo_code_id / discount_pence when a code was redeemed", async () => {
+    const sessionWithPromo = buildSession({
+      amount_subtotal: 3500,
+      amount_total: 3360,
+      total_details: {
+        amount_tax: 560,
+        breakdown: { discounts: [{ amount: 700 }] },
+      },
+      discounts: [
+        { promotion_code: { id: "promo_test_id", code: "STEPHINE20" } },
+      ],
+    });
+    constructEvent.mockReturnValue({
+      id: "evt_promo",
+      type: "checkout.session.completed",
+      created: 1700000000,
+      data: { object: sessionWithPromo },
+    });
+    retrieveSession.mockResolvedValue(sessionWithPromo);
+    createBooking.mockResolvedValue({
+      isNew: true,
+      bookingId: "b_promo",
+      bookingReference: "I27-ABCDEFG",
+      userId: "u1",
+      authUserId: "au1",
+      confirmationEmailSentAt: null,
+    });
+    sendConfirmation.mockResolvedValue(undefined);
+
+    const res = await POST(buildRequest("{}", "sig"));
+    expect(res.status).toBe(200);
+    const arg = createBooking.mock.calls[0]?.[0] as {
+      promo: { code: string; promotionCodeId: string; discountPence: number } | null;
+      paymentStatus: "paid" | "comp";
+    };
+    expect(arg.promo).toEqual({
+      code: "STEPHINE20",
+      promotionCodeId: "promo_test_id",
+      discountPence: 700,
+    });
+    expect(arg.paymentStatus).toBe("paid");
+  });
+
+  it("stores null promo fields when no code was redeemed", async () => {
+    constructEvent.mockReturnValue({
+      id: "evt_no_promo",
+      type: "checkout.session.completed",
+      created: 1700000000,
+      data: { object: buildSession() },
+    });
+    createBooking.mockResolvedValue({
+      isNew: true,
+      bookingId: "b_np",
+      bookingReference: "I27-ABCDEFH",
+      userId: "u1",
+      authUserId: "au1",
+      confirmationEmailSentAt: null,
+    });
+    sendConfirmation.mockResolvedValue(undefined);
+
+    const res = await POST(buildRequest("{}", "sig"));
+    expect(res.status).toBe(200);
+    const arg = createBooking.mock.calls[0]?.[0] as {
+      promo: unknown;
+      paymentStatus: "paid" | "comp";
+    };
+    expect(arg.promo).toBeNull();
+    expect(arg.paymentStatus).toBe("paid");
+  });
+
+  it("treats no_payment_required (100%-off code) as a valid comp booking", async () => {
+    const compSession = buildSession({
+      payment_status: "no_payment_required",
+      amount_subtotal: 3500,
+      amount_total: 0,
+      total_details: {
+        amount_tax: 0,
+        breakdown: { discounts: [{ amount: 3500 }] },
+      },
+      discounts: [
+        { promotion_code: { id: "promo_comp_id", code: "TEAMCOMP" } },
+      ],
+    });
+    constructEvent.mockReturnValue({
+      id: "evt_comp",
+      type: "checkout.session.completed",
+      created: 1700000000,
+      data: { object: compSession },
+    });
+    retrieveSession.mockResolvedValue(compSession);
+    createBooking.mockResolvedValue({
+      isNew: true,
+      bookingId: "b_comp",
+      bookingReference: "I27-COMPXYZ",
+      userId: "u1",
+      authUserId: "au1",
+      confirmationEmailSentAt: null,
+    });
+    sendConfirmation.mockResolvedValue(undefined);
+
+    const res = await POST(buildRequest("{}", "sig"));
+    expect(res.status).toBe(200);
+    expect(createBooking).toHaveBeenCalledTimes(1);
+    expect(sendConfirmation).toHaveBeenCalledTimes(1);
+    const arg = createBooking.mock.calls[0]?.[0] as {
+      paymentStatus: "paid" | "comp";
+      promo: { code: string };
+      vatAmountPence: number;
+    };
+    expect(arg.paymentStatus).toBe("comp");
+    expect(arg.promo.code).toBe("TEAMCOMP");
+    expect(arg.vatAmountPence).toBe(0);
+    const sendArg = sendConfirmation.mock.calls[0]?.[0] as { grossPaidPence: number };
+    expect(sendArg.grossPaidPence).toBe(0);
   });
 
   it("skips non-payment sessions", async () => {

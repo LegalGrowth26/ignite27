@@ -199,6 +199,56 @@ No checkout flow for sponsorship.
 Enquiry-led only. **Do not display partner pricing publicly.**
 Enquiries route as above.
 
+### Discount codes
+
+Discount codes are managed entirely in the Stripe Dashboard. Tom
+creates coupons under **Products → Coupons** and matching promotion
+codes under **Products → Promotion codes**. Stripe controls:
+
+- Discount amount (percent-off or fixed-amount).
+- Activation and expiry dates.
+- Maximum redemptions (total, or per-customer).
+- Which SKUs a code applies to (via the coupon's `applies_to` setting)
+  if Tom wants a code restricted to certain ticket types.
+
+The site itself has **no admin UI** for discount management. Checkout
+sessions enable `allow_promotion_codes: true`, so Stripe renders its
+own "Add promotion code" field on the hosted Checkout page. Codes are
+redeemable at any time, in any pricing period, including the 72-hour
+launch window — the only gate is Stripe's own settings on the code.
+
+Because pricing v2 uses `tax_behavior: "exclusive"` with Stripe Tax
+enabled, a percent-off coupon reduces the ex-VAT amount and Stripe
+recomputes 20% UK VAT on the discounted total. A 20% code on a £35
+Standard delegate becomes £28 + £5.60 VAT = £33.60. No app-side
+arithmetic.
+
+**Per-booking tracking.** The webhook stores three columns on
+`bookings` for every completed checkout:
+
+- `promo_code` — the human-readable code (e.g. `STEPHINE20`), or null.
+- `promo_code_id` — the Stripe promotion code id (e.g. `promo_...`).
+- `discount_pence` — total discount applied in ex-VAT pence, or null.
+
+To answer "which bookings used code X", query
+`select * from bookings where promo_code = 'X'` — no reporting UI in
+this build.
+
+**Comps.** A 100%-off promotion code produces a zero-amount session
+with `payment_status: 'no_payment_required'`. The webhook and booking
+logic treat this as a valid completed booking: `payment_status` is
+stored as `comp` (a distinct enum value from `paid`), the confirmation
+email still goes out, and the customer gets the same account access as
+any other delegate.
+
+**How Tom creates a code:** Stripe Dashboard → **Products** →
+**Coupons** → *Create a coupon* (choose percent-off or fixed-amount,
+set duration to *Once*, optionally set expiry / max redemptions / SKU
+restriction). Then **Products → Promotion codes → Create promotion
+code**, attach it to the coupon, and set the customer-facing code
+(e.g. `STEPHINE20`). Nothing else to do — the code goes live in the
+customer's Checkout page immediately.
+
 ---
 
 ## Pricing periods

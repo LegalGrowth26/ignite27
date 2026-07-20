@@ -158,6 +158,16 @@ describe("createDelegateCheckoutSession", () => {
     expect(result.url).toBe("https://checkout.stripe.test/cs_test_123");
   });
 
+  it("enables Stripe-managed promotion codes on the session", async () => {
+    await createDelegateCheckoutSession({
+      intent: validIntent,
+      termsAcceptedIp: "10.0.0.1",
+      pricingNow: IN_STANDARD,
+    });
+    const params = createMock.mock.calls[0]?.[0] as { allow_promotion_codes: boolean };
+    expect(params.allow_promotion_codes).toBe(true);
+  });
+
   it("uses ex-VAT unit amounts + tax_behavior 'exclusive' with automatic_tax enabled", async () => {
     // Pricing v2 flip: Stripe Tax computes VAT on the ex-VAT base, so line
     // items expose ex-VAT unit_amount and tax_behavior "exclusive". Total
