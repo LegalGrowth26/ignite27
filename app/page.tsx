@@ -55,9 +55,9 @@ const VALUE_PROPS: ReadonlyArray<{ title: string; body: string }> = [
   },
 ];
 
-// Named speakers announced ahead of Ignite 27. Nathan has a downloaded
-// portrait; Stephine and Mark ship as initials-card placeholders until
-// their photos land. To add a new speaker, drop a webp into
+// Named speakers announced ahead of Ignite 27. Nathan and Mark have
+// downloaded portraits; Stephine ships as an initials-card placeholder
+// until her photo lands. To add a new speaker, drop a webp into
 // public/images/speakers/ and add an entry here.
 const NAMED_SPEAKERS: ReadonlyArray<
   | { name: string; topic: string; media: { variant: "photo"; src: string; alt: string } }
@@ -80,7 +80,13 @@ const NAMED_SPEAKERS: ReadonlyArray<
   {
     name: "Mark Saxby",
     topic: "Social media that actually works",
-    media: { variant: "initials", initials: "MS" },
+    media: {
+      variant: "photo",
+      // Source is a 200px LinkedIn photo; slightly soft at card width.
+      // Replace with a proper headshot when one arrives.
+      src: "/images/speakers/mark-saxby.webp",
+      alt: "Portrait of Mark Saxby",
+    },
   },
 ];
 

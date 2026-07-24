@@ -36,7 +36,13 @@ const NAMED_SPEAKERS: ReadonlyArray<
   {
     name: "Mark Saxby",
     topic: "Social media that actually works",
-    media: { variant: "initials", initials: "MS" },
+    media: {
+      variant: "photo",
+      // Source is a 200px LinkedIn photo; slightly soft at card width.
+      // Replace with a proper headshot when one arrives.
+      src: "/images/speakers/mark-saxby.webp",
+      alt: "Portrait of Mark Saxby",
+    },
   },
 ];
 
