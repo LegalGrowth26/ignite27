@@ -9,8 +9,8 @@ import { Section } from "@/components/Section";
 import { SectionHeader } from "@/components/SectionHeader";
 
 const EXHIBIT_ATMOSPHERE: ReadonlyArray<{ src: string; alt: string }> = [
-  { src: "/images/photos/photo-08.webp", alt: "Exhibitor stand at Ignite 26 with delegates in conversation" },
-  { src: "/images/photos/photo-16.webp", alt: "A busy exhibitor zone at Ignite 26" },
+  { src: "/images/photos/photo-08.webp", alt: "Exhibitor stand at IGNITE! 26 with delegates in conversation" },
+  { src: "/images/photos/photo-16.webp", alt: "A busy exhibitor zone at IGNITE! 26" },
   { src: "/images/photos/photo-31.webp", alt: "An exhibitor demonstrating their product to a delegate" },
 ];
 import {
@@ -23,9 +23,9 @@ import {
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Exhibit at Ignite 27",
+  title: "Exhibit at IGNITE! 27",
   description:
-    "Reserve one of 50 exhibitor stands at Ignite 27. Thursday 21 January 2027 at Kelham Hall, Newark.",
+    "Reserve one of 50 exhibitor stands at IGNITE! 27. Thursday 21 January 2027 at Kelham Hall, Newark.",
 };
 
 type ExhibitPricing =
@@ -105,7 +105,7 @@ function Hero() {
       />
       <Container className="relative py-20 sm:py-24 md:py-28">
         <div className="max-w-3xl">
-          <p className="text-eyebrow uppercase text-ignite-red">Exhibit at Ignite 27</p>
+          <p className="text-eyebrow uppercase text-ignite-red">Exhibit at IGNITE! 27</p>
           <h1 className="mt-5 text-h1">A room worth standing in.</h1>
           <p className="mt-5 max-w-2xl text-lead text-white/80">
             50 exhibitor stands at Kelham Hall on Thursday 21 January 2027. The delegates came to
@@ -201,7 +201,7 @@ function WhyExhibit() {
   return (
     <Section tone="cream">
       <Container>
-        <SectionHeader eyebrow="Why exhibit" heading="Why Ignite 27, specifically." />
+        <SectionHeader eyebrow="Why exhibit" heading="Why IGNITE! 27, specifically." />
         <ul className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {items.map((item) => (
             <li
@@ -252,14 +252,14 @@ function WhatsIncluded() {
   );
 }
 
-// Testimonial-shaped results from Ignite 26 exhibitors. The £15,000 video
+// Testimonial-shaped results from IGNITE! 26 exhibitors. The £15,000 video
 // figure is pending Tom's confirmation. Remove or update the middle stat
 // before this PR merges if it does not check out.
 function ExhibitorResults() {
   const stats: ReadonlyArray<{ figure: string; body: string }> = [
     {
       figure: "£30,000",
-      body: "One exhibitor attributes £30k of work won directly to IGNITE.",
+      body: "One exhibitor attributes £30k of work won directly to IGNITE!",
     },
     {
       figure: "£15,000",
@@ -275,7 +275,7 @@ function ExhibitorResults() {
       <Container>
         <SectionHeader
           eyebrow="Results"
-          heading="Exhibitors don't just get seen at IGNITE. They get business."
+          heading="Exhibitors don't just get seen at IGNITE! They get business."
           lede="A snapshot of what last year's exhibitors said they took away. We want to help you get business."
         />
         <ul className="mt-12 grid gap-6 sm:grid-cols-3">
@@ -297,7 +297,7 @@ function ExhibitorResults() {
 const PARTNER_ENQUIRY_MAILTO =
   "mailto:tom@lincolnshiremarketing.co.uk,paul@businessunfinished.co.uk" +
   "?subject=" +
-  encodeURIComponent("IGNITE 27 partner enquiry");
+  encodeURIComponent("IGNITE! 27 partner enquiry");
 
 function PartnerPackage() {
   return (
@@ -306,7 +306,7 @@ function PartnerPackage() {
         <div className="rounded-3xl border-2 border-ignite-red bg-ignite-white p-8 md:p-12">
           <div className="grid gap-6 md:grid-cols-12 md:items-center">
             <div className="md:col-span-8">
-              <p className="text-eyebrow uppercase text-ignite-red">Partner IGNITE 27</p>
+              <p className="text-eyebrow uppercase text-ignite-red">Partner IGNITE! 27</p>
               <p className="mt-3 text-h2">5 slots only. £1,000 + VAT (£1,200).</p>
               <p className="mt-4 text-body text-ignite-ink">
                 Your logo on everything: name badges, the big screen, every email, our

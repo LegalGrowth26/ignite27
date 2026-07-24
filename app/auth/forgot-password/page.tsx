@@ -4,7 +4,7 @@ import { Section } from "@/components/Section";
 import { ForgotPasswordForm } from "./ForgotPasswordForm";
 
 export const metadata: Metadata = {
-  title: "Reset your password · Ignite 27",
+  title: "Reset your password · IGNITE! 27",
 };
 
 export default function ForgotPasswordPage() {

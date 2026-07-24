@@ -23,9 +23,9 @@ const VENUE_PHOTOS: ReadonlyArray<{ src: string; alt: string }> = [
 ];
 
 export const metadata: Metadata = {
-  title: "Venue · Ignite 27",
+  title: "Venue · IGNITE! 27",
   description:
-    "Ignite 27 takes place at The Renaissance at Kelham Hall, Newark. Address, parking, accessibility, and getting here.",
+    "IGNITE! 27 takes place at The Renaissance at Kelham Hall, Newark. Address, parking, accessibility, and getting here.",
 };
 
 const PRACTICAL_INFO: ReadonlyArray<{ label: string; body: string }> = [
@@ -97,7 +97,7 @@ export default function VenuePage() {
               </p>
               <p className="mt-5 text-body text-ignite-muted">
                 Fun fact for a building this grand: Kelham Hall has burned down three
-                times in its history. We are bringing IGNITE back to relight it,
+                times in its history. We are bringing IGNITE! back to relight it,
                 carefully.
               </p>
               <p className="mt-5 text-body text-ignite-muted">

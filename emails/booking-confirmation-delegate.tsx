@@ -111,13 +111,13 @@ export function DelegateConfirmationEmail(props: DelegateConfirmationProps) {
   return (
     <Html>
       <Head />
-      <Preview>Your Ignite 27 ticket, reference {bookingReference}.</Preview>
+      <Preview>Your IGNITE! 27 ticket, reference {bookingReference}.</Preview>
       <Body style={WRAPPER}>
         <Container style={CONTAINER}>
-          <Text style={EYEBROW}>Ignite 27</Text>
+          <Text style={EYEBROW}>IGNITE! 27</Text>
           <Heading style={HEADING}>Booked. See you on Thursday 21 January.</Heading>
           <Text style={PARAGRAPH}>
-            Hi {firstName}, your Ignite 27 ticket is confirmed. Details below.
+            Hi {firstName}, your IGNITE! 27 ticket is confirmed. Details below.
           </Text>
 
           <Section>
@@ -184,7 +184,7 @@ export function DelegateConfirmationEmail(props: DelegateConfirmationProps) {
 
           <Hr style={{ borderColor: "#E6E7EA", margin: "24px 0" }} />
 
-          <Text style={{ ...SMALL, margin: 0 }}>The Ignite team</Text>
+          <Text style={{ ...SMALL, margin: 0 }}>The IGNITE! team</Text>
         </Container>
       </Body>
     </Html>
@@ -193,9 +193,9 @@ export function DelegateConfirmationEmail(props: DelegateConfirmationProps) {
 
 export function renderDelegateConfirmationPlainText(props: DelegateConfirmationProps): string {
   const lines = [
-    "Ignite 27, booking confirmed",
+    "IGNITE! 27, booking confirmed",
     "",
-    `Hi ${props.firstName}, your Ignite 27 ticket is confirmed.`,
+    `Hi ${props.firstName}, your IGNITE! 27 ticket is confirmed.`,
     "",
     `Reference: ${props.bookingReference}`,
     `Ticket: ${props.ticketTypeLabel}`,
@@ -213,7 +213,7 @@ export function renderDelegateConfirmationPlainText(props: DelegateConfirmationP
     `Manage your booking later at ${props.accountUrl}`,
     `Refund policy: ${props.refundPolicyUrl}`,
     "",
-    "The Ignite team",
+    "The IGNITE! team",
   ];
   return lines.join("\n");
 }

@@ -20,9 +20,9 @@ import {
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Book your place · Ignite 27",
+  title: "Book your place · IGNITE! 27",
   description:
-    "Book your delegate place at Ignite 27. Thursday 21 January 2027 at Kelham Hall, Newark.",
+    "Book your delegate place at IGNITE! 27. Thursday 21 January 2027 at Kelham Hall, Newark.",
 };
 
 type PricingState =
@@ -121,7 +121,7 @@ export default async function BookingPage(props: { searchParams: SearchParams })
           ) : (
             <div className="mt-8 rounded-2xl border border-ignite-line bg-ignite-cream p-6">
               <p className="text-body text-ignite-ink">
-                Bookings for Ignite 27 are closed. See you in 2028.
+                Bookings for IGNITE! 27 are closed. See you in 2028.
               </p>
               <div className="mt-4">
                 <Link

@@ -18,7 +18,7 @@ const FOOTER_COLUMNS: readonly FooterColumn[] = [
     items: [
       { href: "/attend", label: "Book your place" },
       { href: "/exhibit", label: "Reserve a stand" },
-      { href: "/exhibit#partner", label: "Partner Ignite 27" },
+      { href: "/exhibit#partner", label: "Partner IGNITE! 27" },
     ],
   },
   {
@@ -39,9 +39,9 @@ const FOOTER_COLUMNS: readonly FooterColumn[] = [
 ];
 
 const SOCIALS: ReadonlyArray<{ label: string; href: string; icon: "linkedin" | "instagram" | "x" }> = [
-  { label: "Ignite 27 on LinkedIn", href: "#", icon: "linkedin" },
-  { label: "Ignite 27 on Instagram", href: "#", icon: "instagram" },
-  { label: "Ignite 27 on X", href: "#", icon: "x" },
+  { label: "IGNITE! 27 on LinkedIn", href: "#", icon: "linkedin" },
+  { label: "IGNITE! 27 on Instagram", href: "#", icon: "instagram" },
+  { label: "IGNITE! 27 on X", href: "#", icon: "x" },
 ];
 
 function SocialIcon({ icon }: { icon: "linkedin" | "instagram" | "x" }) {
@@ -117,7 +117,7 @@ export function SiteFooter() {
         </div>
 
         <div className="mt-16 flex flex-col gap-4 border-t border-white/10 pt-6 text-small text-white/60 md:flex-row md:items-center md:justify-between">
-          <p>&copy; {year} Ignite 27. All rights reserved.</p>
+          <p>&copy; {year} IGNITE! 27. All rights reserved.</p>
           <ul className="flex flex-wrap items-center gap-x-6 gap-y-2">
             {LEGAL_NAV.map((item) => (
               <li key={item.href}>

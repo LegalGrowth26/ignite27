@@ -26,7 +26,7 @@ export function LogoWordmark({ tone = "light", className = "" }: LogoWordmarkPro
   return (
     <Link
       href="/"
-      aria-label="Ignite 27, home"
+      aria-label="IGNITE! 27, home"
       className={`inline-flex items-center ${className}`}
     >
       <Image

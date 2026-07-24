@@ -17,7 +17,7 @@ import {
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Booking · Ignite 27",
+  title: "Booking · IGNITE! 27",
 };
 
 interface BookingDetail {

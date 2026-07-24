@@ -51,11 +51,11 @@ const VALUE_PROPS: ReadonlyArray<{ title: string; body: string }> = [
   },
   {
     title: "Food and coffee",
-    body: "The famous IGNITE grab bag is back, or upgrade your lunch to a Smash Burger from the IGNITE FOOD TRUCK.",
+    body: "The famous IGNITE! grab bag is back, or upgrade your lunch to a Smash Burger from the IGNITE! FOOD TRUCK.",
   },
 ];
 
-// Named speakers announced ahead of Ignite 27. Nathan and Mark have
+// Named speakers announced ahead of IGNITE! 27. Nathan and Mark have
 // downloaded portraits; Stephine ships as an initials-card placeholder
 // until her photo lands. To add a new speaker, drop a webp into
 // public/images/speakers/ and add an entry here.
@@ -90,7 +90,7 @@ const NAMED_SPEAKERS: ReadonlyArray<
   },
 ];
 
-// TODO: replace with real Ignite 26 photography before the site goes live.
+// TODO: replace with real IGNITE! 26 photography before the site goes live.
 // Eight highlights chosen from the 38-photo library in
 // public/images/photos/. All landscape aspect (1600x1067). The first
 // entry spans a 2x2 tile on desktop so the grid reads as a proper
@@ -101,16 +101,16 @@ const NAMED_SPEAKERS: ReadonlyArray<
 const LAST_YEAR_PHOTOS: ReadonlyArray<{ src: string; alt: string; span?: string }> = [
   {
     src: "/images/photos/photo-01.webp",
-    alt: "Delegates gathered in the main hall at Ignite 26, mid-session",
+    alt: "Delegates gathered in the main hall at IGNITE! 26, mid-session",
     span: "md:col-span-2 md:row-span-2",
   },
-  { src: "/images/photos/photo-06.webp", alt: "A speaker on stage at Ignite 26 addressing the room" },
-  { src: "/images/photos/photo-10.webp", alt: "Delegates in conversation during a coffee break at Ignite 26" },
-  { src: "/images/photos/photo-14.webp", alt: "Exhibitors speaking with a delegate at a stand at Ignite 26" },
+  { src: "/images/photos/photo-06.webp", alt: "A speaker on stage at IGNITE! 26 addressing the room" },
+  { src: "/images/photos/photo-10.webp", alt: "Delegates in conversation during a coffee break at IGNITE! 26" },
+  { src: "/images/photos/photo-14.webp", alt: "Exhibitors speaking with a delegate at a stand at IGNITE! 26" },
   { src: "/images/photos/photo-18.webp", alt: "A small group of delegates in conversation in the Kelham Hall foyer" },
-  { src: "/images/photos/photo-23.webp", alt: "Interior of The Renaissance at Kelham Hall set for Ignite 26" },
-  { src: "/images/photos/photo-27.webp", alt: "Delegates networking between sessions at Ignite 26" },
-  { src: "/images/photos/photo-32.webp", alt: "Wide view of the Ignite 26 main hall from the balcony" },
+  { src: "/images/photos/photo-23.webp", alt: "Interior of The Renaissance at Kelham Hall set for IGNITE! 26" },
+  { src: "/images/photos/photo-27.webp", alt: "Delegates networking between sessions at IGNITE! 26" },
+  { src: "/images/photos/photo-32.webp", alt: "Wide view of the IGNITE! 26 main hall from the balcony" },
 ];
 
 // Eight partner logos from the site's existing partners strip. Files
@@ -180,12 +180,11 @@ function Hero() {
           <p className="text-eyebrow uppercase text-ignite-red">
             Thursday 21 January 2027. Kelham Hall, Newark.
           </p>
-          <h1 className="mt-6 text-display">
-            A business day worth turning up for.
-          </h1>
+          {/* Copy per Tom, exact. The stacked exclamation marks are the
+              design feature; do not soften. */}
+          <h1 className="mt-6 text-display">IGNITE! is back!</h1>
           <p className="mt-6 max-w-2xl text-lead text-white/80">
-            Speakers you&apos;ll quote. Workshops that teach you something useful. A room full of
-            people who came to actually do something with their day.
+            Still no stale coffee. Still no dull grey suits.
           </p>
           <div className="mt-8">
             <LaunchCountdown
@@ -197,7 +196,7 @@ function Hero() {
             <Button href="/attend" variant="primary" size="lg">
               Book your place
             </Button>
-            <Button href="/exhibit" variant="secondary" size="lg" tone="dark">
+            <Button href="/exhibit" variant="primary" size="lg">
               Reserve your stand
             </Button>
           </div>
@@ -214,13 +213,13 @@ function WhatIsIgnite() {
         <div className="grid gap-10 md:grid-cols-12">
           <div className="md:col-span-5">
             <SectionHeader
-              eyebrow="What is Ignite 27"
+              eyebrow="What is IGNITE! 27"
               heading={<span className="normal-case">One day. Kelham Hall. The people who do.</span>}
             />
           </div>
           <div className="md:col-span-7 md:pt-2">
             <p className="text-lead text-ignite-ink">
-              Ignite 27 is a one-day business event in Newark for people building and growing
+              IGNITE! 27 is a one-day business event in Newark for people building and growing
               things. Speakers you&apos;ll quote on Monday. Workshops that teach you something.
               Exhibitors worth your time. A room of people who came to do something with their day,
               not to collect a lanyard.
@@ -266,9 +265,9 @@ function LastYear() {
     <Section tone="light">
       <Container>
         <SectionHeader
-          eyebrow="Last year at Ignite"
-          heading="Ignite 26, in pictures."
-          lede="The room, the stands, the conversations. Ignite 27 builds on this, turned up a notch."
+          eyebrow="Last year at IGNITE!"
+          heading="IGNITE! 26, in pictures."
+          lede="The room, the stands, the conversations. IGNITE! 27 builds on this, turned up a notch."
         />
         <div className="mt-12 grid auto-rows-[180px] grid-cols-2 gap-3 sm:auto-rows-[220px] md:grid-cols-4">
           {LAST_YEAR_PHOTOS.map((photo) => (
@@ -347,7 +346,7 @@ function PartnersStrip() {
         <SectionHeader
           eyebrow="Sponsors and partners"
           heading="Backed by businesses that build."
-          lede="Ignite 27 is made possible by sponsors and partners you'll recognise. Full line-up announced closer to the day."
+          lede="IGNITE! 27 is made possible by sponsors and partners you'll recognise. Full line-up announced closer to the day."
         />
         <ul className="mt-12 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-8">
           {PARTNER_LOGOS.map((p) => (
@@ -370,7 +369,7 @@ function PartnersStrip() {
         </ul>
         <div className="mt-10">
           <Button href="/exhibit#partner" variant="secondary" size="md">
-            Partner Ignite 27
+            Partner IGNITE! 27
           </Button>
         </div>
       </Container>

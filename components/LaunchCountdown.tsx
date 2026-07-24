@@ -57,17 +57,25 @@ export function LaunchCountdown({
 
   if (now === null) return null;
 
+  // Both states render on an opaque panel so the digits never inherit
+  // (or fight) the surrounding background. The pre state previously used
+  // a 5% red tint with near-black text, which vanished on the black home
+  // hero. Solid ignite-black + white digits reads on light and dark
+  // placements alike; the live state stays solid brand red + white.
   if (now < launchOpensMs) {
     const c = diff(now, launchOpensMs);
     return (
       <div
-        className={`inline-flex flex-col items-start gap-1 rounded-2xl border border-ignite-red bg-ignite-red/5 px-4 py-3 ${className}`}
+        className={`inline-flex flex-col items-start gap-1.5 rounded-2xl border-2 border-ignite-red bg-ignite-black px-5 py-4 shadow-lg ${className}`}
       >
         <p className="text-eyebrow uppercase text-ignite-red">
           Launch pricing: 72 hours only from 1 August, 9am
         </p>
-        <p className="text-body font-semibold text-ignite-ink">
-          Opens in <span className="font-mono tabular-nums">{formatCountdown(c)}</span>
+        <p className="text-h3 font-semibold text-ignite-white">
+          Opens in{" "}
+          <span className="font-mono tabular-nums text-ignite-white">
+            {formatCountdown(c)}
+          </span>
         </p>
       </div>
     );
@@ -79,13 +87,16 @@ export function LaunchCountdown({
       <div
         role="status"
         aria-live="polite"
-        className={`inline-flex flex-col items-start gap-1 rounded-2xl border-2 border-ignite-red bg-ignite-red text-ignite-white px-4 py-3 ${className}`}
+        className={`inline-flex flex-col items-start gap-1.5 rounded-2xl bg-ignite-red px-5 py-4 shadow-lg ${className}`}
       >
-        <p className="text-eyebrow uppercase text-ignite-white/90">
+        <p className="text-eyebrow uppercase text-ignite-white">
           Launch pricing, 72-hour window
         </p>
-        <p className="text-body font-semibold">
-          Ends in <span className="font-mono tabular-nums">{formatCountdown(c)}</span>
+        <p className="text-h3 font-semibold text-ignite-white">
+          Ends in{" "}
+          <span className="font-mono tabular-nums text-ignite-white">
+            {formatCountdown(c)}
+          </span>
         </p>
       </div>
     );

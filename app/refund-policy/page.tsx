@@ -6,13 +6,13 @@ import { Section } from "@/components/Section";
 import { SectionHeader } from "@/components/SectionHeader";
 
 export const metadata: Metadata = {
-  title: "Refund policy · Ignite 27",
+  title: "Refund policy · IGNITE! 27",
   description:
     "Full refund on request until 31 December 2026. From 1 January 2027, no refunds. Tickets are transferable until bookings close.",
 };
 
 const REFUND_CONTACT_EMAIL = "tom@lincolnshiremarketing.co.uk";
-const REFUND_MAILTO_SUBJECT = "IGNITE 27 refund or transfer request";
+const REFUND_MAILTO_SUBJECT = "IGNITE! 27 refund or transfer request";
 
 const KEY_POINTS: ReadonlyArray<{ label: string; body: string }> = [
   {
@@ -87,7 +87,7 @@ export default function RefundPolicyPage() {
                 >
                   {REFUND_CONTACT_EMAIL}
                 </Link>{" "}
-                with subject &ldquo;IGNITE 27 refund or transfer request&rdquo;.
+                with subject &ldquo;IGNITE! 27 refund or transfer request&rdquo;.
               </p>
               <p className="mt-4 text-body text-ignite-muted">
                 For transfers, include the new attendee&apos;s name, email,

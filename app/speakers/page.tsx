@@ -8,9 +8,9 @@ import { SpeakerCard } from "@/components/SpeakerCard";
 import { SpeakersSignupForm } from "@/components/SpeakersSignupForm";
 
 const SPEAKERS_PHOTOS: ReadonlyArray<{ src: string; alt: string }> = [
-  { src: "/images/photos/photo-06.webp", alt: "A speaker on the Ignite 26 main stage mid-sentence" },
-  { src: "/images/photos/photo-09.webp", alt: "Delegates leaning in during a keynote at Ignite 26" },
-  { src: "/images/photos/photo-17.webp", alt: "Speaker Q and A after a session at Ignite 26" },
+  { src: "/images/photos/photo-06.webp", alt: "A speaker on the IGNITE! 26 main stage mid-sentence" },
+  { src: "/images/photos/photo-09.webp", alt: "Delegates leaning in during a keynote at IGNITE! 26" },
+  { src: "/images/photos/photo-17.webp", alt: "Speaker Q and A after a session at IGNITE! 26" },
 ];
 
 // Same three named speakers as the home Speakers section. Kept in sync
@@ -49,9 +49,9 @@ const NAMED_SPEAKERS: ReadonlyArray<
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Speakers · Ignite 27",
+  title: "Speakers · IGNITE! 27",
   description:
-    "Speakers for Ignite 27 are being announced. Leave your email and we will tell you each time one is confirmed.",
+    "Speakers for IGNITE! 27 are being announced. Leave your email and we will tell you each time one is confirmed.",
 };
 
 export default function SpeakersPage() {

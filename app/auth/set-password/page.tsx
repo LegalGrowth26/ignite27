@@ -6,7 +6,7 @@ import { SetPasswordForm } from "./SetPasswordForm";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Set your password · Ignite 27",
+  title: "Set your password · IGNITE! 27",
 };
 
 export default function SetPasswordPage() {

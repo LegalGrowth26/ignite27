@@ -61,7 +61,7 @@ export function SimpleTextEmail({ previewText, heading, paragraphs }: SimpleText
             </Text>
           ))}
           <Text style={{ ...PARAGRAPH, color: "#5B6169", marginTop: "16px" }}>
-            The Ignite team
+            The IGNITE! team
           </Text>
         </Container>
       </Body>
@@ -70,5 +70,5 @@ export function SimpleTextEmail({ previewText, heading, paragraphs }: SimpleText
 }
 
 export function renderSimpleTextPlain(props: SimpleTextEmailProps): string {
-  return [props.heading, "", ...props.paragraphs, "", "The Ignite team"].join("\n");
+  return [props.heading, "", ...props.paragraphs, "", "The IGNITE! team"].join("\n");
 }

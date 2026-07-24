@@ -10,9 +10,9 @@ import { Section } from "@/components/Section";
 import { SectionHeader } from "@/components/SectionHeader";
 
 const ATTEND_ATMOSPHERE: ReadonlyArray<{ src: string; alt: string }> = [
-  { src: "/images/photos/photo-05.webp", alt: "Delegates listening intently to a speaker at Ignite 26" },
-  { src: "/images/photos/photo-11.webp", alt: "Two delegates in conversation during a networking break at Ignite 26" },
-  { src: "/images/photos/photo-25.webp", alt: "A workshop in progress at Ignite 26" },
+  { src: "/images/photos/photo-05.webp", alt: "Delegates listening intently to a speaker at IGNITE! 26" },
+  { src: "/images/photos/photo-11.webp", alt: "Two delegates in conversation during a networking break at IGNITE! 26" },
+  { src: "/images/photos/photo-25.webp", alt: "A workshop in progress at IGNITE! 26" },
 ];
 import {
   BookingsNotOpenError,
@@ -32,9 +32,9 @@ const LAUNCH_CLOSES_MS = LAUNCH_PERIOD.closesAt.getTime();
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Attend Ignite 27",
+  title: "Attend IGNITE! 27",
   description:
-    "Book your place at Ignite 27. Thursday 21 January 2027 at Kelham Hall, Newark.",
+    "Book your place at IGNITE! 27. Thursday 21 January 2027 at Kelham Hall, Newark.",
 };
 
 type AttendPricing =
@@ -138,8 +138,8 @@ function Hero() {
       />
       <Container className="relative py-20 sm:py-24 md:py-28">
         <div className="max-w-3xl">
-          <p className="text-eyebrow uppercase text-ignite-red">Attend Ignite 27</p>
-          <h1 className="mt-5 text-h1">Your place at Ignite 27.</h1>
+          <p className="text-eyebrow uppercase text-ignite-red">Attend IGNITE! 27</p>
+          <h1 className="mt-5 text-h1">Your place at IGNITE! 27.</h1>
           <p className="mt-5 max-w-2xl text-lead text-white/80">
             Thursday 21 January 2027. Kelham Hall, Newark. Pick Regular or VIP below and book your
             place.
@@ -250,7 +250,7 @@ function WhatYouGet() {
     },
     {
       title: "The food",
-      body: "The famous IGNITE grab bag is back, or upgrade your lunch to a Smash Burger from the IGNITE FOOD TRUCK.",
+      body: "The famous IGNITE! grab bag is back, or upgrade your lunch to a Smash Burger from the IGNITE! FOOD TRUCK.",
     },
   ];
 
@@ -319,7 +319,7 @@ function ClosingCta() {
       <Container className="relative py-20 md:py-28">
         <div className="max-w-3xl">
           <p className="text-eyebrow uppercase text-ignite-red">Thursday 21 January 2027</p>
-          <p className="mt-4 text-h1">Book your place at Ignite 27.</p>
+          <p className="mt-4 text-h1">Book your place at IGNITE! 27.</p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:gap-4">
             <Button href="/attend/book?ticket=regular" variant="primary" size="lg">
               Book your place
