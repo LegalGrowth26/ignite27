@@ -8,14 +8,17 @@ type FooterColumn = {
   items: ReadonlyArray<{ href: string; label: string }>;
 };
 
+// Dead-link cleanup: /sponsors, /partners, and /faq don't exist yet.
+// Partner content moved to /exhibit#partner (see the PartnerPackage
+// block); the label points there instead. Add these entries back when
+// the corresponding pages ship.
 const FOOTER_COLUMNS: readonly FooterColumn[] = [
   {
     heading: "Attend",
     items: [
       { href: "/attend", label: "Book your place" },
       { href: "/exhibit", label: "Reserve a stand" },
-      { href: "/sponsors", label: "Sponsor Ignite" },
-      { href: "/partners", label: "Become a partner" },
+      { href: "/exhibit#partner", label: "Partner Ignite 27" },
     ],
   },
   {
@@ -29,7 +32,6 @@ const FOOTER_COLUMNS: readonly FooterColumn[] = [
   {
     heading: "Help",
     items: [
-      { href: "/faq", label: "FAQ" },
       { href: "/contact", label: "Contact" },
       { href: "/login", label: "Login" },
     ],

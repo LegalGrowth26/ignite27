@@ -81,8 +81,10 @@ export default function ExhibitPage() {
       <Hero />
       <PricingSection pricing={pricing} />
       <WhyExhibit />
+      <ExhibitorResults />
       <PhotoBand photos={EXHIBIT_ATMOSPHERE} tone="light" />
       <WhatsIncluded />
+      <PartnerPackage />
       <HowBookingWorks heading="How booking works." steps={EXHIBIT_STEPS} />
       <SponsorshipCallout />
       <ClosingCta />
@@ -184,7 +186,7 @@ function WhyExhibit() {
     },
     {
       title: "One focused day",
-      body: "Not a week-long expo. Full delegate attention, compressed into Thursday 21 January 2027.",
+      body: "People don't just come, do an hour's walk around and leave. They stay for the whole day — having high-quality conversations and real engagement.",
     },
     {
       title: "Two people, two lunches",
@@ -232,6 +234,9 @@ function WhatsIncluded() {
               Each exhibitor booking covers one stand, two attendee places, and two lunches for
               the whole day.
             </p>
+            <p className="mt-4 text-body font-semibold text-ignite-ink">
+              A new exhibitor layout designed to maximise your visibility.
+            </p>
             {/*
               TODO: once the venue kit is confirmed (stand size, table, chairs,
               power, signage rules), replace this paragraph with a concrete list.
@@ -240,6 +245,83 @@ function WhatsIncluded() {
               Stand kit details (size, table, chairs, power) are confirmed with exhibitors after
               booking.
             </p>
+          </div>
+        </div>
+      </Container>
+    </Section>
+  );
+}
+
+// Testimonial-shaped results from Ignite 26 exhibitors. The £15,000 video
+// figure is pending Tom's confirmation — remove or update the middle stat
+// before this PR merges if it does not check out.
+function ExhibitorResults() {
+  const stats: ReadonlyArray<{ figure: string; body: string }> = [
+    {
+      figure: "£30,000",
+      body: "One exhibitor attributes £30k of work won directly to IGNITE.",
+    },
+    {
+      figure: "£15,000",
+      body: "Another picked up £15k of video work from conversations on the day. (Figure pending Tom's confirmation.)",
+    },
+    {
+      figure: "£9,000",
+      body: "A third booked £9k of workshop bookings before the day was out.",
+    },
+  ];
+  return (
+    <Section tone="cream">
+      <Container>
+        <SectionHeader
+          eyebrow="Results"
+          heading="Exhibitors don't just get seen at IGNITE — they get business."
+          lede="A snapshot of what last year's exhibitors said they took away. We want to help you get business."
+        />
+        <ul className="mt-12 grid gap-6 sm:grid-cols-3">
+          {stats.map((s) => (
+            <li
+              key={s.figure}
+              className="rounded-2xl border border-ignite-line bg-ignite-white p-6"
+            >
+              <p className="text-display leading-none text-ignite-red">{s.figure}</p>
+              <p className="mt-4 text-body text-ignite-ink">{s.body}</p>
+            </li>
+          ))}
+        </ul>
+      </Container>
+    </Section>
+  );
+}
+
+const PARTNER_ENQUIRY_MAILTO =
+  "mailto:tom@lincolnshiremarketing.co.uk,paul@businessunfinished.co.uk" +
+  "?subject=" +
+  encodeURIComponent("IGNITE 27 partner enquiry");
+
+function PartnerPackage() {
+  return (
+    <Section tone="light">
+      <Container>
+        <div className="rounded-3xl border-2 border-ignite-red bg-ignite-white p-8 md:p-12">
+          <div className="grid gap-6 md:grid-cols-12 md:items-center">
+            <div className="md:col-span-8">
+              <p className="text-eyebrow uppercase text-ignite-red">Partner IGNITE 27</p>
+              <p className="mt-3 text-h2">5 slots only. £1,000 + VAT (£1,200).</p>
+              <p className="mt-4 text-body text-ignite-ink">
+                Your logo on everything: name badges, the big screen, every email, our
+                socials — plus your own stand. A step up from a standard exhibitor
+                package for businesses who want to be part of the fabric of the day.
+              </p>
+            </div>
+            <div className="md:col-span-4 md:justify-self-end">
+              <a
+                href={PARTNER_ENQUIRY_MAILTO}
+                className="inline-flex items-center justify-center rounded-xl bg-ignite-red px-6 py-3 text-body font-semibold text-ignite-white transition-colors hover:bg-ignite-red/90"
+              >
+                Enquire about partnering
+              </a>
+            </div>
           </div>
         </div>
       </Container>
@@ -262,9 +344,12 @@ function SponsorshipCallout() {
               </p>
             </div>
             <div className="md:col-span-4 md:justify-self-end">
-              <Button href="/sponsors" variant="primary" size="md">
-                Sponsor Ignite 27
-              </Button>
+              <a
+                href={PARTNER_ENQUIRY_MAILTO}
+                className="inline-flex items-center justify-center rounded-xl bg-ignite-red px-6 py-3 text-body font-semibold text-ignite-white transition-colors hover:bg-ignite-red/90"
+              >
+                Enquire about sponsorship
+              </a>
             </div>
           </div>
         </div>

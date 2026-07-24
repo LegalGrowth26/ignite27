@@ -218,14 +218,16 @@ export default async function BookingDetailPage({
           <div className="mt-8 rounded-2xl border border-ignite-line bg-ignite-cream p-6">
             <h2 className="text-h3">Manage your booking</h2>
             <p className="mt-2 text-small text-ignite-muted">
-              Refunds follow the{" "}
+              Full refund on request until 31 December 2026. From
+              1 January 2027 tickets are non-refundable but freely
+              transferable to a colleague — email us to arrange. See the{" "}
               <Link
                 href="/refund-policy"
                 className="underline underline-offset-4 hover:text-ignite-red"
               >
                 refund policy
               </Link>
-              . Refunds are minus Stripe&apos;s processing fee, which we cannot recover.
+              .
             </p>
 
             <details className="mt-5">

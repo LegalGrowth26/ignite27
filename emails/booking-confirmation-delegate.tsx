@@ -173,11 +173,13 @@ export function DelegateConfirmationEmail(props: DelegateConfirmationProps) {
             to request a correction, ask to cancel, or resend this email.
           </Text>
           <Text style={SMALL}>
-            Cancellations follow the{" "}
+            Full refund on request until 31 December 2026. From
+            1 January 2027 tickets are non-refundable but transferable
+            to a colleague — email us to arrange. See the{" "}
             <Link style={LINK} href={refundPolicyUrl}>
               refund policy
             </Link>
-            . Refunds are minus Stripe&apos;s processing fee, which we cannot recover.
+            .
           </Text>
 
           <Hr style={{ borderColor: "#E6E7EA", margin: "24px 0" }} />

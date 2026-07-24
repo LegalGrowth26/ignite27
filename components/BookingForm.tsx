@@ -120,10 +120,30 @@ export function BookingForm({
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-6">
       <input type="hidden" name="ticketType" value={ticketType} />
 
-      <div className="rounded-2xl border border-ignite-line bg-ignite-cream p-5">
-        <p className="text-eyebrow uppercase text-ignite-red">{periodLabel}</p>
+      <div
+        className={
+          ticketType === "vip"
+            ? "rounded-2xl border-2 border-ignite-red bg-ignite-red/5 p-5"
+            : "rounded-2xl border border-ignite-line bg-ignite-cream p-5"
+        }
+      >
+        <div className="flex items-center gap-2">
+          <p className="text-eyebrow uppercase text-ignite-red">{periodLabel}</p>
+          {ticketType === "vip" ? (
+            <span className="rounded-full bg-ignite-red px-2 py-0.5 text-eyebrow uppercase text-ignite-white">
+              VIP
+            </span>
+          ) : null}
+        </div>
         <p className="mt-2 text-h3">{ticketLabel} ticket</p>
         <p className="mt-1 text-small text-ignite-muted">{lunchSummary}</p>
+        {ticketType === "vip" ? (
+          <ul className="mt-3 space-y-1 text-small text-ignite-ink">
+            <li>• Lunch included — with first access</li>
+            <li>• Priority seating at the front</li>
+            <li>• Special VIP lanyard</li>
+          </ul>
+        ) : null}
         <p className="mt-3 text-h2">{formatExVatWithGross(totalExVatPence, totalIncVatPence)}</p>
       </div>
 
@@ -312,10 +332,6 @@ export function BookingForm({
         />
         <span className="text-small text-ignite-ink">
           I accept the{" "}
-          <Link href="/terms" className="underline underline-offset-4 hover:text-ignite-red">
-            Terms
-          </Link>{" "}
-          and{" "}
           <Link
             href="/refund-policy"
             className="underline underline-offset-4 hover:text-ignite-red"

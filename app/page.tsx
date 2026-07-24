@@ -2,14 +2,22 @@ import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/Button";
 import { Container } from "@/components/Container";
+import { LaunchCountdown } from "@/components/LaunchCountdown";
 import { Section } from "@/components/Section";
 import { SectionHeader } from "@/components/SectionHeader";
+import { SpeakerCard } from "@/components/SpeakerCard";
 import {
   BookingsNotOpenError,
   formatExVatWithGross,
   getCurrentPricing,
+  PRICING_PERIODS,
   type CurrentPricing,
 } from "@/lib/pricing";
+
+const LAUNCH_PERIOD = PRICING_PERIODS.find((p) => p.period === "launch");
+if (!LAUNCH_PERIOD) throw new Error("launch pricing period not defined");
+const LAUNCH_OPENS_MS = LAUNCH_PERIOD.opensAt.getTime();
+const LAUNCH_CLOSES_MS = LAUNCH_PERIOD.closesAt.getTime();
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +39,7 @@ function resolvePricingPreview(now: Date): PricingPreview {
 const VALUE_PROPS: ReadonlyArray<{ title: string; body: string }> = [
   {
     title: "Speakers",
-    body: "People who've built things worth listening to. New voices for 2027, announced soon.",
+    body: "National quality speakers brought to you. People who have built things worth listening to.",
   },
   {
     title: "Workshops",
@@ -43,7 +51,36 @@ const VALUE_PROPS: ReadonlyArray<{ title: string; body: string }> = [
   },
   {
     title: "Food and coffee",
-    body: "Proper lunch, good coffee, real breaks. The background bits that decide how a day feels.",
+    body: "The famous IGNITE grab bag is back — or upgrade your lunch to a Smash Burger from the IGNITE FOOD TRUCK.",
+  },
+];
+
+// Named speakers announced ahead of Ignite 27. Nathan has a downloaded
+// portrait; Stephine and Mark ship as initials-card placeholders until
+// their photos land. To add a new speaker, drop a webp into
+// public/images/speakers/ and add an entry here.
+const NAMED_SPEAKERS: ReadonlyArray<
+  | { name: string; topic: string; media: { variant: "photo"; src: string; alt: string } }
+  | { name: string; topic: string; media: { variant: "initials"; initials: string } }
+> = [
+  {
+    name: "Stephine Robinson",
+    topic: "Practical AI for small businesses",
+    media: { variant: "initials", initials: "SR" },
+  },
+  {
+    name: "Nathan Littleton",
+    topic: "Email marketing that wins customers",
+    media: {
+      variant: "photo",
+      src: "/images/speakers/nathan-littleton.webp",
+      alt: "Portrait of Nathan Littleton",
+    },
+  },
+  {
+    name: "Mark Saxby",
+    topic: "Social media that actually works",
+    media: { variant: "initials", initials: "MS" },
   },
 ];
 
@@ -144,7 +181,13 @@ function Hero() {
             Speakers you&apos;ll quote. Workshops that teach you something useful. A room full of
             people who came to actually do something with their day.
           </p>
-          <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:gap-4">
+          <div className="mt-8">
+            <LaunchCountdown
+              launchOpensMs={LAUNCH_OPENS_MS}
+              launchClosesMs={LAUNCH_CLOSES_MS}
+            />
+          </div>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:gap-4">
             <Button href="/attend" variant="primary" size="lg">
               Book your place
             </Button>
@@ -247,31 +290,21 @@ function Speakers() {
   return (
     <Section tone="cream">
       <Container>
-        <div className="grid gap-10 md:grid-cols-12 md:items-end">
-          <div className="md:col-span-7">
-            <SectionHeader
-              eyebrow="Speakers"
-              heading="Speakers, announced soon."
-              lede="The 2027 line-up is being finalised. New voices, people you haven't heard at every other event this year. Watch this space."
-            />
-          </div>
-          <div className="md:col-span-5 md:text-right">
-            <Button href="/speakers" variant="secondary" size="md">
-              See the speakers page
-            </Button>
-          </div>
-        </div>
+        <SectionHeader
+          eyebrow="Speakers"
+          heading="National quality speakers, brought to you."
+          lede="First three announced. More names to follow — real practitioners on the topics that matter to a growing business."
+        />
         <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div
-              key={i}
-              aria-hidden
-              className="flex aspect-[4/5] flex-col justify-end rounded-2xl border border-dashed border-ignite-line bg-ignite-white p-5"
-            >
-              <p className="text-eyebrow uppercase text-ignite-muted">To be announced</p>
-              <p className="mt-2 text-h3 text-ignite-ink/60">Speaker reveal coming soon.</p>
-            </div>
+          {NAMED_SPEAKERS.map((s) => (
+            <SpeakerCard key={s.name} name={s.name} topic={s.topic} media={s.media} />
           ))}
+          <SpeakerCard
+            media={{
+              variant: "placeholder",
+              label: "More speakers announced soon",
+            }}
+          />
         </div>
       </Container>
     </Section>
@@ -329,12 +362,9 @@ function PartnersStrip() {
             </li>
           ))}
         </ul>
-        <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
-          <Button href="/sponsors" variant="secondary" size="md">
-            Sponsor Ignite
-          </Button>
-          <Button href="/partners" variant="secondary" size="md">
-            Become a partner
+        <div className="mt-10">
+          <Button href="/exhibit#partner" variant="secondary" size="md">
+            Partner Ignite 27
           </Button>
         </div>
       </Container>

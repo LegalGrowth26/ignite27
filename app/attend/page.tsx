@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Button } from "@/components/Button";
 import { Container } from "@/components/Container";
 import { HowBookingWorks, type BookingStep } from "@/components/HowBookingWorks";
+import { LaunchCountdown } from "@/components/LaunchCountdown";
 import { PhotoBand } from "@/components/PhotoBand";
 import { PriceCard } from "@/components/PriceCard";
 import { Section } from "@/components/Section";
@@ -19,8 +20,14 @@ import {
   formatPoundsFromPence,
   getCurrentPricing,
   LUNCH_ADDON_INC_VAT_PENCE,
+  PRICING_PERIODS,
   type CurrentPricing,
 } from "@/lib/pricing";
+
+const LAUNCH_PERIOD = PRICING_PERIODS.find((p) => p.period === "launch");
+if (!LAUNCH_PERIOD) throw new Error("launch pricing period not defined");
+const LAUNCH_OPENS_MS = LAUNCH_PERIOD.opensAt.getTime();
+const LAUNCH_CLOSES_MS = LAUNCH_PERIOD.closesAt.getTime();
 
 export const dynamic = "force-dynamic";
 
@@ -61,9 +68,9 @@ const REGULAR_INCLUDES: readonly string[] = [
 
 const VIP_INCLUDES: readonly string[] = [
   "Everything in Regular",
-  "Priority workshop access (from phase 2)",
-  "Premium badge treatment",
-  "[TODO: confirm fourth VIP perk with Tom]",
+  "Lunch included — with first access",
+  "Priority seating at the front",
+  "Special VIP lanyard",
 ];
 
 const ATTEND_STEPS: readonly BookingStep[] = [
@@ -90,7 +97,9 @@ const FAQS: ReadonlyArray<{ q: string; a: React.ReactNode }> = [
     q: "Can I cancel?",
     a: (
       <>
-        Yes, up to 20 December 2026, minus Stripe&apos;s processing fee. See the{" "}
+        Yes — full refund on request until 31 December 2026. From
+        1 January 2027 tickets are non-refundable but freely transferable
+        to a colleague. See the{" "}
         <Link href="/refund-policy" className="underline underline-offset-4 hover:text-ignite-red">
           refund policy
         </Link>{" "}
@@ -179,7 +188,27 @@ function PricingSection({ pricing }: { pricing: AttendPricing }) {
               : "Prices rise as we get closer to the day. Book early, pay less."
           }
         />
-        <div className="mt-12 grid gap-6 md:grid-cols-2 md:items-stretch">
+        <div className="mt-8">
+          <LaunchCountdown
+            launchOpensMs={LAUNCH_OPENS_MS}
+            launchClosesMs={LAUNCH_CLOSES_MS}
+          />
+        </div>
+        {/* VIP is rendered first so on both desktop (left column, with
+            the emphasised border + translate-up) and mobile (first
+            card) it reads as the featured option. Regular remains
+            clearly and equally bookable — no dark patterns. */}
+        <div className="mt-8 grid gap-6 md:grid-cols-2 md:items-stretch">
+          <PriceCard
+            tier="VIP"
+            tierTone="accent"
+            price={vipPrice}
+            chip={chip ?? "Best value"}
+            included={VIP_INCLUDES}
+            summaryLine="Lunch included, front-row seat, VIP lanyard."
+            cta={vipCta}
+            emphasised
+          />
           <PriceCard
             tier="Regular"
             price={regularPrice}
@@ -187,16 +216,6 @@ function PricingSection({ pricing }: { pricing: AttendPricing }) {
             included={REGULAR_INCLUDES}
             summaryLine={`Add lunch for ${lunchLabel}.`}
             cta={regularCta}
-          />
-          <PriceCard
-            tier="VIP"
-            tierTone="accent"
-            price={vipPrice}
-            chip={chip}
-            included={VIP_INCLUDES}
-            summaryLine="Lunch included."
-            cta={vipCta}
-            emphasised
           />
         </div>
         <p className="mt-8 text-small text-ignite-muted">
@@ -219,7 +238,7 @@ function WhatYouGet() {
   const items: ReadonlyArray<{ title: string; body: string }> = [
     {
       title: "The speakers",
-      body: "New voices for 2027, announced soon. People who have built things worth listening to.",
+      body: "National quality speakers brought to you. People who have built things worth listening to.",
     },
     {
       title: "The workshops",
@@ -227,11 +246,11 @@ function WhatYouGet() {
     },
     {
       title: "The room",
-      body: "Up to 50 exhibitors and a couple of hundred delegates who came ready to talk.",
+      body: "Up to 50 exhibitors and delegates who came ready to talk.",
     },
     {
-      title: "The breaks",
-      body: "Proper coffee, real pauses, time to follow up a conversation without rushing.",
+      title: "The food",
+      body: "The famous IGNITE grab bag is back — or upgrade your lunch to a Smash Burger from the IGNITE FOOD TRUCK.",
     },
   ];
 
@@ -271,11 +290,16 @@ function FaqPreview() {
             </div>
           ))}
         </dl>
-        <div className="mt-10">
-          <Button href="/faq" variant="secondary" size="md">
-            See all questions
-          </Button>
-        </div>
+        <p className="mt-10 text-small text-ignite-muted">
+          Something else on your mind? Email{" "}
+          <a
+            href="mailto:tom@lincolnshiremarketing.co.uk"
+            className="font-semibold text-ignite-red underline underline-offset-4"
+          >
+            tom@lincolnshiremarketing.co.uk
+          </a>
+          .
+        </p>
       </Container>
     </Section>
   );
