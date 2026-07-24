@@ -3,9 +3,16 @@ import type { Metadata } from "next";
 import { Button } from "@/components/Button";
 import { Container } from "@/components/Container";
 import { HowBookingWorks, type BookingStep } from "@/components/HowBookingWorks";
+import { PhotoBand } from "@/components/PhotoBand";
 import { PriceCard } from "@/components/PriceCard";
 import { Section } from "@/components/Section";
 import { SectionHeader } from "@/components/SectionHeader";
+
+const EXHIBIT_ATMOSPHERE: ReadonlyArray<{ src: string; alt: string }> = [
+  { src: "/images/photos/photo-08.webp", alt: "Exhibitor stand at Ignite 26 with delegates in conversation" },
+  { src: "/images/photos/photo-16.webp", alt: "A busy exhibitor zone at Ignite 26" },
+  { src: "/images/photos/photo-31.webp", alt: "An exhibitor demonstrating their product to a delegate" },
+];
 import {
   BookingsNotOpenError,
   formatExVatWithGross,
@@ -74,6 +81,7 @@ export default function ExhibitPage() {
       <Hero />
       <PricingSection pricing={pricing} />
       <WhyExhibit />
+      <PhotoBand photos={EXHIBIT_ATMOSPHERE} tone="light" />
       <WhatsIncluded />
       <HowBookingWorks heading="How booking works." steps={EXHIBIT_STEPS} />
       <SponsorshipCallout />

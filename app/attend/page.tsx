@@ -3,9 +3,16 @@ import type { Metadata } from "next";
 import { Button } from "@/components/Button";
 import { Container } from "@/components/Container";
 import { HowBookingWorks, type BookingStep } from "@/components/HowBookingWorks";
+import { PhotoBand } from "@/components/PhotoBand";
 import { PriceCard } from "@/components/PriceCard";
 import { Section } from "@/components/Section";
 import { SectionHeader } from "@/components/SectionHeader";
+
+const ATTEND_ATMOSPHERE: ReadonlyArray<{ src: string; alt: string }> = [
+  { src: "/images/photos/photo-05.webp", alt: "Delegates listening intently to a speaker at Ignite 26" },
+  { src: "/images/photos/photo-11.webp", alt: "Two delegates in conversation during a networking break at Ignite 26" },
+  { src: "/images/photos/photo-25.webp", alt: "A workshop in progress at Ignite 26" },
+];
 import {
   BookingsNotOpenError,
   formatExVatWithGross,
@@ -101,6 +108,7 @@ export default function AttendPage() {
       <Hero />
       <PricingSection pricing={pricing} />
       <WhatYouGet />
+      <PhotoBand photos={ATTEND_ATMOSPHERE} tone="light" />
       <HowBookingWorks heading="How booking works." steps={ATTEND_STEPS} />
       <FaqPreview />
       <ClosingCta />

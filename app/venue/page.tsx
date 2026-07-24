@@ -1,8 +1,26 @@
+import Image from "next/image";
 import type { Metadata } from "next";
 import { Button } from "@/components/Button";
 import { Container } from "@/components/Container";
 import { Section } from "@/components/Section";
 import { SectionHeader } from "@/components/SectionHeader";
+
+// Three landscape venue-appropriate shots from the photo library. Wide
+// interior scenes read best here — swap srcs if a better fit shows up.
+const VENUE_PHOTOS: ReadonlyArray<{ src: string; alt: string }> = [
+  {
+    src: "/images/photos/photo-04.webp",
+    alt: "The Victorian Great Hall at The Renaissance at Kelham Hall, set for a session",
+  },
+  {
+    src: "/images/photos/photo-20.webp",
+    alt: "High-ceilinged interior at Kelham Hall with delegates in conversation",
+  },
+  {
+    src: "/images/photos/photo-35.webp",
+    alt: "Ornate plasterwork detail from The Renaissance at Kelham Hall",
+  },
+];
 
 export const metadata: Metadata = {
   title: "Venue — Ignite 27",
@@ -83,6 +101,28 @@ export default function VenuePage() {
                 ticked a venue-booked box. Delegates notice.
               </p>
             </div>
+          </div>
+        </Container>
+      </Section>
+
+      <Section tone="light">
+        <Container>
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+            {VENUE_PHOTOS.map((p) => (
+              <figure
+                key={p.src}
+                className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-ignite-line"
+              >
+                <Image
+                  src={p.src}
+                  alt={p.alt}
+                  fill
+                  loading="lazy"
+                  sizes="(min-width: 768px) 33vw, (min-width: 640px) 50vw, 100vw"
+                  className="object-cover"
+                />
+              </figure>
+            ))}
           </div>
         </Container>
       </Section>
