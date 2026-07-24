@@ -17,7 +17,7 @@ import {
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Booking — Ignite 27",
+  title: "Booking · Ignite 27",
 };
 
 interface BookingDetail {
@@ -220,7 +220,7 @@ export default async function BookingDetailPage({
             <p className="mt-2 text-small text-ignite-muted">
               Full refund on request until 31 December 2026. From
               1 January 2027 tickets are non-refundable but freely
-              transferable to a colleague — email us to arrange. See the{" "}
+              transferable to a colleague, email us to arrange. See the{" "}
               <Link
                 href="/refund-policy"
                 className="underline underline-offset-4 hover:text-ignite-red"

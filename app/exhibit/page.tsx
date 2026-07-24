@@ -186,7 +186,7 @@ function WhyExhibit() {
     },
     {
       title: "One focused day",
-      body: "People don't just come, do an hour's walk around and leave. They stay for the whole day — having high-quality conversations and real engagement.",
+      body: "People don't just come, do an hour's walk around and leave. They stay for the whole day, having high-quality conversations and real engagement.",
     },
     {
       title: "Two people, two lunches",
@@ -253,7 +253,7 @@ function WhatsIncluded() {
 }
 
 // Testimonial-shaped results from Ignite 26 exhibitors. The £15,000 video
-// figure is pending Tom's confirmation — remove or update the middle stat
+// figure is pending Tom's confirmation. Remove or update the middle stat
 // before this PR merges if it does not check out.
 function ExhibitorResults() {
   const stats: ReadonlyArray<{ figure: string; body: string }> = [
@@ -275,7 +275,7 @@ function ExhibitorResults() {
       <Container>
         <SectionHeader
           eyebrow="Results"
-          heading="Exhibitors don't just get seen at IGNITE — they get business."
+          heading="Exhibitors don't just get seen at IGNITE. They get business."
           lede="A snapshot of what last year's exhibitors said they took away. We want to help you get business."
         />
         <ul className="mt-12 grid gap-6 sm:grid-cols-3">
@@ -310,7 +310,7 @@ function PartnerPackage() {
               <p className="mt-3 text-h2">5 slots only. £1,000 + VAT (£1,200).</p>
               <p className="mt-4 text-body text-ignite-ink">
                 Your logo on everything: name badges, the big screen, every email, our
-                socials — plus your own stand. A step up from a standard exhibitor
+                socials, plus your own stand. A step up from a standard exhibitor
                 package for businesses who want to be part of the fabric of the day.
               </p>
             </div>

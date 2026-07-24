@@ -68,7 +68,7 @@ const REGULAR_INCLUDES: readonly string[] = [
 
 const VIP_INCLUDES: readonly string[] = [
   "Everything in Regular",
-  "Lunch included — with first access",
+  "Lunch included, with first access",
   "Priority seating at the front",
   "Special VIP lanyard",
 ];
@@ -97,7 +97,7 @@ const FAQS: ReadonlyArray<{ q: string; a: React.ReactNode }> = [
     q: "Can I cancel?",
     a: (
       <>
-        Yes — full refund on request until 31 December 2026. From
+        Yes, full refund on request until 31 December 2026. From
         1 January 2027 tickets are non-refundable but freely transferable
         to a colleague. See the{" "}
         <Link href="/refund-policy" className="underline underline-offset-4 hover:text-ignite-red">
@@ -197,7 +197,7 @@ function PricingSection({ pricing }: { pricing: AttendPricing }) {
         {/* VIP is rendered first so on both desktop (left column, with
             the emphasised border + translate-up) and mobile (first
             card) it reads as the featured option. Regular remains
-            clearly and equally bookable — no dark patterns. */}
+            clearly and equally bookable, no dark patterns. */}
         <div className="mt-8 grid gap-6 md:grid-cols-2 md:items-stretch">
           <PriceCard
             tier="VIP"
@@ -250,7 +250,7 @@ function WhatYouGet() {
     },
     {
       title: "The food",
-      body: "The famous IGNITE grab bag is back — or upgrade your lunch to a Smash Burger from the IGNITE FOOD TRUCK.",
+      body: "The famous IGNITE grab bag is back, or upgrade your lunch to a Smash Burger from the IGNITE FOOD TRUCK.",
     },
   ];
 

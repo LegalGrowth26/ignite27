@@ -1,14 +1,21 @@
 import type { Metadata } from "next";
 import { AgendaSignupForm } from "@/components/AgendaSignupForm";
-import { Button } from "@/components/Button";
+import { BookingCta } from "@/components/BookingCta";
 import { Container } from "@/components/Container";
+import { PhotoBand } from "@/components/PhotoBand";
 import { Section } from "@/components/Section";
 import { SectionHeader } from "@/components/SectionHeader";
+
+const AGENDA_PHOTOS: ReadonlyArray<{ src: string; alt: string }> = [
+  { src: "/images/photos/photo-02.webp", alt: "A keynote in progress at Ignite 26" },
+  { src: "/images/photos/photo-07.webp", alt: "A workshop session mid-flow at Ignite 26" },
+  { src: "/images/photos/photo-13.webp", alt: "Delegates comparing notes between agenda slots at Ignite 26" },
+];
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Agenda — Ignite 27",
+  title: "Agenda · Ignite 27",
   description:
     "The full Ignite 27 agenda is on the way. Leave your email and we will tell you the moment it is announced.",
 };
@@ -35,21 +42,9 @@ export default function AgendaPage() {
         </Container>
       </Section>
 
-      <Section tone="cream">
-        <Container>
-          <div className="mx-auto flex max-w-2xl flex-col items-start gap-4 rounded-2xl border border-ignite-line bg-ignite-white p-8 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-h3 text-ignite-ink">Don&apos;t want to wait?</p>
-              <p className="mt-2 text-body text-ignite-muted">
-                You can book your place at Ignite 27 now and lock in the current pricing.
-              </p>
-            </div>
-            <Button href="/attend" variant="primary" size="md" className="self-start md:self-auto">
-              Book your place
-            </Button>
-          </div>
-        </Container>
-      </Section>
+      <PhotoBand photos={AGENDA_PHOTOS} tone="light" />
+
+      <BookingCta />
     </>
   );
 }

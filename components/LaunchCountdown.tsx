@@ -82,7 +82,7 @@ export function LaunchCountdown({
         className={`inline-flex flex-col items-start gap-1 rounded-2xl border-2 border-ignite-red bg-ignite-red text-ignite-white px-4 py-3 ${className}`}
       >
         <p className="text-eyebrow uppercase text-ignite-white/90">
-          Launch pricing — 72-hour window
+          Launch pricing, 72-hour window
         </p>
         <p className="text-body font-semibold">
           Ends in <span className="font-mono tabular-nums">{formatCountdown(c)}</span>

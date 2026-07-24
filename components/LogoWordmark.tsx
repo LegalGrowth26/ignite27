@@ -6,14 +6,15 @@ type LogoWordmarkProps = {
   className?: string;
 };
 
-// The wordmark asset lives at public/images/brand/wordmark-a.png — the
-// red "IGNITE!" typography on transparent background. Reads on both
-// light and dark surfaces without a second asset. Source aspect ratio
-// is 2000:600 (~3.33:1). We constrain by HEIGHT so a taller header row
-// doesn't inflate the width, and set width via the aspect ratio.
+// The wordmark asset lives at public/images/brand/wordmark-a.png. This
+// is the red "IGNITE!" typography on transparent background. Reads on
+// both light and dark surfaces without a second asset. Source aspect
+// ratio is 2000:600 (~3.33:1). We constrain by HEIGHT so a taller
+// header row doesn't inflate the width, and set width via the aspect
+// ratio.
 //
 // The other file, logo.png (2880x1292 dark decorative slash mark), is
-// the favicon source — not the header wordmark. Do not swap.
+// the favicon source, not the header wordmark. Do not swap.
 const WORDMARK_ASPECT = 2000 / 600;
 const HEIGHT = 40;
 const WIDTH = Math.round(HEIGHT * WORDMARK_ASPECT);

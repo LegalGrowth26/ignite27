@@ -1,12 +1,12 @@
 import Image from "next/image";
 import type { Metadata } from "next";
-import { Button } from "@/components/Button";
+import { BookingCta } from "@/components/BookingCta";
 import { Container } from "@/components/Container";
 import { Section } from "@/components/Section";
 import { SectionHeader } from "@/components/SectionHeader";
 
 // Three landscape venue-appropriate shots from the photo library. Wide
-// interior scenes read best here — swap srcs if a better fit shows up.
+// interior scenes read best here. Swap srcs if a better fit shows up.
 const VENUE_PHOTOS: ReadonlyArray<{ src: string; alt: string }> = [
   {
     src: "/images/photos/photo-04.webp",
@@ -23,7 +23,7 @@ const VENUE_PHOTOS: ReadonlyArray<{ src: string; alt: string }> = [
 ];
 
 export const metadata: Metadata = {
-  title: "Venue — Ignite 27",
+  title: "Venue · Ignite 27",
   description:
     "Ignite 27 takes place at The Renaissance at Kelham Hall, Newark. Address, parking, accessibility, and getting here.",
 };
@@ -43,7 +43,7 @@ const PRACTICAL_INFO: ReadonlyArray<{ label: string; body: string }> = [
   },
   {
     label: "Getting here",
-    body: "Good road links via the A1 and A46. Around 90 minutes from London. Local hotels are available for delegates wanting to stay overnight (we'll publish a recommended list closer to the event).",
+    body: "Good road links via the A1 and A46. Around 90 minutes from London. Local hotels are available for delegates wanting to stay overnight.",
   },
 ];
 
@@ -96,7 +96,12 @@ export default function VenuePage() {
                 ornate plasterwork, the ornate Victorian Great Hall.
               </p>
               <p className="mt-5 text-body text-ignite-muted">
-                We picked it deliberately. We wanted somewhere that didn't feel like a hotel
+                Fun fact for a building this grand: Kelham Hall has burned down three
+                times in its history. We are bringing IGNITE back to relight it,
+                carefully.
+              </p>
+              <p className="mt-5 text-body text-ignite-muted">
+                We picked it deliberately. We wanted somewhere that didn&apos;t feel like a hotel
                 chain meeting room. Somewhere that says we took the day seriously, not that we
                 ticked a venue-booked box. Delegates notice.
               </p>
@@ -127,26 +132,7 @@ export default function VenuePage() {
         </Container>
       </Section>
 
-      <Section tone="light">
-        <Container>
-          <div className="mx-auto flex max-w-2xl flex-col items-start gap-4 rounded-2xl border border-ignite-line bg-ignite-white p-8 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-h3 text-ignite-ink">Ready to come along?</p>
-              <p className="mt-2 text-body text-ignite-muted">
-                Lock in your place at Ignite 27 at the current pricing window.
-              </p>
-            </div>
-            <Button
-              href="/attend"
-              variant="primary"
-              size="md"
-              className="self-start md:self-auto"
-            >
-              Book your place
-            </Button>
-          </div>
-        </Container>
-      </Section>
+      <BookingCta tone="light" />
     </>
   );
 }

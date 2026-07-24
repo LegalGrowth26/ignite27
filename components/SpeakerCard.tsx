@@ -45,7 +45,7 @@ export function SpeakerCard({ name, topic, media }: SpeakerCardProps) {
             >
               {media.initials}
             </span>
-            <span className="sr-only">{name ?? "Speaker"} — photo coming soon</span>
+            <span className="sr-only">{name ?? "Speaker"}, photo coming soon</span>
           </div>
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-ignite-red/10">

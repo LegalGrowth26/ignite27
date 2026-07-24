@@ -5,7 +5,7 @@ import { Section } from "@/components/Section";
 import { SectionHeader } from "@/components/SectionHeader";
 
 export const metadata: Metadata = {
-  title: "Contact — Ignite 27",
+  title: "Contact · Ignite 27",
   description:
     "Get in touch about Ignite 27. Tom Stansfield at Lincolnshire Marketing and Paul Green at Business Unfinished handle everything: delegate, exhibitor, and sponsorship enquiries.",
 };
@@ -46,7 +46,7 @@ export default function ContactPage() {
             <SectionHeader
               eyebrow="Contact"
               heading="Talk to us."
-              lede="Ignite 27 is run by Tom Stansfield at Lincolnshire Marketing and Paul Green at Business Unfinished. Either of us is happy to hear from you — pick whoever, we sort it out from there."
+              lede="Ignite 27 is run by Tom Stansfield at Lincolnshire Marketing and Paul Green at Business Unfinished. Either of us is happy to hear from you. Pick whoever, we sort it out from there."
               as="h1"
             />
           </div>

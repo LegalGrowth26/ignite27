@@ -9,7 +9,7 @@ import { LoginForm } from "./LoginForm";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Login — Ignite 27",
+  title: "Login · Ignite 27",
 };
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;

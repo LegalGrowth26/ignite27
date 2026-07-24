@@ -51,7 +51,7 @@ const VALUE_PROPS: ReadonlyArray<{ title: string; body: string }> = [
   },
   {
     title: "Food and coffee",
-    body: "The famous IGNITE grab bag is back — or upgrade your lunch to a Smash Burger from the IGNITE FOOD TRUCK.",
+    body: "The famous IGNITE grab bag is back, or upgrade your lunch to a Smash Burger from the IGNITE FOOD TRUCK.",
   },
 ];
 
@@ -89,7 +89,7 @@ const NAMED_SPEAKERS: ReadonlyArray<
 // public/images/photos/. All landscape aspect (1600x1067). The first
 // entry spans a 2x2 tile on desktop so the grid reads as a proper
 // gallery, not eight equal cells. Swap in a different set by editing
-// the src values — the display srcs live next to their -thumb
+// the src values. The display srcs live next to their -thumb
 // counterparts, so `photo-05.webp` and `photo-05-thumb.webp` are the
 // same image at 1600px and 400px.
 const LAST_YEAR_PHOTOS: ReadonlyArray<{ src: string; alt: string; span?: string }> = [
@@ -292,8 +292,8 @@ function Speakers() {
       <Container>
         <SectionHeader
           eyebrow="Speakers"
-          heading="National quality speakers, brought to you."
-          lede="First three announced. More names to follow — real practitioners on the topics that matter to a growing business."
+          heading="Sneak peek: first speakers announced."
+          lede="Three names confirmed. More national-quality speakers, brought to you. Announcements coming."
         />
         <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {NAMED_SPEAKERS.map((s) => (
@@ -302,7 +302,7 @@ function Speakers() {
           <SpeakerCard
             media={{
               variant: "placeholder",
-              label: "More speakers announced soon",
+              label: "More announcements coming",
             }}
           />
         </div>

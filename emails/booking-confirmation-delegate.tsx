@@ -175,7 +175,7 @@ export function DelegateConfirmationEmail(props: DelegateConfirmationProps) {
           <Text style={SMALL}>
             Full refund on request until 31 December 2026. From
             1 January 2027 tickets are non-refundable but transferable
-            to a colleague — email us to arrange. See the{" "}
+            to a colleague, email us to arrange. See the{" "}
             <Link style={LINK} href={refundPolicyUrl}>
               refund policy
             </Link>
@@ -193,7 +193,7 @@ export function DelegateConfirmationEmail(props: DelegateConfirmationProps) {
 
 export function renderDelegateConfirmationPlainText(props: DelegateConfirmationProps): string {
   const lines = [
-    "Ignite 27 — booking confirmed",
+    "Ignite 27, booking confirmed",
     "",
     `Hi ${props.firstName}, your Ignite 27 ticket is confirmed.`,
     "",

@@ -20,7 +20,7 @@ import {
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Book your place — Ignite 27",
+  title: "Book your place · Ignite 27",
   description:
     "Book your delegate place at Ignite 27. Thursday 21 January 2027 at Kelham Hall, Newark.",
 };

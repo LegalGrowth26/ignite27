@@ -62,7 +62,7 @@ async function handleCheckoutSessionCompleted(event: Stripe.Event): Promise<void
     return;
   }
   // Accept both "paid" (money changed hands) and "no_payment_required"
-  // (a 100%-off promotion code — a comp booking). Stripe fires
+  // (a 100%-off promotion code, a comp booking). Stripe fires
   // checkout.session.completed for both; the booking is real in both
   // cases and should get a confirmation email and account access.
   if (
