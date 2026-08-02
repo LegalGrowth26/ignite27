@@ -6,7 +6,7 @@ import { ForgotPasswordForm } from "./ForgotPasswordForm";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Reset your password — Ignite 27",
+  title: "Reset your password · IGNITE! 27",
 };
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;

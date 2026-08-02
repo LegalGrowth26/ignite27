@@ -76,8 +76,8 @@ export function computeDelegatePricing(
 }
 
 function ticketProductName(intent: DelegateBookingIntent): string {
-  if (intent.ticketType === "vip") return "Ignite 27 VIP ticket";
-  return "Ignite 27 delegate ticket";
+  if (intent.ticketType === "vip") return "IGNITE! 27 VIP ticket";
+  return "IGNITE! 27 delegate ticket";
 }
 
 function ticketProductDescription(intent: DelegateBookingIntent): string {
@@ -121,7 +121,7 @@ function buildLineItems(
         unit_amount: pricing.lunchExVatPence,
         tax_behavior: "exclusive",
         product_data: {
-          name: "Lunch at Ignite 27",
+          name: "Lunch at IGNITE! 27",
           description: "Hot lunch on the day, dietary options catered for.",
         },
       },

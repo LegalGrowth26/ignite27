@@ -92,7 +92,7 @@ export function SpeakersSignupForm() {
           className="mt-1 h-4 w-4"
         />
         <span className="text-small text-ignite-muted">
-          Also send me occasional Ignite news and updates.
+          Also send me occasional IGNITE! news and updates.
         </span>
       </label>
 

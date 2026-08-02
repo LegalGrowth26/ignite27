@@ -6,13 +6,13 @@ import { Section } from "@/components/Section";
 import { SectionHeader } from "@/components/SectionHeader";
 
 export const metadata: Metadata = {
-  title: "Refund policy — Ignite 27",
+  title: "Refund policy · IGNITE! 27",
   description:
     "Full refund on request until 31 December 2026. From 1 January 2027, no refunds. Tickets are transferable until bookings close.",
 };
 
 const REFUND_CONTACT_EMAIL = "tom@lincolnshiremarketing.co.uk";
-const REFUND_MAILTO_SUBJECT = "IGNITE 27 refund or transfer request";
+const REFUND_MAILTO_SUBJECT = "IGNITE! 27 refund or transfer request";
 
 const KEY_POINTS: ReadonlyArray<{ label: string; body: string }> = [
   {
@@ -21,7 +21,7 @@ const KEY_POINTS: ReadonlyArray<{ label: string; body: string }> = [
   },
   {
     label: "No refunds from 1 Jan 2027",
-    body: "From Friday 1 January 2027 onwards we cannot offer refunds. Tickets remain transferable — see below.",
+    body: "From Friday 1 January 2027 onwards we cannot offer refunds. Tickets remain transferable, see below.",
   },
   {
     label: "Transfers welcome any time",
@@ -76,7 +76,7 @@ export default function RefundPolicyPage() {
             <SectionHeader
               eyebrow="Request a refund or transfer"
               heading="Email Tom."
-              lede="One line is enough — your booking reference and whether you want a refund or a transfer."
+              lede="One line is enough. Your booking reference and whether you want a refund or a transfer."
             />
             <div className="mt-8 rounded-2xl border border-ignite-line bg-ignite-white p-8">
               <p className="text-body text-ignite-ink">
@@ -87,7 +87,7 @@ export default function RefundPolicyPage() {
                 >
                   {REFUND_CONTACT_EMAIL}
                 </Link>{" "}
-                with subject &ldquo;IGNITE 27 refund or transfer request&rdquo;.
+                with subject &ldquo;IGNITE! 27 refund or transfer request&rdquo;.
               </p>
               <p className="mt-4 text-body text-ignite-muted">
                 For transfers, include the new attendee&apos;s name, email,

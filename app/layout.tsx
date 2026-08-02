@@ -2,7 +2,13 @@ import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
+import { SneakPeekBanner } from "@/components/SneakPeekBanner";
 import "./globals.css";
+
+// Sneak-peek banner reads request-time date, so the whole tree needs to
+// render per request until 1 Aug 2026 09:00 UK. force-dynamic here does
+// that once for the shell, so individual pages don't each have to.
+export const dynamic = "force-dynamic";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -12,9 +18,9 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "Ignite 27",
+  title: "IGNITE! 27",
   description:
-    "Ignite 27. Thursday 21 January 2027. The Renaissance at Kelham Hall, Newark.",
+    "IGNITE! 27. Thursday 21 January 2027. The Renaissance at Kelham Hall, Newark.",
 };
 
 export default function RootLayout({
@@ -31,6 +37,7 @@ export default function RootLayout({
         >
           Skip to content
         </a>
+        <SneakPeekBanner />
         <SiteHeader />
         <main id="main">{children}</main>
         <SiteFooter />

@@ -162,7 +162,7 @@ export async function requestCancellationAction(
 
   await sendAdminEmail("Cancellation request received", {
     previewText: `Cancellation request for ${ref}.`,
-    heading: `Cancellation request — ${ref}`,
+    heading: `Cancellation request: ${ref}`,
     paragraphs: [
       `Booker: ${guard.email}`,
       `Reason: ${reason}`,
@@ -219,7 +219,7 @@ export async function requestCorrectionAction(
 
   await sendAdminEmail("Correction request received", {
     previewText: `Correction request for ${ref}.`,
-    heading: `Correction request — ${ref}`,
+    heading: `Correction request: ${ref}`,
     paragraphs: [
       `Booker: ${guard.email}`,
       `Requested changes: ${requestedChanges}`,

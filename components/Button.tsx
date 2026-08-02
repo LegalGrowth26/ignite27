@@ -19,12 +19,15 @@ type ButtonProps = {
 };
 
 const base =
-  "inline-flex items-center justify-center font-semibold rounded-full transition-all duration-150 ease-out " +
+  "inline-flex items-center justify-center whitespace-nowrap font-semibold rounded-full transition-all duration-150 ease-out " +
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ignite-red focus-visible:ring-offset-2 " +
   "disabled:opacity-50 disabled:pointer-events-none select-none";
 
+// Padding is generous enough that "Book your place" (16 chars) fits on
+// one line at every size, including inside the sticky nav where the
+// pill previously wrapped to two lines on mid widths.
 const sizeClasses: Record<Size, string> = {
-  md: "h-11 px-5 text-small",
+  md: "h-11 px-6 text-small",
   lg: "h-14 px-8 text-body",
 };
 

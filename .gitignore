@@ -47,5 +47,5 @@ supabase/.temp/
 # TypeScript
 *.tsbuildinfo
 
-# Claude Code local scratchpad (image/favicon build scripts)
+# Claude Code local scratchpad (build scripts for image opt etc.)
 scratchpad/

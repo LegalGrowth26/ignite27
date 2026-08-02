@@ -3,24 +3,38 @@ import type { Metadata } from "next";
 import { Button } from "@/components/Button";
 import { Container } from "@/components/Container";
 import { HowBookingWorks, type BookingStep } from "@/components/HowBookingWorks";
+import { LaunchCountdown } from "@/components/LaunchCountdown";
+import { PhotoBand } from "@/components/PhotoBand";
 import { PriceCard } from "@/components/PriceCard";
 import { Section } from "@/components/Section";
 import { SectionHeader } from "@/components/SectionHeader";
+
+const ATTEND_ATMOSPHERE: ReadonlyArray<{ src: string; alt: string }> = [
+  { src: "/images/photos/photo-05.webp", alt: "Delegates listening intently to a speaker at IGNITE! 26" },
+  { src: "/images/photos/photo-11.webp", alt: "Two delegates in conversation during a networking break at IGNITE! 26" },
+  { src: "/images/photos/photo-25.webp", alt: "A workshop in progress at IGNITE! 26" },
+];
 import {
   BookingsNotOpenError,
   formatExVatWithGross,
   formatPoundsFromPence,
   getCurrentPricing,
   LUNCH_ADDON_INC_VAT_PENCE,
+  PRICING_PERIODS,
   type CurrentPricing,
 } from "@/lib/pricing";
+
+const LAUNCH_PERIOD = PRICING_PERIODS.find((p) => p.period === "launch");
+if (!LAUNCH_PERIOD) throw new Error("launch pricing period not defined");
+const LAUNCH_OPENS_MS = LAUNCH_PERIOD.opensAt.getTime();
+const LAUNCH_CLOSES_MS = LAUNCH_PERIOD.closesAt.getTime();
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Attend Ignite 27",
+  title: "Attend IGNITE! 27",
   description:
-    "Book your place at Ignite 27. Thursday 21 January 2027 at Kelham Hall, Newark.",
+    "Book your place at IGNITE! 27. Thursday 21 January 2027 at Kelham Hall, Newark.",
 };
 
 type AttendPricing =
@@ -54,9 +68,9 @@ const REGULAR_INCLUDES: readonly string[] = [
 
 const VIP_INCLUDES: readonly string[] = [
   "Everything in Regular",
-  "Priority workshop access (from phase 2)",
-  "Premium badge treatment",
-  "[TODO: confirm fourth VIP perk with Tom]",
+  "Lunch included, with first access",
+  "Priority seating at the front",
+  "Special VIP lanyard",
 ];
 
 const ATTEND_STEPS: readonly BookingStep[] = [
@@ -83,7 +97,9 @@ const FAQS: ReadonlyArray<{ q: string; a: React.ReactNode }> = [
     q: "Can I cancel?",
     a: (
       <>
-        Yes, up to 20 December 2026, minus Stripe&apos;s processing fee. See the{" "}
+        Yes, full refund on request until 31 December 2026. From
+        1 January 2027 tickets are non-refundable but freely transferable
+        to a colleague. See the{" "}
         <Link href="/refund-policy" className="underline underline-offset-4 hover:text-ignite-red">
           refund policy
         </Link>{" "}
@@ -101,6 +117,7 @@ export default function AttendPage() {
       <Hero />
       <PricingSection pricing={pricing} />
       <WhatYouGet />
+      <PhotoBand photos={ATTEND_ATMOSPHERE} tone="light" />
       <HowBookingWorks heading="How booking works." steps={ATTEND_STEPS} />
       <FaqPreview />
       <ClosingCta />
@@ -121,8 +138,8 @@ function Hero() {
       />
       <Container className="relative py-20 sm:py-24 md:py-28">
         <div className="max-w-3xl">
-          <p className="text-eyebrow uppercase text-ignite-red">Attend Ignite 27</p>
-          <h1 className="mt-5 text-h1">Your place at Ignite 27.</h1>
+          <p className="text-eyebrow uppercase text-ignite-red">Attend IGNITE! 27</p>
+          <h1 className="mt-5 text-h1">Your place at IGNITE! 27.</h1>
           <p className="mt-5 max-w-2xl text-lead text-white/80">
             Thursday 21 January 2027. Kelham Hall, Newark. Pick Regular or VIP below and book your
             place.
@@ -171,7 +188,27 @@ function PricingSection({ pricing }: { pricing: AttendPricing }) {
               : "Prices rise as we get closer to the day. Book early, pay less."
           }
         />
-        <div className="mt-12 grid gap-6 md:grid-cols-2 md:items-stretch">
+        <div className="mt-8">
+          <LaunchCountdown
+            launchOpensMs={LAUNCH_OPENS_MS}
+            launchClosesMs={LAUNCH_CLOSES_MS}
+          />
+        </div>
+        {/* VIP is rendered first so on both desktop (left column, with
+            the emphasised border + translate-up) and mobile (first
+            card) it reads as the featured option. Regular remains
+            clearly and equally bookable, no dark patterns. */}
+        <div className="mt-8 grid gap-6 md:grid-cols-2 md:items-stretch">
+          <PriceCard
+            tier="VIP"
+            tierTone="accent"
+            price={vipPrice}
+            chip={chip ?? "Best value"}
+            included={VIP_INCLUDES}
+            summaryLine="Lunch included, front-row seat, VIP lanyard."
+            cta={vipCta}
+            emphasised
+          />
           <PriceCard
             tier="Regular"
             price={regularPrice}
@@ -179,16 +216,6 @@ function PricingSection({ pricing }: { pricing: AttendPricing }) {
             included={REGULAR_INCLUDES}
             summaryLine={`Add lunch for ${lunchLabel}.`}
             cta={regularCta}
-          />
-          <PriceCard
-            tier="VIP"
-            tierTone="accent"
-            price={vipPrice}
-            chip={chip}
-            included={VIP_INCLUDES}
-            summaryLine="Lunch included."
-            cta={vipCta}
-            emphasised
           />
         </div>
         <p className="mt-8 text-small text-ignite-muted">
@@ -211,7 +238,7 @@ function WhatYouGet() {
   const items: ReadonlyArray<{ title: string; body: string }> = [
     {
       title: "The speakers",
-      body: "New voices for 2027, announced soon. People who have built things worth listening to.",
+      body: "National quality speakers brought to you. People who have built things worth listening to.",
     },
     {
       title: "The workshops",
@@ -219,11 +246,11 @@ function WhatYouGet() {
     },
     {
       title: "The room",
-      body: "Up to 50 exhibitors and a couple of hundred delegates who came ready to talk.",
+      body: "Over 50 exhibitors and delegates who came ready to talk.",
     },
     {
-      title: "The breaks",
-      body: "Proper coffee, real pauses, time to follow up a conversation without rushing.",
+      title: "The food",
+      body: "The famous IGNITE! grab bag is back, or upgrade your lunch to a burger from the IGNITE! FOOD TRUCK.",
     },
   ];
 
@@ -263,11 +290,16 @@ function FaqPreview() {
             </div>
           ))}
         </dl>
-        <div className="mt-10">
-          <Button href="/faq" variant="secondary" size="md">
-            See all questions
-          </Button>
-        </div>
+        <p className="mt-10 text-small text-ignite-muted">
+          Something else on your mind? Email{" "}
+          <a
+            href="mailto:tom@lincolnshiremarketing.co.uk"
+            className="font-semibold text-ignite-red underline underline-offset-4"
+          >
+            tom@lincolnshiremarketing.co.uk
+          </a>
+          .
+        </p>
       </Container>
     </Section>
   );
@@ -287,7 +319,7 @@ function ClosingCta() {
       <Container className="relative py-20 md:py-28">
         <div className="max-w-3xl">
           <p className="text-eyebrow uppercase text-ignite-red">Thursday 21 January 2027</p>
-          <p className="mt-4 text-h1">Book your place at Ignite 27.</p>
+          <p className="mt-4 text-h1">Book your place at IGNITE! 27.</p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:gap-4">
             <Button href="/attend/book?ticket=regular" variant="primary" size="lg">
               Book your place
