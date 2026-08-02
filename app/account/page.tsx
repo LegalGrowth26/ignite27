@@ -11,7 +11,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server-client";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Your account — Ignite 27",
+  title: "Your account · IGNITE! 27",
 };
 
 interface BookingRow {

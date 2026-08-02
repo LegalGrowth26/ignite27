@@ -1,4 +1,4 @@
-# Ignite 27 — copywriting and brand voice
+# IGNITE! 27 copywriting and brand voice
 
 This file governs all user-facing copy: marketing pages, button labels,
 form errors, email subject lines and body text, confirmation messages,
@@ -47,8 +47,11 @@ These are non-negotiable. Break one and the copy gets sent back.
    message). Never as decoration. Never more than once per page or email.
    Default: do not use it.
 
-3. **No "stale coffee" or recycled Ignite 26 lines verbatim.** The 27
-   voice should evolve. The spirit is the same; the phrasing is fresh.
+3. **No recycled IGNITE! 26 lines verbatim.** The 27 voice should
+   evolve. The spirit is the same; the phrasing is fresh. Exception,
+   per Tom (July 2026): deliberate callbacks are allowed when Tom
+   supplies them. The live hero subline "Still no stale coffee. Still
+   no dull grey suits." is one such approved callback.
 
 4. **No empty corporate verbs.** Avoid "leverage," "unlock," "empower,"
    "elevate," "synergise," "ideate," "circle back." If one of these
@@ -67,9 +70,15 @@ These are non-negotiable. Break one and the copy gets sent back.
 ## Brand vocabulary
 
 Use:
-- **Ignite** (capitalised, no exclamation mark in body copy unless
-  intentional)
-- **Ignite 27** (no space, no hyphen)
+- **IGNITE!** (all caps, WITH the exclamation mark, everywhere the
+  brand or event is named in user-facing copy. Rule from Tom, July
+  2026. When the brand's ! lands at the end of a sentence it doubles
+  as the terminal punctuation; never write "IGNITE!.")
+- **IGNITE! 27** for the 27 edition
+- Sensible exceptions where the plain form stays: URLs, code
+  identifiers, file paths, the ignite27.co.uk domain, and the Stripe
+  bank statement descriptor ("IGNITE 27", because card networks
+  mangle punctuation)
 - **delegate** (lowercase) for Regular ticket holders
 - **VIP** (uppercase)
 - **exhibitor** (lowercase)
@@ -79,7 +88,7 @@ Use:
 Avoid:
 - "attendee" in customer-facing copy (it sounds bureaucratic). Use
   "delegate" or, if mixed audience, "you."
-- "expo" — Ignite is not an expo. Use "event" or "Ignite."
+- "expo": IGNITE! is not an expo. Use "event" or "IGNITE!"
 - "conference" — same reason.
 - "ticket holder" — use "delegate" or "VIP."
 
@@ -120,10 +129,10 @@ Avoid:
 ## Email copy
 
 - Subject lines: short, specific, no clickbait.
-  Good: "Your Ignite 27 ticket"
-  Bad: "🎉 You're in!! Welcome to the Ignite 27 family!"
+  Good: "Your IGNITE! 27 ticket"
+  Bad: "🎉 You're in!! Welcome to the IGNITE! 27 family!"
 - Open with the useful information. Save context for later in the email.
-- Sign off as "The Ignite team," not from a named individual unless
+- Sign off as "The IGNITE! team," not from a named individual unless
   it is genuinely from Tom or Paul.
 - Plain text fallback is required and should read naturally on its own.
 

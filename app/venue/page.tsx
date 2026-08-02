@@ -1,13 +1,36 @@
+import Image from "next/image";
 import type { Metadata } from "next";
-import { Button } from "@/components/Button";
+import { BookingCta } from "@/components/BookingCta";
 import { Container } from "@/components/Container";
 import { Section } from "@/components/Section";
 import { SectionHeader } from "@/components/SectionHeader";
 
+// Three landscape venue-appropriate shots from the photo library. Wide
+// interior scenes read best here.
+//
+// WAITING ON ASSETS: Kelham Hall images from Toby's library (drone +
+// room shots). When supplied, optimise to 1600px webp into
+// public/images/photos/ and extend or replace this array; the grid
+// below handles any count (2-col on sm, 3-col on md+).
+const VENUE_PHOTOS: ReadonlyArray<{ src: string; alt: string }> = [
+  {
+    src: "/images/photos/photo-04.webp",
+    alt: "The Victorian Great Hall at The Renaissance at Kelham Hall, set for a session",
+  },
+  {
+    src: "/images/photos/photo-20.webp",
+    alt: "High-ceilinged interior at Kelham Hall with delegates in conversation",
+  },
+  {
+    src: "/images/photos/photo-35.webp",
+    alt: "Ornate plasterwork detail from The Renaissance at Kelham Hall",
+  },
+];
+
 export const metadata: Metadata = {
-  title: "Venue — Ignite 27",
+  title: "Venue · IGNITE! 27",
   description:
-    "Ignite 27 takes place at The Renaissance at Kelham Hall, Newark. Address, parking, accessibility, and getting here.",
+    "IGNITE! 27 takes place at The Renaissance at Kelham Hall, Newark. Address, parking, accessibility, and getting here.",
 };
 
 const PRACTICAL_INFO: ReadonlyArray<{ label: string; body: string }> = [
@@ -25,7 +48,7 @@ const PRACTICAL_INFO: ReadonlyArray<{ label: string; body: string }> = [
   },
   {
     label: "Getting here",
-    body: "Good road links via the A1 and A46. Around 90 minutes from London. Local hotels are available for delegates wanting to stay overnight (we'll publish a recommended list closer to the event).",
+    body: "Good road links via the A1 and A46. Around 90 minutes from London. Local hotels are available for delegates wanting to stay overnight.",
   },
 ];
 
@@ -78,7 +101,12 @@ export default function VenuePage() {
                 ornate plasterwork, the ornate Victorian Great Hall.
               </p>
               <p className="mt-5 text-body text-ignite-muted">
-                We picked it deliberately. We wanted somewhere that didn't feel like a hotel
+                Fun fact for a building this grand: Kelham Hall has burned down three
+                times in its history. We are bringing IGNITE! back to relight it,
+                carefully.
+              </p>
+              <p className="mt-5 text-body text-ignite-muted">
+                We picked it deliberately. We wanted somewhere that didn&apos;t feel like a hotel
                 chain meeting room. Somewhere that says we took the day seriously, not that we
                 ticked a venue-booked box. Delegates notice.
               </p>
@@ -89,24 +117,27 @@ export default function VenuePage() {
 
       <Section tone="light">
         <Container>
-          <div className="mx-auto flex max-w-2xl flex-col items-start gap-4 rounded-2xl border border-ignite-line bg-ignite-white p-8 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-h3 text-ignite-ink">Ready to come along?</p>
-              <p className="mt-2 text-body text-ignite-muted">
-                Lock in your place at Ignite 27 at the current pricing window.
-              </p>
-            </div>
-            <Button
-              href="/attend"
-              variant="primary"
-              size="md"
-              className="self-start md:self-auto"
-            >
-              Book your place
-            </Button>
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+            {VENUE_PHOTOS.map((p) => (
+              <figure
+                key={p.src}
+                className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-ignite-line"
+              >
+                <Image
+                  src={p.src}
+                  alt={p.alt}
+                  fill
+                  loading="lazy"
+                  sizes="(min-width: 768px) 33vw, (min-width: 640px) 50vw, 100vw"
+                  className="object-cover"
+                />
+              </figure>
+            ))}
           </div>
         </Container>
       </Section>
+
+      <BookingCta tone="light" />
     </>
   );
 }

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { LogoWordmark } from "./LogoWordmark";
 import { ACCOUNT_NAV, BOOK_CTA_HREF, MAIN_NAV } from "./nav-items";
 
 export function MobileNav() {
@@ -29,7 +30,7 @@ export function MobileNav() {
         aria-expanded={open}
         aria-controls="mobile-nav-panel"
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-ignite-line text-ignite-ink hover:border-ignite-red hover:text-ignite-red focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ignite-red focus-visible:ring-offset-2"
+        className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/30 text-ignite-white hover:border-ignite-red hover:text-ignite-red focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ignite-red focus-visible:ring-offset-2 focus-visible:ring-offset-ignite-black"
       >
         {open ? (
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -52,16 +53,9 @@ export function MobileNav() {
         >
           <div className="mx-auto flex h-full max-w-container flex-col px-6 pt-6 md:px-10">
             <div className="flex items-center justify-between">
-              <Link
-                href="/"
-                onClick={() => setOpen(false)}
-                aria-label="Ignite 27, home"
-                className="inline-flex items-baseline font-bold text-lg tracking-tight text-ignite-white"
-              >
-                <span>Ignite</span>
-                <span aria-hidden className="mx-[2px] inline-block h-1.5 w-1.5 translate-y-[-2px] rounded-full bg-ignite-red" />
-                <span>27</span>
-              </Link>
+              <div onClick={() => setOpen(false)}>
+                <LogoWordmark tone="dark" />
+              </div>
               <button
                 type="button"
                 aria-label="Close menu"
@@ -81,8 +75,12 @@ export function MobileNav() {
                     <Link
                       href={item.href}
                       onClick={() => setOpen(false)}
-                      className="block py-3 text-h2 font-semibold tracking-tight hover:text-ignite-red"
+                      className="group flex items-center gap-3 py-3 text-h2 font-semibold tracking-tight text-ignite-white transition-colors hover:text-ignite-red"
                     >
+                      <span
+                        aria-hidden
+                        className="h-2 w-2 rounded-full bg-ignite-red opacity-0 transition-opacity group-hover:opacity-100"
+                      />
                       {item.label}
                     </Link>
                   </li>
