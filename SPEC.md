@@ -113,7 +113,7 @@ the venue (or replicating venue WiFi conditions) in January 2027 before
 
 ## Roles
 
-- **Super admin** (Tom, Paul): full access to everything including admin
+- **Super admin** (Tom Stansfield, Paul Green): full access to everything including admin
   dashboard, content editing, manual refunds via Stripe, manual booking
   creation, manual eligibility override, scanner access.
 - **Scanner staff** (event-day staff): access only to the mobile scanner
