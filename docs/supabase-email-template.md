@@ -96,7 +96,7 @@ change `{{ .ConfirmationURL }}`.**
   <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;">
   <p style="font-size: 12px; line-height: 1.5; color: #7a7a7a; margin: 0;">
     Ignite 27 · Thursday 21 January 2027 · Kelham Hall, Newark<br>
-    Sent from noreply@ignite27.co.uk on behalf of Lincolnshire Marketing.
+    Sent from tom@lincolnshiremarketing.co.uk for IGNITE! 27.
   </p>
 </div>
 ```
