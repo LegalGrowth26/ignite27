@@ -65,7 +65,7 @@ export async function createCheckoutSessionAction(
       return {
         ok: false,
         errors: [
-          { field: "form", message: "Bookings for Ignite 27 are closed." },
+          { field: "form", message: "Bookings for IGNITE! 27 are closed." },
         ],
       };
     }

@@ -79,7 +79,7 @@ export function AgendaSignupForm() {
           className="mt-1 h-4 w-4"
         />
         <span className="text-small text-ignite-ink">
-          Notify me when the Ignite 27 agenda is announced. <span className={REQ}>*</span>
+          Notify me when the IGNITE! 27 agenda is announced. <span className={REQ}>*</span>
         </span>
       </label>
 
@@ -92,7 +92,7 @@ export function AgendaSignupForm() {
           className="mt-1 h-4 w-4"
         />
         <span className="text-small text-ignite-muted">
-          Also send me occasional Ignite news and updates.
+          Also send me occasional IGNITE! news and updates.
         </span>
       </label>
 
