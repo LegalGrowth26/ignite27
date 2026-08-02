@@ -3,6 +3,7 @@ import { requireSuperAdmin } from "@/lib/admin/guard";
 import { aggregatePromoUsage, type PromoBookingRow } from "@/lib/admin/discounts";
 import { codeStatusLabel, toAdminCodeRow, type AdminCodeRow } from "@/lib/admin/stripe-codes";
 import { getStripe } from "@/lib/stripe/client";
+import { currentStripeKeyMode } from "@/lib/stripe/mode";
 import { formatPoundsFromPence } from "@/lib/pricing";
 import { CreateCodeForm, CreateCompForm } from "./CodeForms";
 import { deactivateCodeAction } from "./actions";
@@ -39,10 +40,40 @@ export default async function AdminDiscountsPage() {
   }
 
   const nowMs = Date.now();
+  const keyMode = currentStripeKeyMode();
+  // Diagnostic breadcrumb in Vercel logs on every dashboard view: the
+  // mode plus how many codes this deployment's key can actually see.
+  console.log(
+    `[admin/discounts] stripe key mode: ${keyMode}; codes visible: ${stripeError ? "error" : codes.length}`,
+  );
 
   return (
     <div>
       <h1 className="text-h1">Discount codes</h1>
+
+      <div
+        className={`mt-4 rounded-xl border p-4 text-small ${
+          keyMode === "live"
+            ? "border-ignite-line bg-ignite-white text-ignite-ink"
+            : "border-amber-500/60 bg-amber-50 text-amber-900"
+        }`}
+      >
+        <p className="font-semibold">
+          {keyMode === "live"
+            ? "Stripe: LIVE mode"
+            : keyMode === "test"
+              ? "Stripe: TEST mode"
+              : "Stripe: key mode unrecognised"}
+        </p>
+        <p className="mt-1">
+          Codes below are the promotion codes this deployment&apos;s Stripe
+          key can see. Test and live modes are separate: a code created
+          while the deployment used a test key does not exist in live
+          mode, and live checkout will call it invalid. If a code you
+          expect is missing from this list, it lives in the other mode
+          and needs creating again here.
+        </p>
+      </div>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
         <div className="rounded-2xl border border-ignite-line bg-ignite-white p-6">

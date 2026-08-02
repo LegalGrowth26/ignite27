@@ -11,6 +11,7 @@ import {
   type CreateCodeInput,
 } from "@/lib/admin/stripe-codes";
 import { getStripe } from "@/lib/stripe/client";
+import { currentStripeKeyMode } from "@/lib/stripe/mode";
 
 export interface CodeActionState {
   error: string | null;
@@ -37,10 +38,17 @@ async function createCode(
     const promo = await stripe.promotionCodes.create(
       buildPromotionCodeParams(coupon.id, input, actorUserId),
     );
+    // Mode breadcrumb: which Stripe universe this code now exists in.
+    // promo.livemode is Stripe's own answer; key mode is derived from
+    // the deployment's key prefix. They must always agree.
+    console.log(
+      `[admin/discounts] created ${promo.code} (livemode=${promo.livemode}, key mode=${currentStripeKeyMode()})`,
+    );
     await logAdminAction(actorUserId, auditAction, {
       code: promo.code,
       promotion_code_id: promo.id,
       coupon_id: coupon.id,
+      livemode: promo.livemode,
       kind: input.kind,
       percent_off: input.percentOff ?? null,
       amount_off_pence: input.amountOffPence ?? null,
@@ -112,6 +120,7 @@ export async function deactivateCodeAction(promotionCodeId: string): Promise<voi
   await logAdminAction(ctx.appUserId, "discount_code.deactivate", {
     promotion_code_id: promotionCodeId,
     code: updated.code,
+    livemode: updated.livemode,
   });
   revalidatePath("/admin/discounts");
 }
