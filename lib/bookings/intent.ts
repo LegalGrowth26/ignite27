@@ -43,6 +43,20 @@ export type IntentValidationResult =
   | { ok: true; intent: DelegateBookingIntent }
   | { ok: false; errors: IntentFieldError[] };
 
+// Single source of truth for "does this booking include lunch", used by
+// both the booking form (to show/hide the dietary field) and server
+// validation (to strip dietary values on no-lunch bookings). VIP always
+// includes lunch; Regular only with the add-on ticked. When the
+// exhibitor booking flow is built (2 lunches included), its attendee
+// forms should show dietary unconditionally, mirroring the VIP branch.
+export function bookingIncludesLunch(
+  ticketType: DelegateTicketType,
+  lunchIncluded: boolean,
+): boolean {
+  if (ticketType === "vip") return true;
+  return lunchIncluded;
+}
+
 const MAX_NAME = 100;
 const MAX_COMPANY = 200;
 const MAX_JOB_TITLE = 200;
@@ -126,21 +140,33 @@ export function validateDelegateBookingIntent(input: unknown): IntentValidationR
     errors.push({ field: "jobTitle", message: "Your job title helps us print your badge." });
   }
 
-  const dietaryRequirement = trimString(raw.dietaryRequirement) as DietaryRequirement;
-  if (!DIETARY_REQUIREMENTS.includes(dietaryRequirement)) {
-    errors.push({ field: "dietaryRequirement", message: "Pick a dietary option." });
-  }
+  const lunchFlag = toBoolean(raw.lunchIncluded);
+  // VIP always includes lunch regardless of what the form posted.
+  const lunchIncluded = ticketType === "vip" ? true : lunchFlag;
 
-  let dietaryOther = trimString(raw.dietaryOther);
-  if (dietaryRequirement === "other") {
-    if (dietaryOther.length === 0 || dietaryOther.length > MAX_DIETARY_OTHER) {
-      errors.push({
-        field: "dietaryOther",
-        message: "Tell us briefly what to cater for.",
-      });
+  // Dietary is only collected when lunch is part of the booking (the
+  // field does not render otherwise). Same tampering guard as the VIP
+  // badge QR: values submitted on a no-lunch booking are stripped
+  // silently to 'none', valid or not, never rejected.
+  let dietaryRequirement: DietaryRequirement = "none";
+  let dietaryOther = "";
+  if (bookingIncludesLunch(ticketType, lunchIncluded)) {
+    dietaryRequirement = trimString(raw.dietaryRequirement) as DietaryRequirement;
+    if (!DIETARY_REQUIREMENTS.includes(dietaryRequirement)) {
+      errors.push({ field: "dietaryRequirement", message: "Pick a dietary option." });
     }
-  } else {
-    dietaryOther = "";
+
+    dietaryOther = trimString(raw.dietaryOther);
+    if (dietaryRequirement === "other") {
+      if (dietaryOther.length === 0 || dietaryOther.length > MAX_DIETARY_OTHER) {
+        errors.push({
+          field: "dietaryOther",
+          message: "Tell us briefly what to cater for.",
+        });
+      }
+    } else {
+      dietaryOther = "";
+    }
   }
 
   // Badge QR is a VIP-only perk. For non-VIP submissions the value is
@@ -167,10 +193,6 @@ export function validateDelegateBookingIntent(input: unknown): IntentValidationR
       message: "Tick the box to accept the Terms and Refund Policy.",
     });
   }
-
-  const lunchFlag = toBoolean(raw.lunchIncluded);
-  // VIP always includes lunch regardless of what the form posted.
-  const lunchIncluded = ticketType === "vip" ? true : lunchFlag;
 
   if (errors.length > 0) {
     return { ok: false, errors };
