@@ -9,7 +9,7 @@ import { LoginForm } from "./LoginForm";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Login — Ignite 27",
+  title: "Login · IGNITE! 27",
 };
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -45,7 +45,7 @@ export default async function LoginPage(props: { searchParams: SearchParams }) {
           <p className="text-eyebrow uppercase text-ignite-red">Account</p>
           <h1 className="mt-4 text-h1">Log in.</h1>
           <p className="mt-4 text-body text-ignite-muted">
-            Enter the email and password for your Ignite 27 account.
+            Enter the email and password for your IGNITE! 27 account.
           </p>
 
           <div className="mt-6 rounded-2xl border border-ignite-red/30 bg-ignite-red/5 p-4 text-small text-ignite-ink">

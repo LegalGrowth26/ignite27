@@ -1,16 +1,57 @@
 import type { Metadata } from "next";
-import { Button } from "@/components/Button";
+import { BookingCta } from "@/components/BookingCta";
 import { Container } from "@/components/Container";
+import { PhotoBand } from "@/components/PhotoBand";
 import { Section } from "@/components/Section";
 import { SectionHeader } from "@/components/SectionHeader";
+import { SpeakerCard } from "@/components/SpeakerCard";
 import { SpeakersSignupForm } from "@/components/SpeakersSignupForm";
+
+const SPEAKERS_PHOTOS: ReadonlyArray<{ src: string; alt: string }> = [
+  { src: "/images/photos/photo-06.webp", alt: "A speaker on the IGNITE! 26 main stage mid-sentence" },
+  { src: "/images/photos/photo-09.webp", alt: "Delegates leaning in during a keynote at IGNITE! 26" },
+  { src: "/images/photos/photo-17.webp", alt: "Speaker Q and A after a session at IGNITE! 26" },
+];
+
+// Same three named speakers as the home Speakers section. Kept in sync
+// by hand for now; move to a shared module if a third page ever needs it.
+const NAMED_SPEAKERS: ReadonlyArray<
+  | { name: string; topic: string; media: { variant: "photo"; src: string; alt: string } }
+  | { name: string; topic: string; media: { variant: "initials"; initials: string } }
+> = [
+  {
+    name: "Stephine Robinson",
+    topic: "Practical AI for small businesses",
+    media: { variant: "initials", initials: "SR" },
+  },
+  {
+    name: "Nathan Littleton",
+    topic: "Email marketing that wins customers",
+    media: {
+      variant: "photo",
+      src: "/images/speakers/nathan-littleton.webp",
+      alt: "Portrait of Nathan Littleton",
+    },
+  },
+  {
+    name: "Mark Saxby",
+    topic: "Social media that actually works",
+    media: {
+      variant: "photo",
+      // Source is a 200px LinkedIn photo; slightly soft at card width.
+      // Replace with a proper headshot when one arrives.
+      src: "/images/speakers/mark-saxby.webp",
+      alt: "Portrait of Mark Saxby",
+    },
+  },
+];
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Speakers — Ignite 27",
+  title: "Speakers · IGNITE! 27",
   description:
-    "Speakers for Ignite 27 are being announced. Leave your email and we will tell you each time one is confirmed.",
+    "Speakers for IGNITE! 27 are being announced. Leave your email and we will tell you each time one is confirmed.",
 };
 
 export default function SpeakersPage() {
@@ -21,35 +62,44 @@ export default function SpeakersPage() {
           <div className="mx-auto max-w-2xl">
             <SectionHeader
               eyebrow="Speakers"
-              heading="Speakers being announced."
-              lede="We're booking the lineup for Ignite 27. Drop your email and you'll be the first to hear when each speaker is confirmed."
+              heading="Sneak peek: first speakers announced."
+              lede="Three names confirmed, more national-quality speakers to follow. Drop your email and you will hear as each one lands."
               as="h1"
             />
-            <div className="mt-10">
-              <SpeakersSignupForm />
-            </div>
-            <p className="mt-6 text-small text-ignite-muted">
-              One email, when speakers are confirmed.
-            </p>
           </div>
         </Container>
       </Section>
 
       <Section tone="cream">
         <Container>
-          <div className="mx-auto flex max-w-2xl flex-col items-start gap-4 rounded-2xl border border-ignite-line bg-ignite-white p-8 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-h3 text-ignite-ink">Don&apos;t want to wait?</p>
-              <p className="mt-2 text-body text-ignite-muted">
-                You can book your place at Ignite 27 now and lock in the current pricing.
-              </p>
-            </div>
-            <Button href="/attend" variant="primary" size="md" className="self-start md:self-auto">
-              Book your place
-            </Button>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {NAMED_SPEAKERS.map((s) => (
+              <SpeakerCard key={s.name} name={s.name} topic={s.topic} media={s.media} />
+            ))}
+            <SpeakerCard
+              media={{
+                variant: "placeholder",
+                label: "More national-quality speakers, announcements coming.",
+              }}
+            />
           </div>
         </Container>
       </Section>
+
+      <Section tone="light">
+        <Container>
+          <div className="mx-auto max-w-xl">
+            <SpeakersSignupForm />
+            <p className="mt-6 text-small text-ignite-muted">
+              One email, when each new speaker is confirmed.
+            </p>
+          </div>
+        </Container>
+      </Section>
+
+      <PhotoBand photos={SPEAKERS_PHOTOS} tone="light" />
+
+      <BookingCta />
     </>
   );
 }

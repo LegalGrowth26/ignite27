@@ -107,7 +107,7 @@ export async function sendDelegateConfirmationEmail(
 
   const result = await sendTransactionalEmail({
     to: parsed.intent.email,
-    subject: "Your Ignite 27 ticket",
+    subject: "Your IGNITE! 27 ticket",
     html,
     text,
     tag: "booking-confirmation-delegate",

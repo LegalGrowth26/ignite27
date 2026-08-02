@@ -1,28 +1,51 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Button } from "@/components/Button";
+import {
+  mapUpdatePasswordError,
+  parseHashError,
+  type MappedUpdatePasswordError,
+} from "@/lib/auth/recovery";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser-client";
 
 const INPUT =
   "w-full rounded-xl border border-ignite-line bg-ignite-white px-4 py-3 text-body text-ignite-ink focus:border-ignite-red focus:outline-none focus:ring-2 focus:ring-ignite-red/20";
 const LABEL = "block text-small font-medium text-ignite-ink";
 
-type FormError =
-  | { kind: "expired" }
-  | { kind: "generic"; message: string };
+type SessionState = "checking" | "ready" | "missing";
 
 export function SetPasswordForm() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [error, setError] = useState<FormError | null>(null);
+  const [error, setError] = useState<MappedUpdatePasswordError | null>(null);
+  const [sessionState, setSessionState] = useState<SessionState>("checking");
   const [isPending, startTransition] = useTransition();
+
+  // Pre-flight on mount: surface expired-link errors that arrive as hash
+  // fragments (#error_code=otp_expired never reaches the server) and
+  // verify a recovery session actually exists BEFORE the user types a
+  // password. Under the fixed flow the session was established by
+  // /auth/callback; if it is missing, telling the user now beats letting
+  // the submit fail mysteriously.
+  useEffect(() => {
+    const hashError = parseHashError(window.location.hash);
+    if (hashError) {
+      console.warn("[set-password] hash error:", hashError.errorCode, hashError.description);
+      setSessionState("missing");
+      return;
+    }
+    const supabase = createSupabaseBrowserClient();
+    supabase.auth.getSession().then(({ data }) => {
+      setSessionState(data.session ? "ready" : "missing");
+    });
+  }, []);
 
   function onSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
     if (password.length < 8) {
-      setError({ kind: "generic", message: "Use at least 8 characters." });
+      setError({ kind: "weak_password", message: "Use at least 8 characters." });
       return;
     }
     if (password !== confirm) {
@@ -33,18 +56,43 @@ export function SetPasswordForm() {
       const supabase = createSupabaseBrowserClient();
       const { error: err } = await supabase.auth.updateUser({ password });
       if (err) {
-        if (/session|recovery|auth/i.test(err.message)) {
-          setError({ kind: "expired" });
-        } else {
-          setError({
-            kind: "generic",
-            message: "Could not set your password. Try again.",
-          });
-        }
+        // Always log the raw error so production failures are diagnosable
+        // (messages are Supabase's, never sensitive).
+        console.error("[set-password] updateUser failed:", err.message);
+        setError(mapUpdatePasswordError(err.message));
         return;
       }
       window.location.href = "/account";
     });
+  }
+
+  if (sessionState === "missing" || error?.kind === "no_session") {
+    return (
+      <div className="flex flex-col gap-3 rounded-xl border-2 border-ignite-red bg-ignite-red/5 p-5">
+        <p className="text-body font-semibold text-ignite-red">
+          This link has expired or was already used.
+        </p>
+        <p className="text-small text-ignite-ink">
+          Set-password links are single-use and time-limited. Request a new
+          one and open it straight away, in this same browser.
+        </p>
+        <div>
+          <Button href="/auth/forgot-password" variant="primary" size="md">
+            Get a new link
+          </Button>
+        </div>
+        <p className="text-small text-ignite-muted">
+          Still having trouble?{" "}
+          <a
+            href="mailto:tom@lincolnshiremarketing.co.uk"
+            className="underline underline-offset-4 hover:text-ignite-red"
+          >
+            Contact us
+          </a>{" "}
+          and we will sort it.
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -80,40 +128,21 @@ export function SetPasswordForm() {
         />
       </div>
 
-      {error?.kind === "generic" ? (
-        <div className="rounded-xl border border-ignite-red/50 bg-ignite-red/5 p-3 text-small text-ignite-red">
+      {error ? (
+        <div
+          role="alert"
+          className="rounded-xl border border-ignite-red/50 bg-ignite-red/5 p-3 text-small text-ignite-red"
+        >
           {error.message}
         </div>
       ) : null}
 
-      {error?.kind === "expired" ? (
-        <div className="flex flex-col gap-3 rounded-xl border-2 border-ignite-red bg-ignite-red/5 p-5">
-          <p className="text-body font-semibold text-ignite-red">
-            Your link has expired.
-          </p>
-          <p className="text-small text-ignite-ink">
-            Set-password links are single-use and time-limited. Request a new one and try
-            again.
-          </p>
-          <div>
-            <Button href="/auth/forgot-password" variant="primary" size="md">
-              Get a new link
-            </Button>
-          </div>
-          <p className="text-small text-ignite-muted">
-            Still having trouble?{" "}
-            <a
-              href="mailto:tom@lincolnshiremarketing.co.uk"
-              className="underline underline-offset-4 hover:text-ignite-red"
-            >
-              Contact us
-            </a>{" "}
-            and we will sort it.
-          </p>
-        </div>
-      ) : null}
-
-      <Button variant="primary" size="md" type="submit" disabled={isPending}>
+      <Button
+        variant="primary"
+        size="md"
+        type="submit"
+        disabled={isPending || sessionState === "checking"}
+      >
         {isPending ? "Saving..." : "Set password and log in"}
       </Button>
     </form>
