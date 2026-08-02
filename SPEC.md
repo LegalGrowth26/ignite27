@@ -214,8 +214,8 @@ codes under **Products → Promotion codes**. Stripe controls:
 The site itself has **no admin UI** for discount management. Checkout
 sessions enable `allow_promotion_codes: true`, so Stripe renders its
 own "Add promotion code" field on the hosted Checkout page. Codes are
-redeemable at any time, in any pricing period, including the 72-hour
-launch window — the only gate is Stripe's own settings on the code.
+redeemable at any time, in any pricing period, including launch
+week — the only gate is Stripe's own settings on the code.
 
 Because pricing v2 uses `tax_behavior: "exclusive"` with Stripe Tax
 enabled, a percent-off coupon reduces the ex-VAT amount and Stripe
@@ -259,9 +259,16 @@ no event-day sales.
 
 | Period   | Opens                    | Closes                    |
 |----------|--------------------------|---------------------------|
-| Launch   | Sat 1 Aug 2026, 09:00    | Tue 4 Aug 2026, 09:00     |
-| Standard | Tue 4 Aug 2026, 09:00    | Thu 31 Dec 2026, 23:59    |
+| Launch   | Sat 1 Aug 2026, 09:00    | Sun 9 Aug 2026, 00:00     |
+| Standard | Sun 9 Aug 2026, 00:00    | Thu 31 Dec 2026, 23:59    |
 | Late     | Fri 1 Jan 2027, 00:00    | Mon 18 Jan 2027, 17:00    |
+
+Launch is **launch week**: it runs through Saturday 8 August 2026,
+23:59:59 UK (the close instant, Sunday 9 August 00:00, belongs to
+Standard per the half-open convention). Extended from the original
+72-hour window by organiser decision, July 2026. Customer-facing copy
+frames it as "one week only" / "ends 8 August" / "the lowest price of
+the year".
 
 **Bookings close entirely at Monday 18 January 2027, 17:00 UK.** After
 that instant, `getCurrentPricing` throws `BookingsClosedError` and every
