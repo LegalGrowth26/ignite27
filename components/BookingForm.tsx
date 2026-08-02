@@ -142,6 +142,7 @@ export function BookingForm({
             <li>• Lunch included, with first access</li>
             <li>• Priority seating at the front</li>
             <li>• Special VIP lanyard</li>
+            <li>• QR code on your badge linking to your LinkedIn or website</li>
           </ul>
         ) : null}
         <p className="mt-3 text-h2">{formatExVatWithGross(totalExVatPence, totalIncVatPence)}</p>
@@ -263,24 +264,29 @@ export function BookingForm({
         ) : null}
       </div>
 
-      <div>
-        <label htmlFor="badgeQrUrl" className={LABEL}>
-          LinkedIn or website for your badge QR (optional)
-        </label>
-        <input
-          id="badgeQrUrl"
-          name="badgeQrUrl"
-          className={INPUT}
-          inputMode="url"
-          placeholder="https://"
-        />
-        <p className={HELP}>
-          If you want a QR on your badge, paste a link. Leave blank and your badge has no QR.
-        </p>
-        {fieldErrorFor(errors, "badgeQrUrl") ? (
-          <p className={ERR}>{fieldErrorFor(errors, "badgeQrUrl")}</p>
-        ) : null}
-      </div>
+      {/* Badge QR is a VIP-only perk. Delegates and exhibitors never see
+          this field; the server also strips badgeQrUrl from non-VIP
+          submissions so it cannot arrive via form tampering. */}
+      {ticketType === "vip" ? (
+        <div className="rounded-2xl border border-ignite-line bg-ignite-cream p-4">
+          <label htmlFor="badgeQrUrl" className={LABEL}>
+            VIP perk: add a QR code to your badge (optional)
+          </label>
+          <input
+            id="badgeQrUrl"
+            name="badgeQrUrl"
+            className={`${INPUT} mt-2`}
+            inputMode="url"
+            placeholder="https://"
+          />
+          <p className={HELP}>
+            If you want a QR on your badge, paste a link. Leave blank and your badge has no QR.
+          </p>
+          {fieldErrorFor(errors, "badgeQrUrl") ? (
+            <p className={ERR}>{fieldErrorFor(errors, "badgeQrUrl")}</p>
+          ) : null}
+        </div>
+      ) : null}
 
       {ticketType === "regular" ? (
         <label className="flex items-start gap-3 rounded-2xl border border-ignite-line p-4 cursor-pointer">
