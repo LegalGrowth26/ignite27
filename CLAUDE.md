@@ -135,9 +135,12 @@ Do not test:
 - All transactional emails go via Resend.
 - Templates live in `emails/` as react-email components.
 - Always include a plain text fallback.
-- All transactional emails are sent from `noreply@ignite27.co.uk` with
-  reply-to `tom@lincolnshiremarketing.co.uk`. Replies from customers go
-  to Tom's inbox.
+- All transactional emails are sent as
+  `IGNITE! 27 <tom@lincolnshiremarketing.co.uk>` with reply-to
+  `tom@lincolnshiremarketing.co.uk`. The from-address MUST live on a
+  Resend-verified domain; lincolnshiremarketing.co.uk is the only
+  verified domain (ignite27.co.uk is NOT verified and Resend rejects
+  sends from it). Replies from customers go to Tom's inbox.
 - Never send email from inside a webhook handler synchronously, queue
   it (or send it after the database write succeeds, with a try/catch
   that logs but does not fail the request).

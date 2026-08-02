@@ -1,6 +1,7 @@
 import { env } from "@/lib/env";
 import { createSupabaseServiceClient } from "@/lib/supabase/service-client";
 import { getResend } from "./client";
+import { buildFromAddress } from "./from";
 
 export interface TransactionalEmailInput {
   to: string;
@@ -53,8 +54,9 @@ export async function sendTransactionalEmail(
   }
 
   const resend = getResend();
+  const from = buildFromAddress(env.resendFromEmail());
   const result = await resend.emails.send({
-    from: env.resendFromEmail(),
+    from,
     to,
     subject,
     html,
@@ -64,7 +66,25 @@ export async function sendTransactionalEmail(
   });
 
   if (result.error) {
-    throw new Error(`resend send failed: ${result.error.message}`);
+    // LOUD failure: log the full Resend error response plus send context
+    // so domain-verification / auth failures are visible in production
+    // logs, not reduced to a one-line message. (This class of failure
+    // silently ate booking confirmations when the from-domain was not
+    // verified with Resend.)
+    console.error(
+      "[resend] SEND FAILED",
+      JSON.stringify({
+        error: result.error, // full Resend error object: name, message, statusCode
+        from,
+        to: redactEmail(to),
+        subject,
+        tag,
+      }),
+    );
+    const e = result.error as { name?: string; message: string; statusCode?: number };
+    throw new Error(
+      `resend send failed: ${e.name ?? "error"}${e.statusCode ? ` (${e.statusCode})` : ""}: ${e.message}`,
+    );
   }
 
   console.info(

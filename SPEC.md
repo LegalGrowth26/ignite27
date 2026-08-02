@@ -510,9 +510,13 @@ Phase 3 adds:
 - Pre-event reminder with QR codes attached
 - Post-event thank you (with feedback link)
 
-All transactional emails are sent from `noreply@ignite27.co.uk` with
-reply-to `tom@lincolnshiremarketing.co.uk`. All emails sent from a
-verified domain on Resend.
+All transactional emails are sent as
+`IGNITE! 27 <tom@lincolnshiremarketing.co.uk>` with reply-to
+`tom@lincolnshiremarketing.co.uk` (decision: Tom, Aug 2026).
+The from-address must live on a Resend-verified domain;
+lincolnshiremarketing.co.uk is the only verified domain, and
+ignite27.co.uk is NOT verified (Resend rejects sends from unverified
+domains, which is what broke booking confirmations in production).
 
 ---
 
