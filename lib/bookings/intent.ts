@@ -143,8 +143,14 @@ export function validateDelegateBookingIntent(input: unknown): IntentValidationR
     dietaryOther = "";
   }
 
-  const badgeQrUrl = trimString(raw.badgeQrUrl);
-  if (badgeQrUrl.length > 0) {
+  // Badge QR is a VIP-only perk. For non-VIP submissions the value is
+  // stripped silently rather than rejected: the field never renders for
+  // them, so anything arriving here is form tampering, and rejecting
+  // would leak nothing useful. VIPs get real validation.
+  let badgeQrUrl = trimString(raw.badgeQrUrl);
+  if (ticketType !== "vip") {
+    badgeQrUrl = "";
+  } else if (badgeQrUrl.length > 0) {
     if (badgeQrUrl.length > MAX_URL || !isValidUrl(badgeQrUrl)) {
       errors.push({
         field: "badgeQrUrl",

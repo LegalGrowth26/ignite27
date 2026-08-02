@@ -93,9 +93,10 @@ describe("validateDelegateBookingIntent", () => {
     expect(result.intent.dietaryOther).toBe("");
   });
 
-  it("rejects malformed badge QR URL but accepts empty", () => {
+  it("VIP: rejects malformed badge QR URL but accepts empty", () => {
     const bad = validateDelegateBookingIntent({
       ...validRegularInput,
+      ticketType: "vip",
       badgeQrUrl: "not-a-url",
     });
     expect(bad.ok).toBe(false);
@@ -104,9 +105,41 @@ describe("validateDelegateBookingIntent", () => {
 
     const empty = validateDelegateBookingIntent({
       ...validRegularInput,
+      ticketType: "vip",
       badgeQrUrl: "",
     });
     expect(empty.ok).toBe(true);
+  });
+
+  it("VIP: keeps a well-formed badge QR URL", () => {
+    const result = validateDelegateBookingIntent({
+      ...validRegularInput,
+      ticketType: "vip",
+      badgeQrUrl: "https://www.linkedin.com/in/ada",
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.intent.badgeQrUrl).toBe("https://www.linkedin.com/in/ada");
+  });
+
+  it("non-VIP: badge QR is a VIP-only perk, value is stripped (never stored, never an error)", () => {
+    // The field does not render for non-VIP tickets, so a value here is
+    // form tampering. It must be silently dropped, valid or not.
+    const tamperedValid = validateDelegateBookingIntent({
+      ...validRegularInput,
+      badgeQrUrl: "https://example.com/me",
+    });
+    expect(tamperedValid.ok).toBe(true);
+    if (!tamperedValid.ok) return;
+    expect(tamperedValid.intent.badgeQrUrl).toBe("");
+
+    const tamperedMalformed = validateDelegateBookingIntent({
+      ...validRegularInput,
+      badgeQrUrl: "not-a-url",
+    });
+    expect(tamperedMalformed.ok).toBe(true);
+    if (!tamperedMalformed.ok) return;
+    expect(tamperedMalformed.intent.badgeQrUrl).toBe("");
   });
 
   it("rejects unknown ticket type", () => {

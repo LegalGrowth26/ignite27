@@ -71,6 +71,7 @@ const VIP_INCLUDES: readonly string[] = [
   "Lunch included, with first access",
   "Priority seating at the front",
   "Special VIP lanyard",
+  "QR code on your badge linking to your LinkedIn or website",
 ];
 
 const ATTEND_STEPS: readonly BookingStep[] = [
