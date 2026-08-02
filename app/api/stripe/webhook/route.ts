@@ -116,6 +116,10 @@ async function handleCheckoutSessionCompleted(event: Stripe.Event): Promise<void
     paidAt: new Date((event.created ?? Math.floor(Date.now() / 1000)) * 1000),
     promo,
     paymentStatus,
+    // Store the TRUE charged amount (post-discount) as gross_amount_pence,
+    // not the pre-discount metadata snapshot; admin views, CSVs, and the
+    // account pages all read this column as "paid".
+    grossPaidPence,
   });
 
   // Three-branch idempotency + retry logic. See SPEC.md "Stripe webhook

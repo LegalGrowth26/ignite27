@@ -184,6 +184,66 @@ describe("createDelegateBookingFromCheckoutSession", () => {
     expect(bookingRow.discount_pence).toBeNull();
   });
 
+  it("stores the TRUE charged amount as gross_amount_pence for discounted bookings", async () => {
+    const { client, calls } = buildStubClient({});
+    // Metadata snapshot says £57 gross, but a 20% code meant Stripe only
+    // charged £45.60. The stored gross must be what was actually paid.
+    const parsed = buildParsed();
+
+    await createDelegateBookingFromCheckoutSession({
+      client,
+      parsed,
+      stripeCheckoutSessionId: "cs_test_discounted",
+      stripePaymentIntentId: "pi_test",
+      vatAmountPence: 760,
+      paidAt: new Date(),
+      promo: { code: "TOMS20", promotionCodeId: "promo_x", discountPence: 950 },
+      grossPaidPence: 4560,
+    });
+
+    const row = calls.bookingsInsert.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(row.gross_amount_pence).toBe(4560);
+    expect(row.promo_code).toBe("TOMS20");
+  });
+
+  it("falls back to the metadata gross when grossPaidPence is absent", async () => {
+    const { client, calls } = buildStubClient({});
+    const parsed = buildParsed();
+
+    await createDelegateBookingFromCheckoutSession({
+      client,
+      parsed,
+      stripeCheckoutSessionId: "cs_test_no_gross",
+      stripePaymentIntentId: "pi_test",
+      vatAmountPence: 950,
+      paidAt: new Date(),
+    });
+
+    const row = calls.bookingsInsert.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(row.gross_amount_pence).toBe(5700); // parsed.pricing.grossIncVatPence
+  });
+
+  it("comp bookings store gross_amount_pence 0 (nothing was charged)", async () => {
+    const { client, calls } = buildStubClient({});
+    const parsed = buildParsed();
+
+    await createDelegateBookingFromCheckoutSession({
+      client,
+      parsed,
+      stripeCheckoutSessionId: "cs_test_comp_gross",
+      stripePaymentIntentId: null,
+      vatAmountPence: 0,
+      paidAt: new Date(),
+      paymentStatus: "comp",
+      promo: { code: "COMP-X", promotionCodeId: "promo_c", discountPence: 4750 },
+      grossPaidPence: 0,
+    });
+
+    const row = calls.bookingsInsert.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(row.gross_amount_pence).toBe(0);
+    expect(row.payment_status).toBe("comp");
+  });
+
   it("persists promo_code / promo_code_id / discount_pence when a code was used", async () => {
     const { client, calls } = buildStubClient({});
     const parsed = buildParsed();

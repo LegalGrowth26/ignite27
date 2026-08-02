@@ -40,6 +40,13 @@ interface CreateInput {
   // 'paid' for real card payments, 'comp' for 100%-off promotion codes
   // (Stripe returns payment_status "no_payment_required" on those).
   paymentStatus?: "paid" | "comp";
+  // The amount Stripe ACTUALLY charged (session.amount_total,
+  // post-discount, post-tax, pence). Stored as gross_amount_pence so
+  // every surface that shows "paid" shows the truth. The metadata
+  // pricing snapshot is pre-discount; using it here showed £30 for a
+  // TOMS20 booking Stripe charged £24 on. Falls back to the metadata
+  // gross when absent (undiscounted bookings are identical either way).
+  grossPaidPence?: number;
 }
 
 // Look up a booking by its Stripe Checkout session id. Used for idempotency.
@@ -206,6 +213,7 @@ export async function createDelegateBookingFromCheckoutSession(
     vatAmountPence,
     promo,
     paymentStatus = "paid",
+    grossPaidPence,
   } = input;
 
   // Idempotency guard: if we've already processed this session, return.
@@ -254,7 +262,7 @@ export async function createDelegateBookingFromCheckoutSession(
       booking_type: "delegate",
       ticket_type: intent.ticketType,
       pricing_period: pricing.period,
-      gross_amount_pence: pricing.grossIncVatPence,
+      gross_amount_pence: grossPaidPence ?? pricing.grossIncVatPence,
       vat_amount_pence: vatAmountPence,
       currency: "gbp",
       lunch_included:

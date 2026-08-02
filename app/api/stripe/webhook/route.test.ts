@@ -277,6 +277,7 @@ describe("POST /api/stripe/webhook", () => {
     const arg = createBooking.mock.calls[0]?.[0] as {
       promo: { code: string; promotionCodeId: string; discountPence: number } | null;
       paymentStatus: "paid" | "comp";
+      grossPaidPence: number;
     };
     expect(arg.promo).toEqual({
       code: "STEPHINE20",
@@ -284,6 +285,9 @@ describe("POST /api/stripe/webhook", () => {
       discountPence: 700,
     });
     expect(arg.paymentStatus).toBe("paid");
+    // The TRUE charged amount (post-discount amount_total), not the
+    // pre-discount metadata gross, is what gets stored on the booking.
+    expect(arg.grossPaidPence).toBe(3360);
   });
 
   it("stores null promo fields when no code was redeemed", async () => {
