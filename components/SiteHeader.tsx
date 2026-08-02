@@ -1,11 +1,15 @@
 import Link from "next/link";
+import { resolveAccountNav } from "@/lib/auth/session-nav";
 import { Button } from "./Button";
 import { Container } from "./Container";
 import { LogoWordmark } from "./LogoWordmark";
 import { MobileNav } from "./MobileNav";
-import { ACCOUNT_NAV, BOOK_CTA_HREF, MAIN_NAV } from "./nav-items";
+import { BOOK_CTA_HREF, MAIN_NAV } from "./nav-items";
 
-export function SiteHeader() {
+// Session-aware: shows "Login" to anonymous visitors and "Account" once
+// signed in (was previously a static Login link even with a session).
+export async function SiteHeader() {
+  const accountNav = await resolveAccountNav();
   return (
     <header className="sticky top-0 z-40 border-b border-ignite-line bg-ignite-white">
       <Container className="flex h-16 items-center justify-between gap-6 md:h-20">
@@ -31,7 +35,7 @@ export function SiteHeader() {
 
         <div className="flex items-center gap-3">
           <ul className="hidden items-center gap-4 text-small text-ignite-muted xl:flex">
-            {ACCOUNT_NAV.map((item) => (
+            {accountNav.map((item) => (
               <li key={item.href}>
                 <Link href={item.href} className="hover:text-ignite-red">
                   {item.label}
@@ -44,7 +48,7 @@ export function SiteHeader() {
               Book your place
             </Button>
           </div>
-          <MobileNav />
+          <MobileNav accountNav={accountNav} />
         </div>
       </Container>
     </header>

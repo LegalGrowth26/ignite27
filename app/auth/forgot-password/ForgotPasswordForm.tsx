@@ -20,7 +20,15 @@ export function ForgotPasswordForm() {
     setError(null);
     startTransition(async () => {
       const supabase = createSupabaseBrowserClient();
-      const redirectTo = `${window.location.origin}/auth/set-password`;
+      // IMPORTANT: route the recovery link through /auth/callback, exactly
+      // like the booking-confirmation link (see generateSetPasswordLink in
+      // lib/bookings/send-confirmation.ts and PR #10). The callback
+      // exchanges the one-time code/token server-side and sets the auth
+      // cookies BEFORE the user reaches /auth/set-password. Sending the
+      // link straight to /auth/set-password leaves the session exchange
+      // to a fragile client-side race that breaks across hosts (www vs
+      // apex) and browsers. Do not change this back.
+      const redirectTo = `${window.location.origin}/auth/callback?next=/auth/set-password`;
       const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo,
       });

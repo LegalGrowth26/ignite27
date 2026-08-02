@@ -2,9 +2,15 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ACCOUNT_NAV, BOOK_CTA_HREF, MAIN_NAV } from "./nav-items";
+import { ACCOUNT_NAV, BOOK_CTA_HREF, MAIN_NAV, type NavItem } from "./nav-items";
 
-export function MobileNav() {
+// accountNav comes from the (server) SiteHeader so the mobile menu shows
+// the same session-aware Login/Account entry as the desktop nav.
+export function MobileNav({
+  accountNav = ACCOUNT_NAV,
+}: {
+  accountNav?: readonly NavItem[];
+}) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -89,7 +95,7 @@ export function MobileNav() {
                 ))}
               </ul>
               <ul className="mt-8 flex flex-col gap-1 border-t border-white/10 pt-6">
-                {ACCOUNT_NAV.map((item) => (
+                {accountNav.map((item) => (
                   <li key={item.href}>
                     <Link
                       href={item.href}
