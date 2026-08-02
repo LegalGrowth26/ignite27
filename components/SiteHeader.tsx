@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getIsSuperAdmin } from "@/lib/admin/guard";
 import { Button } from "./Button";
 import { Container } from "./Container";
 import { LogoWordmark } from "./LogoWordmark";
@@ -7,7 +8,13 @@ import { ACCOUNT_NAV, BOOK_CTA_HREF, MAIN_NAV } from "./nav-items";
 
 // Solid black at all scroll positions. Active / hover marker is a red
 // bullet dot beneath the label (no box outline), keeping the row calm.
-export function SiteHeader() {
+// The Admin link renders only for signed-in super admins; everyone else
+// never sees a hint that /admin exists.
+export async function SiteHeader() {
+  const isAdmin = await getIsSuperAdmin();
+  const accountNav = isAdmin
+    ? [...ACCOUNT_NAV, { href: "/admin", label: "Admin" }]
+    : ACCOUNT_NAV;
   return (
     <header className="sticky top-0 z-40 bg-ignite-black text-ignite-white">
       <Container className="flex h-16 items-center justify-between gap-6 md:h-20">
@@ -37,7 +44,7 @@ export function SiteHeader() {
 
         <div className="flex items-center gap-3">
           <ul className="hidden items-center gap-4 text-small text-white/70 xl:flex">
-            {ACCOUNT_NAV.map((item) => (
+            {accountNav.map((item) => (
               <li key={item.href}>
                 <Link
                   href={item.href}

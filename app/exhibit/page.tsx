@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { Button } from "@/components/Button";
 import { Container } from "@/components/Container";
+import { ConfirmedExhibitors } from "@/components/ConfirmedExhibitors";
 import { HowBookingWorks, type BookingStep } from "@/components/HowBookingWorks";
 import { PhotoBand } from "@/components/PhotoBand";
 import { PriceCard } from "@/components/PriceCard";
@@ -82,6 +83,7 @@ export default function ExhibitPage() {
       <PricingSection pricing={pricing} />
       <WhyExhibit />
       <ExhibitorResults />
+      <ConfirmedExhibitors />
       <PhotoBand photos={EXHIBIT_ATMOSPHERE} tone="light" />
       <WhatsIncluded />
       <PartnerPackage />

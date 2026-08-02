@@ -5,6 +5,7 @@ import { Button } from "@/components/Button";
 import { Container } from "@/components/Container";
 import { Section } from "@/components/Section";
 import { SectionHeader } from "@/components/SectionHeader";
+import { fetchOwnBookingDetail, resolveOwnAppUserId } from "@/lib/account/queries";
 import type { DietaryRequirement } from "@/lib/bookings/intent";
 import { formatPoundsFromPence } from "@/lib/pricing";
 import { createSupabaseServerClient } from "@/lib/supabase/server-client";
@@ -108,20 +109,12 @@ export default async function BookingDetailPage({
     redirect(`/login?return_to=${encodeURIComponent(`/account/booking/${id}`)}`);
   }
 
-  const { data, error } = await supabase
-    .from("bookings")
-    .select(
-      `id, booking_reference, booking_type, ticket_type, pricing_period,
-       gross_amount_pence, vat_amount_pence, discount_pence, promo_code,
-       lunch_included,
-       payment_status, booking_status, created_at, confirmation_email_sent_at,
-       booking_attendees (
-         first_name, surname, email, mobile, company, job_title,
-         dietary_requirement, dietary_other, lunch_entitlement, badge_qr_url, is_primary_contact
-       )`,
-    )
-    .eq("id", id)
-    .maybeSingle();
+  // Ownership-scoped via the account query helpers: even an admin
+  // session only sees their own bookings on this customer-facing page.
+  // The admin dashboard has its own booking detail view.
+  const appUserId = await resolveOwnAppUserId(supabase);
+  if (!appUserId) notFound();
+  const { data, error } = await fetchOwnBookingDetail(supabase, appUserId, id);
 
   if (error) {
     console.error("[account/booking] error:", error);
@@ -212,6 +205,25 @@ export default async function BookingDetailPage({
                   <DetailRow label="Badge QR URL" value={primary.badge_qr_url} />
                 ) : null}
               </dl>
+            </div>
+          ) : null}
+
+          {booking.booking_type === "exhibitor" ? (
+            <div className="mt-6 rounded-2xl border-2 border-ignite-red bg-ignite-white p-6">
+              <h2 className="text-h3">Stand requirements</h2>
+              <p className="mt-2 text-small text-ignite-muted">
+                Power, furniture, signage name, logo, and website for your
+                stand. Takes two minutes.
+              </p>
+              <div className="mt-4">
+                <Button
+                  href={`/account/booking/${booking.id}/requirements`}
+                  variant="primary"
+                  size="md"
+                >
+                  Set stand requirements
+                </Button>
+              </div>
             </div>
           ) : null}
 
@@ -327,6 +339,11 @@ function buildNotice(
     };
   if (status === "confirmation_resent")
     return { text: "Confirmation email sent again.", tone: "info" };
+  if (status === "requirements_saved")
+    return {
+      text: "Stand requirements saved. We will review your logo and website before they appear on the public site.",
+      tone: "info",
+    };
   if (status === "error" && message)
     return { text: decodeURIComponent(message), tone: "error" };
   return null;

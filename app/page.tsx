@@ -391,9 +391,9 @@ function PreOpenPricing() {
           Bookings open 09:00, Saturday 1 August 2026.
         </p>
         <p className="mt-3 text-body text-ignite-muted">
-          Launch pricing runs for 72 hours from open, then standard pricing until
-          Christmas. Late pricing runs 1 to 18 January 2027. Bookings close 17:00,
-          Monday 18 January 2027.
+          Launch pricing is the lowest price of the year and runs until 8 August,
+          then standard pricing until Christmas. Late pricing runs 1 to 18 January
+          2027. Bookings close 17:00, Monday 18 January 2027.
         </p>
       </div>
       <div className="rounded-2xl border border-ignite-line p-6">

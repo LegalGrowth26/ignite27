@@ -39,15 +39,21 @@ describe("getActivePeriod — launch period", () => {
     expect(getActivePeriod(uk("2026-08-02T10:00:00"))).toBe("launch");
   });
 
-  it("returns launch one second before it closes", () => {
-    expect(getActivePeriod(uk("2026-08-04T08:59:59"))).toBe("launch");
+  it("returns launch late in the extended week (6 Aug 2026 12:00 UK)", () => {
+    // The original 72-hour window ended 4 Aug 09:00; the extension
+    // (organiser decision, July 2026) runs launch through 8 Aug.
+    expect(getActivePeriod(uk("2026-08-06T12:00:00"))).toBe("launch");
+  });
+
+  it("returns launch one second before it closes (8 Aug 2026 23:59:59 UK)", () => {
+    expect(getActivePeriod(uk("2026-08-08T23:59:59"))).toBe("launch");
   });
 });
 
 describe("getActivePeriod — standard period", () => {
   it("returns standard exactly at the launch → standard transition", () => {
-    // Half-open [opens, closes): 4 Aug 09:00 belongs to standard, not launch.
-    expect(getActivePeriod(uk("2026-08-04T09:00:00"))).toBe("standard");
+    // Half-open [opens, closes): 9 Aug 00:00 belongs to standard, not launch.
+    expect(getActivePeriod(uk("2026-08-09T00:00:00"))).toBe("standard");
   });
 
   it("returns standard in early autumn", () => {

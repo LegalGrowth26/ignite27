@@ -5,6 +5,7 @@ import { Button } from "@/components/Button";
 import { Container } from "@/components/Container";
 import { Section } from "@/components/Section";
 import { SectionHeader } from "@/components/SectionHeader";
+import { fetchOwnBookings, resolveOwnAppUserId } from "@/lib/account/queries";
 import { formatPoundsFromPence } from "@/lib/pricing";
 import { createSupabaseServerClient } from "@/lib/supabase/server-client";
 
@@ -49,12 +50,13 @@ export default async function AccountHome() {
     redirect(`/login?return_to=${encodeURIComponent("/account")}`);
   }
 
-  const { data: bookings, error } = await supabase
-    .from("bookings")
-    .select(
-      "id, booking_reference, booking_type, ticket_type, gross_amount_pence, payment_status, booking_status, created_at",
-    )
-    .order("created_at", { ascending: false });
+  // Explicit user_id scoping via the account query helpers. Do NOT
+  // query bookings directly here: admin RLS would leak every booking
+  // into an admin's personal account view. See lib/account/queries.ts.
+  const appUserId = await resolveOwnAppUserId(supabase);
+  const { data: bookings, error } = appUserId
+    ? await fetchOwnBookings(supabase, appUserId)
+    : { data: [], error: null };
 
   if (error) {
     console.error("[account] list bookings error:", error);
