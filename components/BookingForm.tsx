@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { createCheckoutSessionAction } from "@/app/attend/book/actions";
 import {
+  bookingIncludesLunch,
   DIETARY_REQUIREMENTS,
   type DelegateTicketType,
   type DietaryRequirement,
@@ -62,6 +63,10 @@ export function BookingForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const includeLunch = ticketType === "regular" && lunchIncluded;
+  // Dietary only makes sense when the booking includes lunch. Mirrors
+  // bookingIncludesLunch in lib/bookings/intent.ts (the server-side
+  // source of truth for the same rule).
+  const showDietary = bookingIncludesLunch(ticketType, lunchIncluded);
   const lunchExVatPence = includeLunch ? lunchAddOnExVatPence : 0;
   const lunchIncVatPence = includeLunch ? lunchAddOnIncVatPence : 0;
   const totalExVatPence = ticketExVatPence + lunchExVatPence;
@@ -92,7 +97,9 @@ export function BookingForm({
       mobile: fd.get("mobile"),
       company: fd.get("company"),
       jobTitle: fd.get("jobTitle"),
-      dietaryRequirement: fd.get("dietaryRequirement"),
+      // When the dietary field is hidden (no lunch in the booking) the
+      // select is not in the DOM, so send the explicit no-lunch values.
+      dietaryRequirement: fd.get("dietaryRequirement") ?? "none",
       dietaryOther: fd.get("dietaryOther") ?? "",
       badgeQrUrl: fd.get("badgeQrUrl") ?? "",
       marketingOptIn: fd.get("marketingOptIn") === "on",
@@ -231,39 +238,6 @@ export function BookingForm({
         </div>
       </fieldset>
 
-      <div>
-        <label htmlFor="dietaryRequirement" className={LABEL}>
-          Dietary requirement <span className={REQ}>*</span>
-        </label>
-        <select
-          id="dietaryRequirement"
-          name="dietaryRequirement"
-          value={dietary}
-          onChange={(e) => setDietary(e.target.value as DietaryRequirement)}
-          className={INPUT}
-        >
-          {DIETARY_REQUIREMENTS.map((d) => (
-            <option key={d} value={d}>
-              {DIETARY_LABELS[d]}
-            </option>
-          ))}
-        </select>
-        {fieldErrorFor(errors, "dietaryRequirement") ? (
-          <p className={ERR}>{fieldErrorFor(errors, "dietaryRequirement")}</p>
-        ) : null}
-        {dietary === "other" ? (
-          <div className="mt-3">
-            <label htmlFor="dietaryOther" className={LABEL}>
-              What should we cater for? <span className={REQ}>*</span>
-            </label>
-            <input id="dietaryOther" name="dietaryOther" className={INPUT} />
-            {fieldErrorFor(errors, "dietaryOther") ? (
-              <p className={ERR}>{fieldErrorFor(errors, "dietaryOther")}</p>
-            ) : null}
-          </div>
-        ) : null}
-      </div>
-
       {/* Badge QR is a VIP-only perk. Delegates and exhibitors never see
           this field; the server also strips badgeQrUrl from non-VIP
           submissions so it cannot arrive via form tampering. */}
@@ -314,6 +288,48 @@ export function BookingForm({
           </p>
         </div>
       )}
+
+      {/* Dietary is only collected when lunch is part of the booking:
+          always for VIP (lunch included), and for Regular only once the
+          lunch add-on is ticked (this block appears reactively). The
+          server strips dietary values on no-lunch submissions, so form
+          tampering cannot store one. Exhibitors: their booking flow does
+          not exist yet; when built (2 lunches included) its attendee
+          forms should always show dietary, like the VIP branch. */}
+      {showDietary ? (
+        <div>
+          <label htmlFor="dietaryRequirement" className={LABEL}>
+            Dietary requirement <span className={REQ}>*</span>
+          </label>
+          <select
+            id="dietaryRequirement"
+            name="dietaryRequirement"
+            value={dietary}
+            onChange={(e) => setDietary(e.target.value as DietaryRequirement)}
+            className={INPUT}
+          >
+            {DIETARY_REQUIREMENTS.map((d) => (
+              <option key={d} value={d}>
+                {DIETARY_LABELS[d]}
+              </option>
+            ))}
+          </select>
+          {fieldErrorFor(errors, "dietaryRequirement") ? (
+            <p className={ERR}>{fieldErrorFor(errors, "dietaryRequirement")}</p>
+          ) : null}
+          {dietary === "other" ? (
+            <div className="mt-3">
+              <label htmlFor="dietaryOther" className={LABEL}>
+                What should we cater for? <span className={REQ}>*</span>
+              </label>
+              <input id="dietaryOther" name="dietaryOther" className={INPUT} />
+              {fieldErrorFor(errors, "dietaryOther") ? (
+                <p className={ERR}>{fieldErrorFor(errors, "dietaryOther")}</p>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       <label className="flex items-start gap-3">
         <input
