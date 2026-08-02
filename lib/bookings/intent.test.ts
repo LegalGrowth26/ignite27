@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  bookingIncludesLunch,
   intentToMetadata,
   metadataToParsed,
   MetadataParseError,
@@ -155,6 +156,87 @@ describe("validateDelegateBookingIntent", () => {
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.errors[0]?.field).toBe("form");
+  });
+});
+
+// The show/hide rule shared by the booking form and server validation.
+// The form renders the dietary field exactly when this returns true, so
+// covering every branch here covers the toggle behaviour.
+describe("bookingIncludesLunch (dietary field visibility rule)", () => {
+  it("Regular without the lunch add-on: no lunch, no dietary field", () => {
+    expect(bookingIncludesLunch("regular", false)).toBe(false);
+  });
+
+  it("Regular with the lunch add-on ticked: dietary field appears", () => {
+    expect(bookingIncludesLunch("regular", true)).toBe(true);
+  });
+
+  it("VIP: always shows dietary (lunch included), whatever the flag says", () => {
+    expect(bookingIncludesLunch("vip", true)).toBe(true);
+    expect(bookingIncludesLunch("vip", false)).toBe(true);
+  });
+});
+
+describe("dietary is stripped on no-lunch bookings (tampering guard)", () => {
+  it("Regular without lunch: submitted dietary values are silently dropped", () => {
+    const result = validateDelegateBookingIntent({
+      ...validRegularInput,
+      lunchIncluded: false,
+      dietaryRequirement: "vegan",
+      dietaryOther: "",
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.intent.dietaryRequirement).toBe("none");
+    expect(result.intent.dietaryOther).toBe("");
+  });
+
+  it("Regular without lunch: even garbage dietary values never error", () => {
+    const result = validateDelegateBookingIntent({
+      ...validRegularInput,
+      lunchIncluded: false,
+      dietaryRequirement: "platinum-banquet",
+      dietaryOther: "x".repeat(500),
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.intent.dietaryRequirement).toBe("none");
+    expect(result.intent.dietaryOther).toBe("");
+  });
+
+  it("Regular WITH lunch: dietary is validated and kept", () => {
+    const result = validateDelegateBookingIntent({
+      ...validRegularInput,
+      lunchIncluded: true,
+      dietaryRequirement: "gluten_free",
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.intent.dietaryRequirement).toBe("gluten_free");
+  });
+
+  it("Regular WITH lunch: invalid dietary still rejects", () => {
+    const result = validateDelegateBookingIntent({
+      ...validRegularInput,
+      lunchIncluded: true,
+      dietaryRequirement: "not-a-real-option",
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.errors.some((e) => e.field === "dietaryRequirement")).toBe(true);
+  });
+
+  it("VIP: dietary always validated even if the lunch flag was tampered to false", () => {
+    const result = validateDelegateBookingIntent({
+      ...validRegularInput,
+      ticketType: "vip",
+      lunchIncluded: false,
+      dietaryRequirement: "nut_allergy",
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.intent.lunchIncluded).toBe(true);
+    expect(result.intent.dietaryRequirement).toBe("nut_allergy");
   });
 });
 
