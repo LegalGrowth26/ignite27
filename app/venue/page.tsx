@@ -6,7 +6,12 @@ import { Section } from "@/components/Section";
 import { SectionHeader } from "@/components/SectionHeader";
 
 // Three landscape venue-appropriate shots from the photo library. Wide
-// interior scenes read best here. Swap srcs if a better fit shows up.
+// interior scenes read best here.
+//
+// WAITING ON ASSETS: Kelham Hall images from Toby's library (drone +
+// room shots). When supplied, optimise to 1600px webp into
+// public/images/photos/ and extend or replace this array; the grid
+// below handles any count (2-col on sm, 3-col on md+).
 const VENUE_PHOTOS: ReadonlyArray<{ src: string; alt: string }> = [
   {
     src: "/images/photos/photo-04.webp",

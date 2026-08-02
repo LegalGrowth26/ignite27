@@ -25,7 +25,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Exhibit at IGNITE! 27",
   description:
-    "Reserve one of 50 exhibitor stands at IGNITE! 27. Thursday 21 January 2027 at Kelham Hall, Newark.",
+    "Join over 50 exhibitors at IGNITE! 27. Thursday 21 January 2027 at Kelham Hall, Newark.",
 };
 
 type ExhibitPricing =
@@ -108,7 +108,7 @@ function Hero() {
           <p className="text-eyebrow uppercase text-ignite-red">Exhibit at IGNITE! 27</p>
           <h1 className="mt-5 text-h1">A room worth standing in.</h1>
           <p className="mt-5 max-w-2xl text-lead text-white/80">
-            50 exhibitor stands at Kelham Hall on Thursday 21 January 2027. The delegates came to
+            Over 50 exhibitors at Kelham Hall on Thursday 21 January 2027. The delegates came to
             meet businesses like yours, not to collect pens.
           </p>
         </div>
@@ -303,7 +303,11 @@ function PartnerPackage() {
   return (
     <Section tone="light">
       <Container>
-        <div className="rounded-3xl border-2 border-ignite-red bg-ignite-white p-8 md:p-12">
+        {/* id anchors the /exhibit#partner links from home + footer. */}
+        <div
+          id="partner"
+          className="scroll-mt-24 rounded-3xl border-2 border-ignite-red bg-ignite-white p-8 md:p-12"
+        >
           <div className="grid gap-6 md:grid-cols-12 md:items-center">
             <div className="md:col-span-8">
               <p className="text-eyebrow uppercase text-ignite-red">Partner IGNITE! 27</p>
@@ -374,7 +378,7 @@ function ClosingCta() {
           <p className="text-eyebrow uppercase text-ignite-red">Thursday 21 January 2027</p>
           <p className="mt-4 text-h1">Reserve your stand.</p>
           <p className="mt-5 text-lead text-white/80">
-            50 spaces at The Renaissance at Kelham Hall, Newark.
+            Over 50 exhibitor spaces at The Renaissance at Kelham Hall, Newark.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:gap-4">
             <Button href="/exhibit/book" variant="primary" size="lg">

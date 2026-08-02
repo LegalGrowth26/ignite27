@@ -47,11 +47,11 @@ const VALUE_PROPS: ReadonlyArray<{ title: string; body: string }> = [
   },
   {
     title: "Exhibitors",
-    body: "Up to 50 businesses showing what they do. Worth a proper conversation, not a lanyard scan.",
+    body: "Over 50 exhibitors showing what they do. Worth a proper conversation, not a lanyard scan.",
   },
   {
     title: "Food and coffee",
-    body: "The famous IGNITE! grab bag is back, or upgrade your lunch to a Smash Burger from the IGNITE! FOOD TRUCK.",
+    body: "The famous IGNITE! grab bag is back, or upgrade your lunch to a burger from the IGNITE! FOOD TRUCK.",
   },
 ];
 
@@ -90,14 +90,19 @@ const NAMED_SPEAKERS: ReadonlyArray<
   },
 ];
 
-// TODO: replace with real IGNITE! 26 photography before the site goes live.
 // Eight highlights chosen from the 38-photo library in
 // public/images/photos/. All landscape aspect (1600x1067). The first
 // entry spans a 2x2 tile on desktop so the grid reads as a proper
-// gallery, not eight equal cells. Swap in a different set by editing
-// the src values. The display srcs live next to their -thumb
-// counterparts, so `photo-05.webp` and `photo-05-thumb.webp` are the
-// same image at 1600px and 400px.
+// gallery, not eight equal cells.
+//
+// WAITING ON ASSETS (drop in here, no redesign needed):
+// - PVS video embed for this section: replace the 2x2 lead tile with
+//   an iframe/video in the same grid cell, keep the span classes.
+// - Better/additional event images: optimise to 1600px webp into
+//   public/images/photos/ and swap the src values below. Display srcs
+//   live next to their -thumb counterparts (photo-05.webp /
+//   photo-05-thumb.webp are the same image at 1600px and 400px).
+// - 2026 best-speaker images: same drop-in path.
 const LAST_YEAR_PHOTOS: ReadonlyArray<{ src: string; alt: string; span?: string }> = [
   {
     src: "/images/photos/photo-01.webp",
@@ -111,20 +116,6 @@ const LAST_YEAR_PHOTOS: ReadonlyArray<{ src: string; alt: string; span?: string 
   { src: "/images/photos/photo-23.webp", alt: "Interior of The Renaissance at Kelham Hall set for IGNITE! 26" },
   { src: "/images/photos/photo-27.webp", alt: "Delegates networking between sessions at IGNITE! 26" },
   { src: "/images/photos/photo-32.webp", alt: "Wide view of the IGNITE! 26 main hall from the balcony" },
-];
-
-// Eight partner logos from the site's existing partners strip. Files
-// live in public/images/partners/ and are padded to a consistent aspect
-// so the strip lines up. href stays "#" until real destinations arrive.
-const PARTNER_LOGOS: ReadonlyArray<{ src: string; alt: string; href: string }> = [
-  { src: "/images/partners/partner-01.webp", alt: "Partner 1 logo", href: "#" },
-  { src: "/images/partners/partner-02.webp", alt: "Partner 2 logo", href: "#" },
-  { src: "/images/partners/partner-03.webp", alt: "Partner 3 logo", href: "#" },
-  { src: "/images/partners/partner-04.webp", alt: "Partner 4 logo", href: "#" },
-  { src: "/images/partners/partner-05.webp", alt: "Partner 5 logo", href: "#" },
-  { src: "/images/partners/partner-06.webp", alt: "Partner 6 logo", href: "#" },
-  { src: "/images/partners/partner-07.webp", alt: "Partner 7 logo", href: "#" },
-  { src: "/images/partners/partner-08.webp", alt: "Partner 8 logo", href: "#" },
 ];
 
 export default function HomePage() {
@@ -177,7 +168,9 @@ function Hero() {
       />
       <Container className="relative py-24 sm:py-28 md:py-36 lg:py-44">
         <div className="max-w-4xl">
-          <p className="text-eyebrow uppercase text-ignite-red">
+          {/* White with a soft shadow: the red eyebrow was getting lost
+              against the hero photo (Paul's feedback). */}
+          <p className="text-eyebrow uppercase text-ignite-white [text-shadow:0_1px_8px_rgba(0,0,0,0.7)]">
             Thursday 21 January 2027. Kelham Hall, Newark.
           </p>
           {/* Copy per Tom, exact. The stacked exclamation marks are the
@@ -339,37 +332,23 @@ function AgendaTeaser() {
   );
 }
 
+// No partner or sponsor logos are shown anywhere until partners are
+// confirmed for 27 (Paul's call, July 2026). The section stays as a
+// logo-less sales prompt pointing at the /exhibit partner package.
+// When partners confirm, reintroduce a logo grid here; the padded
+// logo assets from 26 remain in public/images/partners/ unused.
 function PartnersStrip() {
   return (
     <Section tone="cream">
       <Container>
         <SectionHeader
-          eyebrow="Sponsors and partners"
-          heading="Backed by businesses that build."
-          lede="IGNITE! 27 is made possible by sponsors and partners you'll recognise. Full line-up announced closer to the day."
+          eyebrow="Partners"
+          heading="Partner IGNITE! 27."
+          lede="Five partner slots for 27. Your logo on everything, plus your own stand. Partner line-up announced once confirmed."
         />
-        <ul className="mt-12 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-8">
-          {PARTNER_LOGOS.map((p) => (
-            <li key={p.src}>
-              <a
-                href={p.href}
-                className="flex aspect-[3/2] items-center justify-center rounded-lg border border-ignite-line bg-ignite-white p-3 transition-colors hover:border-ignite-red/40"
-              >
-                <Image
-                  src={p.src}
-                  alt={p.alt}
-                  width={200}
-                  height={120}
-                  loading="lazy"
-                  className="max-h-full max-w-full object-contain"
-                />
-              </a>
-            </li>
-          ))}
-        </ul>
-        <div className="mt-10">
+        <div className="mt-8">
           <Button href="/exhibit#partner" variant="secondary" size="md">
-            Partner IGNITE! 27
+            Become a partner
           </Button>
         </div>
       </Container>

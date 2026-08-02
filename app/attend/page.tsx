@@ -246,11 +246,11 @@ function WhatYouGet() {
     },
     {
       title: "The room",
-      body: "Up to 50 exhibitors and delegates who came ready to talk.",
+      body: "Over 50 exhibitors and delegates who came ready to talk.",
     },
     {
       title: "The food",
-      body: "The famous IGNITE! grab bag is back, or upgrade your lunch to a Smash Burger from the IGNITE! FOOD TRUCK.",
+      body: "The famous IGNITE! grab bag is back, or upgrade your lunch to a burger from the IGNITE! FOOD TRUCK.",
     },
   ];
 
