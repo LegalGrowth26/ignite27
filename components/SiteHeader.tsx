@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { getIsSuperAdmin } from "@/lib/admin/guard";
 import { resolveAccountNav } from "@/lib/auth/session-nav";
 import { Button } from "./Button";
 import { Container } from "./Container";
@@ -10,16 +9,13 @@ import { BOOK_CTA_HREF, MAIN_NAV } from "./nav-items";
 // Solid black at all scroll positions. Active / hover marker is a red
 // bullet dot beneath the label (no box outline), keeping the row calm.
 // Account nav is session-aware: "Login" for anonymous visitors,
-// "Account" once signed in, plus an "Admin" link that renders only for
-// super admins; everyone else never sees a hint that /admin exists.
+// "Account" once signed in.
+//
+// NO Admin link, for anyone, by decision (Aug 2026): super admins reach
+// /admin by direct URL; the existing requireSuperAdmin gate 404s
+// everyone else. Do not add the link back here.
 export async function SiteHeader() {
-  const [sessionNav, isAdmin] = await Promise.all([
-    resolveAccountNav(),
-    getIsSuperAdmin(),
-  ]);
-  const accountNav = isAdmin
-    ? [...sessionNav, { href: "/admin", label: "Admin" }]
-    : sessionNav;
+  const accountNav = await resolveAccountNav();
   return (
     <header className="sticky top-0 z-40 bg-ignite-black text-ignite-white">
       <Container className="flex h-16 items-center justify-between gap-6 md:h-20">
