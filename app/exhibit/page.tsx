@@ -16,10 +16,14 @@ const EXHIBIT_ATMOSPHERE: ReadonlyArray<{ src: string; alt: string }> = [
 ];
 import {
   BookingsNotOpenError,
+  EXHIBITOR_STAND_CAP,
+  exhibitorStandsRemaining,
   formatExVatWithGross,
   getCurrentPricing,
   type CurrentPricing,
 } from "@/lib/pricing";
+import { countCompletedExhibitorBookings } from "@/lib/bookings/exhibitor-count";
+import { createSupabaseServiceClient } from "@/lib/supabase/service-client";
 
 export const dynamic = "force-dynamic";
 
@@ -55,11 +59,7 @@ const EXHIBITOR_INCLUDES: readonly string[] = [
   "2 lunches",
 ];
 
-// TODO: wire this to the live count from the database once the exhibitor
-// booking flow is built. For now the number is hardcoded to match
-// EXHIBITOR_STAND_CAP.
-const EXHIBITOR_SPACES_REMAINING = 50;
-const EXHIBITOR_SPACES_TOTAL = 50;
+const EXHIBITOR_SPACES_TOTAL = EXHIBITOR_STAND_CAP;
 
 const EXHIBIT_STEPS: readonly BookingStep[] = [
   {
@@ -74,13 +74,26 @@ const EXHIBIT_STEPS: readonly BookingStep[] = [
   { label: "Confirmed", body: "Details in your inbox, diary entry done." },
 ];
 
-export default function ExhibitPage() {
+export default async function ExhibitPage() {
   const pricing = resolveExhibitPricing(new Date());
+
+  // Live spaces-remaining once bookings are open. Pre-open, nothing has
+  // sold, so skip the query and show the full allocation. A failed count
+  // falls back to the full allocation rather than blocking the page.
+  let standsRemaining = EXHIBITOR_STAND_CAP;
+  if (pricing.status === "live") {
+    try {
+      const sold = await countCompletedExhibitorBookings(createSupabaseServiceClient());
+      standsRemaining = exhibitorStandsRemaining(sold);
+    } catch (err) {
+      console.error("[exhibit] stand count failed (showing full allocation):", err);
+    }
+  }
 
   return (
     <>
       <Hero />
-      <PricingSection pricing={pricing} />
+      <PricingSection pricing={pricing} standsRemaining={standsRemaining} />
       <WhyExhibit />
       <ExhibitorResults />
       <ConfirmedExhibitors />
@@ -119,8 +132,15 @@ function Hero() {
   );
 }
 
-function PricingSection({ pricing }: { pricing: ExhibitPricing }) {
+function PricingSection({
+  pricing,
+  standsRemaining,
+}: {
+  pricing: ExhibitPricing;
+  standsRemaining: number;
+}) {
   const isPreOpen = pricing.status === "pre_open";
+  const soldOut = !isPreOpen && standsRemaining <= 0;
 
   // Step 6 will rewrite this heading/lede copy to the pricing-v2 wording.
   const heading = isPreOpen ? "Bookings open 1 August 2026." : "Today's pricing.";
@@ -128,7 +148,9 @@ function PricingSection({ pricing }: { pricing: ExhibitPricing }) {
     ? "Bookings open 09:00, Saturday 1 August 2026. Below is the launch preview price."
     : "Each exhibitor booking includes two attendee places and two lunches.";
 
-  const extraNote = `${EXHIBITOR_SPACES_REMAINING} of ${EXHIBITOR_SPACES_TOTAL} spaces remaining.`;
+  const extraNote = soldOut
+    ? "All stands are taken. Email us to join the waiting list."
+    : `${standsRemaining} of ${EXHIBITOR_SPACES_TOTAL} spaces remaining.`;
 
   const priceLabel = isPreOpen
     ? formatExVatWithGross(LAUNCH_EXHIBITOR_EX_VAT_PENCE, LAUNCH_EXHIBITOR_INC_VAT_PENCE)
@@ -141,7 +163,9 @@ function PricingSection({ pricing }: { pricing: ExhibitPricing }) {
 
   const cta: { label: string; href: string } | { disabledLabel: string } = isPreOpen
     ? { disabledLabel: "Bookings open 1 August 2026" }
-    : { label: "Reserve your stand", href: "/exhibit/book" };
+    : soldOut
+      ? { disabledLabel: "Stands sold out" }
+      : { label: "Reserve your stand", href: "/exhibit/book" };
 
   const chip = isPreOpen ? "Launch preview" : undefined;
 

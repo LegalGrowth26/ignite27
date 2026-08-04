@@ -45,7 +45,8 @@ interface CreateInput {
 // Look up a booking by its Stripe Checkout session id. Used for idempotency.
 // The webhook handler also reads confirmation_email_sent_at so it can decide
 // whether to retry the confirmation email on a duplicate event.
-async function findBookingByStripeSessionId(
+// Exported for reuse by the exhibitor creation path (exhibitor-create.ts).
+export async function findBookingByStripeSessionId(
   client: SupabaseClient,
   sessionId: string,
 ): Promise<{
@@ -86,7 +87,8 @@ async function findUserByEmail(
 // return their id. If not, create one with a random password (they'll
 // set their own via the Supabase recovery-link → /auth/set-password
 // flow in the booking confirmation email).
-async function ensureAuthUser(
+// Exported for reuse by the exhibitor creation path (exhibitor-create.ts).
+export async function ensureAuthUser(
   client: SupabaseClient,
   email: string,
   userMetadata: Record<string, string>,
@@ -141,7 +143,8 @@ async function ensureAuthUser(
   return match.id;
 }
 
-async function upsertAppUser(
+// Exported for reuse by the exhibitor creation path (exhibitor-create.ts).
+export async function upsertAppUser(
   client: SupabaseClient,
   email: string,
   authUserId: string,
