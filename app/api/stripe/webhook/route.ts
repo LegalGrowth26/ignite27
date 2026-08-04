@@ -1,9 +1,17 @@
 import type Stripe from "stripe";
 import { NextResponse } from "next/server";
 import { createDelegateBookingFromCheckoutSession } from "@/lib/bookings/create";
+import { createExhibitorBookingFromCheckoutSession } from "@/lib/bookings/exhibitor-create";
+import { countCompletedExhibitorBookings } from "@/lib/bookings/exhibitor-count";
 import { metadataToParsed, MetadataParseError } from "@/lib/bookings/intent";
+import {
+  metadataToParsedExhibitor,
+  ExhibitorMetadataParseError,
+} from "@/lib/bookings/exhibitor-intent";
 import { env } from "@/lib/env";
 import { sendDelegateConfirmationEmail } from "@/lib/bookings/send-confirmation";
+import { sendExhibitorConfirmationEmail } from "@/lib/bookings/send-exhibitor-confirmation";
+import { EXHIBITOR_STAND_CAP } from "@/lib/pricing";
 import { getStripe } from "@/lib/stripe/client";
 import { createSupabaseServiceClient } from "@/lib/supabase/service-client";
 
@@ -42,7 +50,7 @@ export async function POST(request: Request) {
     }
   } catch (err) {
     console.error("[stripe-webhook] handler error:", err);
-    if (err instanceof MetadataParseError) {
+    if (err instanceof MetadataParseError || err instanceof ExhibitorMetadataParseError) {
       // Malformed metadata means we can't ever process this session. Return
       // 200 so Stripe stops retrying; the admin will see an unsent
       // confirmation and can investigate.
@@ -78,8 +86,16 @@ async function handleCheckoutSessionCompleted(event: Stripe.Event): Promise<void
   }
 
   const metadata = eventSession.metadata ?? {};
+  if (metadata.booking_type === "exhibitor") {
+    await handleExhibitorSessionCompleted(eventSession, event);
+    return;
+  }
   if (metadata.booking_type !== "delegate") {
-    console.info("[stripe-webhook] non-delegate booking, skipping", eventSession.id);
+    console.info(
+      "[stripe-webhook] unrecognised booking_type, skipping",
+      metadata.booking_type,
+      eventSession.id,
+    );
     return;
   }
 
@@ -159,6 +175,109 @@ async function handleCheckoutSessionCompleted(event: Stripe.Event): Promise<void
     result.bookingId,
     result.confirmationEmailSentAt,
   );
+}
+
+// Exhibitor twin of the delegate path above: same session re-retrieve,
+// same promo/comp handling, same 3-branch idempotency for the email.
+async function handleExhibitorSessionCompleted(
+  eventSession: Stripe.Checkout.Session,
+  event: Stripe.Event,
+): Promise<void> {
+  const parsed = metadataToParsedExhibitor(eventSession.metadata ?? {});
+
+  const stripe = getStripe();
+  const session = await stripe.checkout.sessions.retrieve(eventSession.id, {
+    expand: ["total_details.breakdown.discounts", "discounts.promotion_code"],
+  });
+
+  const stripePaymentIntentId =
+    typeof session.payment_intent === "string"
+      ? session.payment_intent
+      : session.payment_intent?.id ?? null;
+  const vatAmountPence = session.total_details?.amount_tax ?? 0;
+  const grossPaidPence = session.amount_total ?? 0;
+  const promo = extractPromoDetails(session);
+  const paymentStatus: "paid" | "comp" =
+    session.payment_status === "no_payment_required" ? "comp" : "paid";
+
+  const supabase = createSupabaseServiceClient();
+
+  const result = await createExhibitorBookingFromCheckoutSession({
+    client: supabase,
+    parsed,
+    stripeCheckoutSessionId: session.id,
+    stripePaymentIntentId,
+    vatAmountPence,
+    paidAt: new Date((event.created ?? Math.floor(Date.now() / 1000)) * 1000),
+    promo,
+    paymentStatus,
+  });
+
+  // The cap is enforced at page render and at checkout creation, but a
+  // race (two checkouts open at stand 50) can still pay past it. Money
+  // has been taken so the booking is stored regardless; this makes the
+  // oversell loud so the organisers can refund one booking manually.
+  if (result.isNew) {
+    try {
+      const sold = await countCompletedExhibitorBookings(supabase);
+      if (sold > EXHIBITOR_STAND_CAP) {
+        console.error(
+          `[stripe-webhook] STAND CAP EXCEEDED: ${sold}/${EXHIBITOR_STAND_CAP} paid exhibitor bookings; latest`,
+          result.bookingReference,
+        );
+      }
+    } catch (err) {
+      console.error("[stripe-webhook] stand-cap check failed (continuing)", err);
+    }
+  }
+
+  if (result.isNew) {
+    await trySendExhibitorConfirmation(result, parsed, vatAmountPence, grossPaidPence, "new booking");
+    return;
+  }
+
+  if (result.confirmationEmailSentAt === null) {
+    console.info(
+      "[stripe-webhook] retrying exhibitor confirmation email",
+      session.id,
+      result.bookingId,
+    );
+    await trySendExhibitorConfirmation(result, parsed, vatAmountPence, grossPaidPence, "retry");
+    return;
+  }
+
+  console.info(
+    "[stripe-webhook] duplicate exhibitor webhook, email already sent",
+    session.id,
+    result.bookingId,
+    result.confirmationEmailSentAt,
+  );
+}
+
+async function trySendExhibitorConfirmation(
+  result: { bookingId: string; bookingReference: string },
+  parsed: Parameters<typeof sendExhibitorConfirmationEmail>[0]["parsed"],
+  vatAmountPence: number,
+  grossPaidPence: number,
+  pathLabel: "new booking" | "retry",
+): Promise<void> {
+  try {
+    await sendExhibitorConfirmationEmail({
+      bookingId: result.bookingId,
+      bookingReference: result.bookingReference,
+      parsed,
+      vatAmountPence,
+      grossPaidPence,
+    });
+  } catch (err) {
+    // Same policy as the delegate path: log, return 200, let Stripe's
+    // scheduled retries re-drive the email via the sent-flag branch.
+    console.error(
+      `[stripe-webhook] exhibitor confirmation email failed on ${pathLabel} (continuing)`,
+      result.bookingId,
+      err,
+    );
+  }
 }
 
 // Pull the (single) redeemed promotion code off a completed session.
