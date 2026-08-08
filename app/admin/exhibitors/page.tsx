@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { requireSuperAdmin } from "@/lib/admin/guard";
 import {
+  attendeeFallbacks,
   buildExhibitorListing,
   isLivePaidSession,
+  resolveExhibitorDisplayName,
 } from "@/lib/exhibitors/listing";
 import { hideExhibitorListingAction, showExhibitorListingAction } from "./actions";
 
@@ -30,17 +32,42 @@ interface ExhibitorRow {
     logo_path: string | null;
     website_url: string | null;
   } | null;
+  booking_attendees: ReadonlyArray<{
+    first_name: string;
+    surname: string;
+    company: string | null;
+    attendee_index: number;
+  }>;
+}
+
+// Same fallback chain as the public listing: signage -> booking company
+// -> attendee 1's company -> contact name. A paid exhibitor with no
+// requirements row and null company columns must still show up here
+// under a recognisable name.
+function displayName(r: ExhibitorRow): string {
+  const fallback = attendeeFallbacks(r.booking_attendees);
+  return (
+    resolveExhibitorDisplayName({
+      signageName: r.exhibitor_requirements?.signage_name ?? null,
+      companyName: r.company_name,
+      attendeeCompany: fallback.attendeeCompany,
+      contactName: r.company_contact_name ?? fallback.attendeeName,
+    }) || "Company TBC"
+  );
 }
 
 // One booking's public-listing state, mirroring the exact rule the
 // public site applies (lib/exhibitors/listing.ts).
 function listingStatus(r: ExhibitorRow): { label: string; listed: boolean; hideable: boolean } {
+  const fallback = attendeeFallbacks(r.booking_attendees);
   const wouldList =
     buildExhibitorListing([
       {
         bookingId: r.id,
         companyName: r.company_name,
         signageName: r.exhibitor_requirements?.signage_name ?? null,
+        attendeeCompany: fallback.attendeeCompany,
+        contactName: r.company_contact_name ?? fallback.attendeeName,
         websiteUrl: null,
         logoPath: null,
         paymentStatus: r.payment_status,
@@ -82,13 +109,37 @@ export default async function AdminExhibitorsPage() {
        exhibitor_requirements (
          needs_power, needs_table_chairs, signage_name, logo_path,
          website_url
-       )`,
+       ),
+       booking_attendees ( first_name, surname, company, attendee_index )`,
     )
     .eq("booking_type", "exhibitor")
     .order("created_at", { ascending: true });
   if (error) console.error("[admin/exhibitors] error:", error);
 
   const rows = ((data ?? []) as unknown as ExhibitorRow[]);
+
+  // A failed query must never masquerade as "no bookings yet": that hid
+  // a missing-column error (unapplied migration) behind the zero state
+  // while three paid exhibitors existed. Admin-only surface, so the raw
+  // message is shown.
+  if (error) {
+    return (
+      <div>
+        <h1 className="text-h1">Exhibitors</h1>
+        <div className="mt-8 rounded-2xl border-2 border-ignite-red bg-ignite-red/5 p-6">
+          <p className="text-body font-semibold text-ignite-red">
+            Could not load exhibitor bookings.
+          </p>
+          <p className="mt-2 font-mono text-small text-ignite-ink">{error.message}</p>
+          <p className="mt-3 text-small text-ignite-muted">
+            If this mentions a missing column (for example listing_hidden_at),
+            a migration in supabase/migrations has not been applied to this
+            environment yet.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -122,7 +173,7 @@ export default async function AdminExhibitorsPage() {
               <div key={r.id} className="rounded-2xl border border-ignite-line bg-ignite-white p-5">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
-                    <p className="text-h3">{r.company_name ?? req?.signage_name ?? "Company TBC"}</p>
+                    <p className="text-h3">{displayName(r)}</p>
                     <p className="mt-1 text-small text-ignite-muted">
                       {r.booking_reference ?? "PENDING"} · {r.company_contact_name ?? "contact TBC"} ·{" "}
                       {r.company_contact_email ?? "email TBC"} · {r.payment_status}

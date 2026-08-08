@@ -25,6 +25,7 @@ interface Row {
     first_name: string;
     surname: string;
     email: string;
+    company: string | null;
     dietary_requirement: string;
   }>;
 }
@@ -41,7 +42,7 @@ export async function GET(): Promise<Response> {
        company_contact_email, company_website, payment_status,
        booking_status, stripe_checkout_session_id, listing_hidden_at,
        exhibitor_requirements (needs_power, needs_table_chairs, signage_name, website_url),
-       booking_attendees (first_name, surname, email, dietary_requirement)`,
+       booking_attendees (first_name, surname, email, company, dietary_requirement)`,
     )
     .eq("booking_type", "exhibitor")
     .order("created_at", { ascending: true });
@@ -65,6 +66,8 @@ export async function GET(): Promise<Response> {
             bookingId: r.booking_reference ?? "",
             companyName: r.company_name,
             signageName: r.exhibitor_requirements?.signage_name ?? null,
+            attendeeCompany: r.booking_attendees[0]?.company ?? null,
+            contactName: r.company_contact_name,
             websiteUrl: null,
             logoPath: null,
             paymentStatus: r.payment_status,
