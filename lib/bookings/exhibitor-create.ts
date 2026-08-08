@@ -82,6 +82,14 @@ export async function createExhibitorBookingFromCheckoutSession(
       booking_reference: bookingReference,
       booking_type: "exhibitor",
       ticket_type: "exhibitor",
+      // Company-level fields (phase-1 schema): the admin exhibitors view
+      // reads these, and the public /exhibit listing uses company_name
+      // until a signage name is submitted.
+      company_name: intent.company,
+      company_contact_name: `${intent.contactFirstName} ${intent.contactSurname}`,
+      company_contact_email: contactEmail,
+      company_contact_mobile: intent.contactMobile,
+      company_website: intent.website.length > 0 ? intent.website : null,
       pricing_period: pricing.period,
       gross_amount_pence: pricing.grossIncVatPence,
       vat_amount_pence: vatAmountPence,

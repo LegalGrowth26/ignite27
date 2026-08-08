@@ -165,6 +165,11 @@ describe("createExhibitorBookingFromCheckoutSession", () => {
       pricing_period: "launch",
       payment_status: "paid",
       booking_status: "active",
+      company_name: "Analytical Engines Ltd",
+      company_contact_name: "Ada Lovelace",
+      company_contact_email: "ada@example.com",
+      company_contact_mobile: "07700900000",
+      company_website: "https://analyticalengines.example.com",
     });
 
     expect(state.attendeeInserts).toHaveLength(2);

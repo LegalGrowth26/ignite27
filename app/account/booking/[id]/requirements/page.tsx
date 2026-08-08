@@ -21,7 +21,6 @@ interface ExistingRequirements {
   signage_name: string;
   logo_path: string | null;
   website_url: string | null;
-  approved_at: string | null;
 }
 
 export default async function RequirementsPage({
@@ -45,7 +44,7 @@ export default async function RequirementsPage({
 
   const { data: existing } = await supabase
     .from("exhibitor_requirements")
-    .select("needs_power, needs_table_chairs, signage_name, logo_path, website_url, approved_at")
+    .select("needs_power, needs_table_chairs, signage_name, logo_path, website_url")
     .eq("booking_id", id)
     .maybeSingle();
   const req = existing as ExistingRequirements | null;
@@ -64,17 +63,10 @@ export default async function RequirementsPage({
             <SectionHeader
               eyebrow="Exhibitor stand"
               heading="Tell us what your stand needs."
-              lede="Power, furniture, and how your company should appear. Your logo and website only go on the public site after we approve them, nothing publishes automatically."
+              lede="Power, furniture, and how your company should appear. Your company name is already on the exhibitor list; your logo and website join it shortly after you save."
               as="h1"
             />
           </div>
-          {req?.approved_at ? (
-            <p className="mt-6 rounded-xl border border-ignite-line bg-ignite-cream p-3 text-small text-ignite-ink">
-              Your details are live on the public site. Saving changes here
-              updates our records; the public listing updates after we
-              re-approve.
-            </p>
-          ) : null}
           <div className="mt-8">
             <RequirementsForm
               bookingId={id}

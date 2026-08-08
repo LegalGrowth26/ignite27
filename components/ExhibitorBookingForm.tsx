@@ -231,7 +231,7 @@ export function ExhibitorBookingForm({
           errors={errors}
           required={false}
           type="url"
-          help="Shown alongside your logo once your stand details are approved."
+          help="Linked from your public exhibitor listing."
         />
       </fieldset>
 

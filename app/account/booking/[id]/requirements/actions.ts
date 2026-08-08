@@ -1,8 +1,15 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { fetchOwnBookingDetail, resolveOwnAppUserId } from "@/lib/account/queries";
+import {
+  pickStrandedLogo,
+  publishLogoCopy,
+  saveRequirementsRow,
+} from "@/lib/exhibitors/save-requirements";
 import { createSupabaseServerClient } from "@/lib/supabase/server-client";
+import { createSupabaseServiceClient } from "@/lib/supabase/service-client";
 
 const MAX_LOGO_BYTES = 2 * 1024 * 1024; // 2MB
 const ALLOWED_LOGO_TYPES: Record<string, string> = {
@@ -16,10 +23,21 @@ export interface RequirementsFormState {
   error: string | null;
 }
 
-// Upserts the exhibitor requirements for a booking the caller owns.
-// Everything runs on the USER-scoped client, so RLS enforces booking
-// ownership on the row and the storage upload; the approval columns
-// are unreachable from here (column-level grants in the migration).
+// Saves the exhibitor requirements for a booking the caller owns.
+//
+// Ownership and content writes run on the USER-scoped client (RLS +
+// column grants enforce booking ownership; the approval-era columns
+// stay unreachable). Two steps intentionally use the service client,
+// both AFTER ownership has been verified above:
+//   - publishing the logo copy into the public bucket (nothing else may
+//     write there),
+//   - nothing else.
+//
+// The row write is update-then-insert via saveRequirementsRow, NOT
+// upsert; see that module for why upsert breaks against the column
+// grants. If no new logo is chosen and none is recorded, a stranded
+// upload from the old bug is adopted from the private bucket so nobody
+// has to upload twice.
 export async function submitExhibitorRequirementsAction(
   bookingId: string,
   _prev: RequirementsFormState,
@@ -74,10 +92,28 @@ export async function submitExhibitorRequirementsAction(
       console.error("[requirements] logo upload failed:", uploadErr.message);
       return { error: "Logo upload failed. Try again or skip the logo for now." };
     }
+  } else {
+    // No new file chosen. If the row has no logo recorded, look for a
+    // stranded upload from the old save bug and adopt it. The listing
+    // uses the user client, so RLS keeps this to the caller's booking.
+    const { data: existing } = await supabase
+      .from("exhibitor_requirements")
+      .select("logo_path")
+      .eq("booking_id", bookingId)
+      .maybeSingle();
+    if (!(existing as { logo_path: string | null } | null)?.logo_path) {
+      const { data: files } = await supabase.storage
+        .from("exhibitor-logos")
+        .list(bookingId);
+      const stranded = pickStrandedLogo(files ?? []);
+      if (stranded) {
+        logoPath = `${bookingId}/${stranded}`;
+        console.info("[requirements] adopting stranded logo upload:", logoPath);
+      }
+    }
   }
 
-  const row: Record<string, unknown> = {
-    booking_id: bookingId,
+  const row: Parameters<typeof saveRequirementsRow>[2] = {
     needs_power: needsPower,
     needs_table_chairs: needsTableChairs,
     signage_name: signageName,
@@ -85,13 +121,27 @@ export async function submitExhibitorRequirementsAction(
   };
   if (logoPath) row.logo_path = logoPath;
 
-  const { error: upsertErr } = await supabase
-    .from("exhibitor_requirements")
-    .upsert(row, { onConflict: "booking_id" });
-  if (upsertErr) {
-    console.error("[requirements] upsert failed:", upsertErr.message);
+  const { error: saveErr } = await saveRequirementsRow(supabase, bookingId, row);
+  if (saveErr) {
+    console.error("[requirements] save failed:", saveErr);
     return { error: "Could not save your requirements. Try again." };
   }
 
+  // Publish the logo to the public bucket so the /exhibit listing (which
+  // never reads the private bucket) can show it. Ownership was verified
+  // above; the service client is needed because only it may write the
+  // public bucket. A copy failure does not fail the save: the listing
+  // simply shows the name until the next save retries the copy.
+  if (logoPath) {
+    const { error: copyErr } = await publishLogoCopy(
+      createSupabaseServiceClient(),
+      logoPath,
+    );
+    if (copyErr) {
+      console.error("[requirements] public logo copy failed:", copyErr);
+    }
+  }
+
+  revalidatePath("/exhibit");
   redirect(`/account/booking/${bookingId}?status=requirements_saved`);
 }
