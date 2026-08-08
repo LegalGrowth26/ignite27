@@ -34,8 +34,8 @@ const vipIntent: DelegateBookingIntent = {
 };
 
 // Pricing-v2 checkpoint dates for the launch / standard / late periods.
-// Launch:   Sat 1 Aug 2026 09:00 UK → Sun 9 Aug 2026 00:00 UK (launch week)
-// Standard: Sun 9 Aug 2026 00:00 UK → Fri 1 Jan 2027 00:00 UK
+// Launch:   Sat 1 Aug 2026 09:00 UK → Mon 17 Aug 2026 00:00 UK (extended launch window)
+// Standard: Mon 17 Aug 2026 00:00 UK → Fri 1 Jan 2027 00:00 UK
 // Late:     Fri 1 Jan 2027 00:00 UK → Mon 18 Jan 2027 17:00 UK
 const IN_LAUNCH    = uk("2026-08-02T10:00:00");
 const IN_STANDARD  = uk("2026-10-01T12:00:00");

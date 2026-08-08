@@ -39,21 +39,35 @@ describe("getActivePeriod — launch period", () => {
     expect(getActivePeriod(uk("2026-08-02T10:00:00"))).toBe("launch");
   });
 
-  it("returns launch late in the extended week (6 Aug 2026 12:00 UK)", () => {
-    // The original 72-hour window ended 4 Aug 09:00; the extension
-    // (organiser decision, July 2026) runs launch through 8 Aug.
+  it("returns launch late in the first extension window (6 Aug 2026 12:00 UK)", () => {
+    // The original 72-hour window ended 4 Aug 09:00; the first
+    // extension (July 2026) ran launch through 8 Aug, the second
+    // (Aug 2026) through 16 Aug.
     expect(getActivePeriod(uk("2026-08-06T12:00:00"))).toBe("launch");
   });
 
-  it("returns launch one second before it closes (8 Aug 2026 23:59:59 UK)", () => {
-    expect(getActivePeriod(uk("2026-08-08T23:59:59"))).toBe("launch");
+  it("returns launch on 9 Aug, the old boundary erased by the second extension", () => {
+    expect(getActivePeriod(uk("2026-08-09T00:00:00"))).toBe("launch");
+    expect(getActivePeriod(uk("2026-08-10T12:00:00"))).toBe("launch");
+  });
+
+  it("returns launch one second before it closes (16 Aug 2026 23:59:59 UK)", () => {
+    expect(getActivePeriod(uk("2026-08-16T23:59:59"))).toBe("launch");
   });
 });
 
 describe("getActivePeriod — standard period", () => {
   it("returns standard exactly at the launch → standard transition", () => {
-    // Half-open [opens, closes): 9 Aug 00:00 belongs to standard, not launch.
-    expect(getActivePeriod(uk("2026-08-09T00:00:00"))).toBe("standard");
+    // Half-open [opens, closes): 17 Aug 00:00 belongs to standard, not launch.
+    expect(getActivePeriod(uk("2026-08-17T00:00:00"))).toBe("standard");
+  });
+
+  it("BST offset at the boundary: 17 Aug 00:00 UK is 16 Aug 23:00 UTC", () => {
+    // August is BST (UTC+1). The UK-local boundary must sit exactly at
+    // 23:00 UTC the previous calendar day; a naive UTC reading of the
+    // boundary would flip periods an hour late.
+    expect(getActivePeriod(new Date("2026-08-16T22:59:59Z"))).toBe("launch");
+    expect(getActivePeriod(new Date("2026-08-16T23:00:00Z"))).toBe("standard");
   });
 
   it("returns standard in early autumn", () => {
