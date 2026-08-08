@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 
 // Client-side countdown driven by the pricing-v2 period boundaries.
 // Renders three states:
-//   - "pre" (before launch opens):        "Launch pricing: one week only from 1 August, 9am. Opens in HH:MM:SS."
-//   - "launch" (inside launch week):      "Launch pricing ends 8 August. Ends in HH:MM:SS."
+//   - "pre" (before launch opens):        "Launch pricing: from 1 August, 9am. Opens in HH:MM:SS."
+//   - "launch" (inside launch window):    "Launch pricing ends 16 August. Ends in HH:MM:SS."
 //   - "post" (standard / late / closed):  render nothing.
 //
 // Boundaries are passed in from the server as unix millis so the component
@@ -14,7 +14,7 @@ import { useEffect, useState } from "react";
 
 export interface LaunchCountdownProps {
   launchOpensMs: number; // unix millis, UK-local 1 Aug 2026 09:00
-  launchClosesMs: number; // unix millis, UK-local 9 Aug 2026 00:00 (end of launch week)
+  launchClosesMs: number; // unix millis, UK-local 17 Aug 2026 00:00 (end of the launch window)
   className?: string;
 }
 
@@ -69,7 +69,7 @@ export function LaunchCountdown({
         className={`inline-flex flex-col items-start gap-1.5 rounded-2xl border-2 border-ignite-red bg-ignite-black px-5 py-4 shadow-lg ${className}`}
       >
         <p className="text-eyebrow uppercase text-ignite-red">
-          Launch pricing: one week only from 1 August, 9am
+          Launch pricing: from 1 August, 9am
         </p>
         <p className="text-h3 font-semibold text-ignite-white">
           Opens in{" "}
@@ -90,7 +90,7 @@ export function LaunchCountdown({
         className={`inline-flex flex-col items-start gap-1.5 rounded-2xl bg-ignite-red px-5 py-4 shadow-lg ${className}`}
       >
         <p className="text-eyebrow uppercase text-ignite-white">
-          Launch pricing ends 8 August
+          Launch pricing ends 16 August
         </p>
         <p className="text-h3 font-semibold text-ignite-white">
           Ends in{" "}
