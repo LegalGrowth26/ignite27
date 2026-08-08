@@ -24,6 +24,8 @@ export interface ExhibitorListingSourceRow {
   bookingId: string;
   companyName: string | null; // bookings.company_name, captured at checkout
   signageName: string | null; // exhibitor_requirements.signage_name, curated later
+  attendeeCompany: string | null; // booking_attendees.company (attendee 1)
+  contactName: string | null; // bookings.company_contact_name or attendee 1's name
   websiteUrl: string | null;
   logoPath: string | null; // object path in the PRIVATE exhibitor-logos bucket
   paymentStatus: string;
@@ -43,10 +45,30 @@ export function isLivePaidSession(sessionId: string | null): boolean {
   return typeof sessionId === "string" && sessionId.startsWith("cs_live_");
 }
 
-// Pure listing rule, unit-tested in listing.test.ts. Prefer the
-// exhibitor's own signage name once submitted; fall back to the company
-// name captured at checkout, so a fresh booking lists on name alone
-// with no admin action and no requirements submission.
+// Display-name fallback chain, shared by the public listing, the admin
+// exhibitors page, and the CSV export. Order: the exhibitor's own
+// signage name (curated, submitted later) -> the company name captured
+// on the booking -> the company on the first attendee row (bookings
+// made before the webhook populated the company_* columns have it only
+// here) -> the booking contact's name as a last resort. A paid
+// exhibitor with no requirements row and a null company_name must still
+// resolve to SOMETHING.
+export function resolveExhibitorDisplayName(
+  r: Pick<
+    ExhibitorListingSourceRow,
+    "signageName" | "companyName" | "attendeeCompany" | "contactName"
+  >,
+): string {
+  return (
+    r.signageName?.trim() ||
+    r.companyName?.trim() ||
+    r.attendeeCompany?.trim() ||
+    r.contactName?.trim() ||
+    ""
+  );
+}
+
+// Pure listing rule, unit-tested in listing.test.ts.
 export function buildExhibitorListing(
   rows: readonly ExhibitorListingSourceRow[],
 ): ExhibitorListingEntry[] {
@@ -60,7 +82,7 @@ export function buildExhibitorListing(
     )
     .map((r) => ({
       bookingId: r.bookingId,
-      displayName: (r.signageName?.trim() || r.companyName?.trim()) ?? "",
+      displayName: resolveExhibitorDisplayName(r),
       websiteUrl: r.websiteUrl,
       logoPath: r.logoPath,
     }))
@@ -84,6 +106,7 @@ export function publicLogoUrl(logoPath: string): string {
 interface RawBookingRow {
   id: string;
   company_name: string | null;
+  company_contact_name: string | null;
   company_website: string | null;
   payment_status: string;
   booking_status: string;
@@ -94,6 +117,27 @@ interface RawBookingRow {
     logo_path: string | null;
     website_url: string | null;
   } | null;
+  booking_attendees: ReadonlyArray<{
+    first_name: string;
+    surname: string;
+    company: string | null;
+    attendee_index: number;
+  }>;
+}
+
+// First attendee (by index) carries the company/name fallbacks for
+// bookings that predate the company_* columns being populated.
+export function attendeeFallbacks(
+  attendees: RawBookingRow["booking_attendees"],
+): { attendeeCompany: string | null; attendeeName: string | null } {
+  const first = [...(attendees ?? [])].sort(
+    (a, b) => a.attendee_index - b.attendee_index,
+  )[0];
+  if (!first) return { attendeeCompany: null, attendeeName: null };
+  return {
+    attendeeCompany: first.company,
+    attendeeName: `${first.first_name} ${first.surname}`.trim() || null,
+  };
 }
 
 // Server-side fetch for the public listing. Runs on the SERVICE client
@@ -107,9 +151,11 @@ export async function fetchExhibitorListing(
   const { data, error } = await client
     .from("bookings")
     .select(
-      `id, company_name, company_website, payment_status, booking_status,
+      `id, company_name, company_contact_name, company_website,
+       payment_status, booking_status,
        stripe_checkout_session_id, listing_hidden_at,
-       exhibitor_requirements ( signage_name, logo_path, website_url )`,
+       exhibitor_requirements ( signage_name, logo_path, website_url ),
+       booking_attendees ( first_name, surname, company, attendee_index )`,
     )
     .eq("booking_type", "exhibitor");
   if (error) {
@@ -117,17 +163,22 @@ export async function fetchExhibitorListing(
   }
 
   const rows = ((data ?? []) as unknown as RawBookingRow[]).map(
-    (r): ExhibitorListingSourceRow => ({
-      bookingId: r.id,
-      companyName: r.company_name,
-      signageName: r.exhibitor_requirements?.signage_name ?? null,
-      websiteUrl: r.exhibitor_requirements?.website_url ?? r.company_website,
-      logoPath: r.exhibitor_requirements?.logo_path ?? null,
-      paymentStatus: r.payment_status,
-      bookingStatus: r.booking_status,
-      stripeCheckoutSessionId: r.stripe_checkout_session_id,
-      listingHiddenAt: r.listing_hidden_at,
-    }),
+    (r): ExhibitorListingSourceRow => {
+      const fallback = attendeeFallbacks(r.booking_attendees);
+      return {
+        bookingId: r.id,
+        companyName: r.company_name,
+        signageName: r.exhibitor_requirements?.signage_name ?? null,
+        attendeeCompany: fallback.attendeeCompany,
+        contactName: r.company_contact_name ?? fallback.attendeeName,
+        websiteUrl: r.exhibitor_requirements?.website_url ?? r.company_website,
+        logoPath: r.exhibitor_requirements?.logo_path ?? null,
+        paymentStatus: r.payment_status,
+        bookingStatus: r.booking_status,
+        stripeCheckoutSessionId: r.stripe_checkout_session_id,
+        listingHiddenAt: r.listing_hidden_at,
+      };
+    },
   );
 
   return buildExhibitorListing(rows).map((e) => ({

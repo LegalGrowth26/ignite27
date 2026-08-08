@@ -10,6 +10,8 @@ function row(overrides: Partial<ExhibitorListingSourceRow>): ExhibitorListingSou
     bookingId: "b-1",
     companyName: "Analytical Engines Ltd",
     signageName: null,
+    attendeeCompany: null,
+    contactName: null,
     websiteUrl: null,
     logoPath: null,
     paymentStatus: "paid",
@@ -81,9 +83,35 @@ describe("buildExhibitorListing", () => {
     expect(entries[0]!.displayName).toBe("Analytical Engines");
   });
 
-  it("never lists a row with no usable name", () => {
+  // Regression: three real paid live bookings predate the webhook
+  // populating company_name and have no requirements row. They must
+  // still list via the attendee/contact fallbacks, not vanish.
+  it("paid with NULL company_name and no requirements: falls back to attendee 1's company", () => {
+    const entries = buildExhibitorListing([
+      row({
+        companyName: null,
+        signageName: null,
+        attendeeCompany: "Fallback Widgets Ltd",
+        contactName: "Ada Lovelace",
+      }),
+    ]);
+    expect(entries).toHaveLength(1);
+    expect(entries[0]!.displayName).toBe("Fallback Widgets Ltd");
+  });
+
+  it("falls back to the booking contact name when no company exists anywhere", () => {
+    const entries = buildExhibitorListing([
+      row({ companyName: null, attendeeCompany: null, contactName: "Ada Lovelace" }),
+    ]);
+    expect(entries).toHaveLength(1);
+    expect(entries[0]!.displayName).toBe("Ada Lovelace");
+  });
+
+  it("never lists a row with no usable name at all", () => {
     expect(
-      buildExhibitorListing([row({ companyName: null, signageName: "  " })]),
+      buildExhibitorListing([
+        row({ companyName: null, signageName: "  ", attendeeCompany: null, contactName: null }),
+      ]),
     ).toHaveLength(0);
   });
 
