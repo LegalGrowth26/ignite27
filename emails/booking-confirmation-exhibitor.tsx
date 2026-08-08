@@ -173,8 +173,8 @@ export function ExhibitorConfirmationEmail(props: ExhibitorConfirmationProps) {
             <Link style={LINK} href={requirementsUrl}>
               stand requirements form
             </Link>{" "}
-            (power, table, signage name, logo). Your logo appears on the site once we
-            approve it.
+            (power, table, signage name, logo). Your company name is already on the
+            exhibitor list; your logo and website join it shortly after you save.
           </Text>
 
           <Text style={SMALL}>

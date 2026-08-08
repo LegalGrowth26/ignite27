@@ -95,8 +95,8 @@ export function RequirementsForm({
           className="mt-1 w-full text-small"
         />
         <p className={HELP}>
-          PNG, JPG, WebP, or SVG, up to 2MB. Only shown on the public site
-          after we approve it.
+          PNG, JPG, WebP, or SVG, up to 2MB. Appears on your public listing
+          shortly after you save.
         </p>
       </div>
 
@@ -112,7 +112,7 @@ export function RequirementsForm({
           placeholder="https://"
           className={INPUT}
         />
-        <p className={HELP}>Linked from your public listing once approved.</p>
+        <p className={HELP}>Linked from your public listing.</p>
       </div>
 
       {state.error ? (

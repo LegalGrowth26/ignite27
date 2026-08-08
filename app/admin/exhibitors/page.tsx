@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import { requireSuperAdmin } from "@/lib/admin/guard";
-import { approveExhibitorAction, revokeExhibitorApprovalAction } from "./actions";
+import {
+  buildExhibitorListing,
+  isLivePaidSession,
+} from "@/lib/exhibitors/listing";
+import { hideExhibitorListingAction, showExhibitorListingAction } from "./actions";
 
 export const metadata: Metadata = {
   title: "Admin exhibitors · IGNITE! 27",
@@ -15,6 +19,9 @@ interface ExhibitorRow {
   company_contact_email: string | null;
   company_website: string | null;
   payment_status: string;
+  booking_status: string;
+  stripe_checkout_session_id: string | null;
+  listing_hidden_at: string | null;
   created_at: string;
   exhibitor_requirements: {
     needs_power: boolean;
@@ -22,8 +29,44 @@ interface ExhibitorRow {
     signage_name: string;
     logo_path: string | null;
     website_url: string | null;
-    approved_at: string | null;
   } | null;
+}
+
+// One booking's public-listing state, mirroring the exact rule the
+// public site applies (lib/exhibitors/listing.ts).
+function listingStatus(r: ExhibitorRow): { label: string; listed: boolean; hideable: boolean } {
+  const wouldList =
+    buildExhibitorListing([
+      {
+        bookingId: r.id,
+        companyName: r.company_name,
+        signageName: r.exhibitor_requirements?.signage_name ?? null,
+        websiteUrl: null,
+        logoPath: null,
+        paymentStatus: r.payment_status,
+        bookingStatus: r.booking_status,
+        stripeCheckoutSessionId: r.stripe_checkout_session_id,
+        listingHiddenAt: null, // evaluate the underlying eligibility first
+      },
+    ]).length > 0;
+
+  if (!wouldList) {
+    if (!isLivePaidSession(r.stripe_checkout_session_id)) {
+      return { label: "Not listed (test-mode or no live payment)", listed: false, hideable: false };
+    }
+    if (r.payment_status !== "paid") {
+      return { label: `Not listed (${r.payment_status})`, listed: false, hideable: false };
+    }
+    return { label: "Not listed", listed: false, hideable: false };
+  }
+  if (r.listing_hidden_at) {
+    return {
+      label: `Hidden by admin ${new Date(r.listing_hidden_at).toLocaleDateString("en-GB")}`,
+      listed: false,
+      hideable: true,
+    };
+  }
+  return { label: "Listed on /exhibit", listed: true, hideable: true };
 }
 
 export default async function AdminExhibitorsPage() {
@@ -33,10 +76,12 @@ export default async function AdminExhibitorsPage() {
     .from("bookings")
     .select(
       `id, booking_reference, company_name, company_contact_name,
-       company_contact_email, company_website, payment_status, created_at,
+       company_contact_email, company_website, payment_status,
+       booking_status, stripe_checkout_session_id, listing_hidden_at,
+       created_at,
        exhibitor_requirements (
          needs_power, needs_table_chairs, signage_name, logo_path,
-         website_url, approved_at
+         website_url
        )`,
     )
     .eq("booking_type", "exhibitor")
@@ -57,6 +102,13 @@ export default async function AdminExhibitorsPage() {
         </a>
       </div>
 
+      <p className="mt-3 max-w-3xl text-small text-ignite-muted">
+        Paid live bookings list themselves on /exhibit automatically, name
+        first, logo and website as soon as the exhibitor saves them. Use
+        Hide to pull a listing down fast; nothing is deleted and every
+        hide/show is audit-logged.
+      </p>
+
       {rows.length === 0 ? (
         <p className="mt-8 rounded-2xl border border-ignite-line bg-ignite-white p-6 text-body text-ignite-muted">
           No exhibitor bookings yet.
@@ -65,6 +117,7 @@ export default async function AdminExhibitorsPage() {
         <div className="mt-6 grid gap-4">
           {rows.map((r) => {
             const req = r.exhibitor_requirements;
+            const status = listingStatus(r);
             return (
               <div key={r.id} className="rounded-2xl border border-ignite-line bg-ignite-white p-5">
                 <div className="flex flex-wrap items-start justify-between gap-4">
@@ -75,61 +128,64 @@ export default async function AdminExhibitorsPage() {
                       {r.company_contact_email ?? "email TBC"} · {r.payment_status}
                     </p>
                   </div>
-                  {req ? (
-                    req.approved_at ? (
-                      <form action={revokeExhibitorApprovalAction.bind(null, r.id)}>
+                  {status.hideable ? (
+                    status.listed ? (
+                      <form action={hideExhibitorListingAction.bind(null, r.id)}>
                         <button
                           type="submit"
                           className="rounded-full border border-ignite-line px-4 py-2 text-small font-semibold text-ignite-ink hover:border-ignite-red"
                         >
-                          Remove from public site
+                          Hide from /exhibit
                         </button>
                       </form>
                     ) : (
-                      <form action={approveExhibitorAction.bind(null, r.id)}>
+                      <form action={showExhibitorListingAction.bind(null, r.id)}>
                         <button
                           type="submit"
                           className="rounded-full bg-ignite-red px-4 py-2 text-small font-semibold text-ignite-white hover:bg-ignite-red/90"
                         >
-                          Approve for public site
+                          Show on /exhibit
                         </button>
                       </form>
                     )
                   ) : null}
                 </div>
 
-                {req ? (
-                  <dl className="mt-4 grid gap-3 text-small sm:grid-cols-2 lg:grid-cols-4">
-                    <div>
-                      <dt className="text-eyebrow uppercase text-ignite-muted">Power</dt>
-                      <dd>{req.needs_power ? "Yes" : "No"}</dd>
+                <dl className="mt-4 grid gap-3 text-small sm:grid-cols-2 lg:grid-cols-4">
+                  <div>
+                    <dt className="text-eyebrow uppercase text-ignite-muted">Public listing</dt>
+                    <dd>{status.label}</dd>
+                  </div>
+                  {req ? (
+                    <>
+                      <div>
+                        <dt className="text-eyebrow uppercase text-ignite-muted">Power</dt>
+                        <dd>{req.needs_power ? "Yes" : "No"}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-eyebrow uppercase text-ignite-muted">Table + 2 chairs</dt>
+                        <dd>{req.needs_table_chairs ? "Yes" : "No"}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-eyebrow uppercase text-ignite-muted">Signage name</dt>
+                        <dd>{req.signage_name}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-eyebrow uppercase text-ignite-muted">Logo</dt>
+                        <dd>{req.logo_path ? "Uploaded" : "None"}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-eyebrow uppercase text-ignite-muted">Website</dt>
+                        <dd className="break-all">{req.website_url ?? r.company_website ?? "None"}</dd>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="sm:col-span-2 lg:col-span-3">
+                      <dt className="text-eyebrow uppercase text-ignite-muted">Requirements</dt>
+                      <dd className="text-ignite-muted">Form not yet submitted. Listing shows the checkout company name.</dd>
                     </div>
-                    <div>
-                      <dt className="text-eyebrow uppercase text-ignite-muted">Table + 2 chairs</dt>
-                      <dd>{req.needs_table_chairs ? "Yes" : "No"}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-eyebrow uppercase text-ignite-muted">Signage name</dt>
-                      <dd>{req.signage_name}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-eyebrow uppercase text-ignite-muted">Public status</dt>
-                      <dd>{req.approved_at ? `Approved ${new Date(req.approved_at).toLocaleDateString("en-GB")}` : "Not approved"}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-eyebrow uppercase text-ignite-muted">Logo</dt>
-                      <dd>{req.logo_path ? "Uploaded" : "None"}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-eyebrow uppercase text-ignite-muted">Website</dt>
-                      <dd className="break-all">{req.website_url ?? r.company_website ?? "None"}</dd>
-                    </div>
-                  </dl>
-                ) : (
-                  <p className="mt-4 text-small text-ignite-muted">
-                    Requirements form not yet submitted.
-                  </p>
-                )}
+                  )}
+                </dl>
               </div>
             );
           })}

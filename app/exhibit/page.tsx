@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { Button } from "@/components/Button";
 import { Container } from "@/components/Container";
-import { ConfirmedExhibitors } from "@/components/ConfirmedExhibitors";
+import { ExhibitorListing } from "@/components/ExhibitorListing";
 import { HowBookingWorks, type BookingStep } from "@/components/HowBookingWorks";
 import { PhotoBand } from "@/components/PhotoBand";
 import { PriceCard } from "@/components/PriceCard";
@@ -96,7 +96,7 @@ export default async function ExhibitPage() {
       <PricingSection pricing={pricing} standsRemaining={standsRemaining} />
       <WhyExhibit />
       <ExhibitorResults />
-      <ConfirmedExhibitors />
+      <ExhibitorListing />
       <PhotoBand photos={EXHIBIT_ATMOSPHERE} tone="light" />
       <WhatsIncluded />
       <PartnerPackage />
