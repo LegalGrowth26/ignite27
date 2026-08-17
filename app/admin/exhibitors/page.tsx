@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { requireSuperAdmin } from "@/lib/admin/guard";
+import { isTbcAttendeeName } from "@/lib/bookings/exhibitor-intent";
 import {
   attendeeFallbacks,
   buildExhibitorListing,
@@ -206,6 +207,19 @@ export default async function AdminExhibitorsPage() {
                   <div>
                     <dt className="text-eyebrow uppercase text-ignite-muted">Public listing</dt>
                     <dd>{status.label}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-eyebrow uppercase text-ignite-muted">Attendees</dt>
+                    <dd>
+                      {[...r.booking_attendees]
+                        .sort((a, b) => a.attendee_index - b.attendee_index)
+                        .map((a) =>
+                          isTbcAttendeeName(a.first_name, a.surname)
+                            ? "TBC (chase before badge printing)"
+                            : `${a.first_name} ${a.surname}`,
+                        )
+                        .join(" · ") || "None recorded"}
+                    </dd>
                   </div>
                   {req ? (
                     <>

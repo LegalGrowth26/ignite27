@@ -6,6 +6,7 @@ import { Container } from "@/components/Container";
 import { Section } from "@/components/Section";
 import { SectionHeader } from "@/components/SectionHeader";
 import { fetchOwnBookingDetail, resolveOwnAppUserId } from "@/lib/account/queries";
+import { isTbcAttendeeName } from "@/lib/bookings/exhibitor-intent";
 import type { DietaryRequirement } from "@/lib/bookings/intent";
 import { formatPoundsFromPence } from "@/lib/pricing";
 import { createSupabaseServerClient } from "@/lib/supabase/server-client";
@@ -48,6 +49,7 @@ interface BookingDetail {
     lunch_entitlement: boolean;
     badge_qr_url: string | null;
     is_primary_contact: boolean;
+    attendee_index: number;
   }>;
 }
 
@@ -180,7 +182,49 @@ export default async function BookingDetailPage({
             <DetailRow label="Booking status" value={booking.booking_status} />
           </dl>
 
-          {primary ? (
+          {booking.booking_type === "exhibitor" ? (
+            // Exhibitor bookings show BOTH attendee places. A slot booked
+            // as "Name TBC" renders the confirm-later state; the customer
+            // can send the name via a correction request until self-edit
+            // ships.
+            <div className="mt-6 grid gap-4">
+              {[...booking.booking_attendees]
+                .sort((a, b) => a.attendee_index - b.attendee_index)
+                .map((a) => (
+                  <div
+                    key={a.attendee_index}
+                    className="rounded-2xl border border-ignite-line bg-ignite-white p-6"
+                  >
+                    <h2 className="text-h3">Attendee {a.attendee_index}</h2>
+                    {isTbcAttendeeName(a.first_name, a.surname) ? (
+                      <p className="mt-3 text-body text-ignite-muted">
+                        To be confirmed. Let us know nearer the event. Use
+                        &quot;Request a correction&quot; below to send us their
+                        name and dietary needs, and we&apos;ll add them to the
+                        booking and their badge.
+                      </p>
+                    ) : (
+                      <dl className="mt-4 grid gap-4 sm:grid-cols-2">
+                        <DetailRow label="Name" value={`${a.first_name} ${a.surname}`} />
+                        <DetailRow label="Email" value={a.email} />
+                        {a.mobile ? <DetailRow label="Mobile" value={a.mobile} /> : null}
+                        {a.job_title ? (
+                          <DetailRow label="Job title" value={a.job_title} />
+                        ) : null}
+                        <DetailRow
+                          label="Dietary"
+                          value={
+                            a.dietary_requirement === "other" && a.dietary_other
+                              ? `Other: ${a.dietary_other}`
+                              : DIETARY_LABELS[a.dietary_requirement]
+                          }
+                        />
+                      </dl>
+                    )}
+                  </div>
+                ))}
+            </div>
+          ) : primary ? (
             <div className="mt-6 rounded-2xl border border-ignite-line bg-ignite-white p-6">
               <h2 className="text-h3">Attendee</h2>
               <dl className="mt-4 grid gap-4 sm:grid-cols-2">

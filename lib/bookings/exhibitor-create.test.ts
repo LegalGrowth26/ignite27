@@ -105,6 +105,7 @@ function parsedFixture(overrides?: {
       contactMobile: "07700900000",
       attendees: [
         {
+          tbc: false,
           firstName: "Ada",
           surname: "Lovelace",
           email: a1Email,
@@ -114,6 +115,7 @@ function parsedFixture(overrides?: {
           dietaryOther: "",
         },
         {
+          tbc: false,
           firstName: "Charles",
           surname: "Babbage",
           email: "charles@example.com",
@@ -227,6 +229,58 @@ describe("createExhibitorBookingFromCheckoutSession", () => {
     expect(result.confirmationEmailSentAt).toBe("2026-08-05T12:05:00.000Z");
     expect(state.bookingInsert).toBeUndefined();
     expect(state.attendeeInserts).toBeUndefined();
+  });
+
+  it("TBC attendee: stored as name TBC under the contact's email, no dietary, lunch kept", async () => {
+    const state: StubState = {};
+    const parsed = parsedFixture();
+    parsed.intent.attendees[1] = {
+      tbc: true,
+      firstName: "TBC",
+      surname: "",
+      email: "",
+      mobile: "",
+      jobTitle: "",
+      dietaryRequirement: "none",
+      dietaryOther: "",
+    };
+    await createExhibitorBookingFromCheckoutSession(baseInput(state, parsed));
+
+    const [, a2] = state.attendeeInserts!;
+    expect(a2).toMatchObject({
+      first_name: "TBC",
+      surname: "",
+      // email column is NOT NULL; the contact's address is the chase route.
+      email: "ada@example.com",
+      mobile: null,
+      job_title: null,
+      dietary_requirement: "none",
+      dietary_other: null,
+      lunch_entitlement: true, // the lunch belongs to the booking
+      user_id: null,
+      is_primary_contact: false,
+      attendee_index: 2,
+    });
+  });
+
+  it("a TBC attendee never captures the primary-contact flag via the shared email", async () => {
+    // TBC rows carry the contact's email by necessity; that must not
+    // make them the primary contact or link the contact's app user.
+    const state: StubState = {};
+    const parsed = parsedFixture();
+    parsed.intent.attendees[0] = {
+      tbc: true,
+      firstName: "TBC",
+      surname: "",
+      email: "",
+      mobile: "",
+      jobTitle: "",
+      dietaryRequirement: "none",
+      dietaryOther: "",
+    };
+    await createExhibitorBookingFromCheckoutSession(baseInput(state, parsed));
+    const [a1] = state.attendeeInserts!;
+    expect(a1).toMatchObject({ first_name: "TBC", user_id: null, is_primary_contact: false });
   });
 
   it("stores comp payment status and promo details when passed", async () => {

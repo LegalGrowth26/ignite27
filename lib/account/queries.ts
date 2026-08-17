@@ -41,7 +41,8 @@ const BOOKING_DETAIL_COLUMNS = `id, booking_reference, booking_type, ticket_type
        payment_status, booking_status, created_at, confirmation_email_sent_at,
        booking_attendees (
          first_name, surname, email, mobile, company, job_title,
-         dietary_requirement, dietary_other, lunch_entitlement, badge_qr_url, is_primary_contact
+         dietary_requirement, dietary_other, lunch_entitlement, badge_qr_url,
+         is_primary_contact, attendee_index
        )`;
 
 export async function fetchOwnBookingDetail(

@@ -128,6 +128,11 @@ export function ExhibitorBookingForm({
   standsRemaining,
 }: ExhibitorBookingFormProps) {
   const [sameAsContact, setSameAsContact] = useState(true);
+  // "Name TBC": exhibitors often don't know who is coming at booking
+  // time. A ticked slot books the place with the name to be confirmed
+  // later; no identity or dietary fields render for it.
+  const [a1Tbc, setA1Tbc] = useState(false);
+  const [a2Tbc, setA2Tbc] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [marketingOptIn, setMarketingOptIn] = useState(false);
   const [errors, setErrors] = useState<ExhibitorIntentFieldError[]>([]);
@@ -136,8 +141,10 @@ export function ExhibitorBookingForm({
 
   const priceLabel = formatExVatWithGross(standExVatPence, standIncVatPence);
 
-  function attendeeFromForm(fd: FormData, prefix: "attendee1" | "attendee2") {
+  function attendeeFromForm(fd: FormData, prefix: "attendee1" | "attendee2", tbc: boolean) {
+    if (tbc) return { tbc: true };
     return {
+      tbc: false,
       firstName: fd.get(`${prefix}.firstName`),
       surname: fd.get(`${prefix}.surname`),
       email: fd.get(`${prefix}.email`),
@@ -153,8 +160,8 @@ export function ExhibitorBookingForm({
     if (isSubmitting || isPending) return;
 
     const fd = new FormData(event.currentTarget);
-    const attendee1 = attendeeFromForm(fd, "attendee1");
-    if (sameAsContact) {
+    const attendee1 = attendeeFromForm(fd, "attendee1", a1Tbc);
+    if (!a1Tbc && sameAsContact) {
       // Attendee 1's identity fields mirror the main contact; their job
       // title and dietary are still their own (collected above).
       attendee1.firstName = fd.get("contactFirstName");
@@ -171,7 +178,7 @@ export function ExhibitorBookingForm({
       contactEmail: fd.get("contactEmail"),
       contactMobile: fd.get("contactMobile"),
       attendee1,
-      attendee2: attendeeFromForm(fd, "attendee2"),
+      attendee2: attendeeFromForm(fd, "attendee2", a2Tbc),
       marketingOptIn: fd.get("marketingOptIn") === "on",
       termsAccepted: fd.get("termsAccepted") === "on",
     };
@@ -193,11 +200,14 @@ export function ExhibitorBookingForm({
   // When attendee-1 identity fields are hidden (same as contact), their
   // validation errors land on fields that are not rendered; surface them
   // against the contact block instead so nothing fails invisibly.
-  const hiddenAttendee1Error = sameAsContact
+  const hiddenAttendee1Error = !a1Tbc && sameAsContact
     ? ["attendee1.firstName", "attendee1.surname", "attendee1.email", "attendee1.mobile"]
         .map((f) => errorFor(errors, f))
         .find(Boolean)
     : undefined;
+
+  const tbcNote =
+    "Their place is booked and lunch is included. Tell us who is coming nearer the event and we'll add their name and dietary needs.";
 
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-8">
@@ -259,50 +269,82 @@ export function ExhibitorBookingForm({
         <label className="flex items-start gap-3 cursor-pointer">
           <input
             type="checkbox"
-            checked={sameAsContact}
-            onChange={(e) => setSameAsContact(e.target.checked)}
+            checked={a1Tbc}
+            onChange={(e) => setA1Tbc(e.target.checked)}
             className="mt-1 h-4 w-4"
           />
           <span className="text-small text-ignite-ink">
-            The main contact is attendee 1.
+            Name TBC, we&apos;ll confirm later.
           </span>
         </label>
-        {!sameAsContact ? (
-          <div className="grid gap-4 sm:grid-cols-2">
-            <TextField id="a1-first" name="attendee1.firstName" label="First name" errors={errors} />
-            <TextField id="a1-surname" name="attendee1.surname" label="Surname" errors={errors} />
-            <TextField id="a1-email" name="attendee1.email" label="Email" errors={errors} type="email" />
-            <TextField id="a1-mobile" name="attendee1.mobile" label="Mobile" errors={errors} required={false} type="tel" />
-          </div>
-        ) : null}
-        <div className="grid gap-4 sm:grid-cols-2">
-          <TextField
-            id="a1-job"
-            name="attendee1.jobTitle"
-            label="Job title"
-            errors={errors}
-            help="Goes on their badge."
-          />
-          <DietaryFields prefix="attendee1" errors={errors} />
-        </div>
+        {a1Tbc ? (
+          <p className="text-small text-ignite-muted">{tbcNote}</p>
+        ) : (
+          <>
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={sameAsContact}
+                onChange={(e) => setSameAsContact(e.target.checked)}
+                className="mt-1 h-4 w-4"
+              />
+              <span className="text-small text-ignite-ink">
+                The main contact is attendee 1.
+              </span>
+            </label>
+            {!sameAsContact ? (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <TextField id="a1-first" name="attendee1.firstName" label="First name" errors={errors} />
+                <TextField id="a1-surname" name="attendee1.surname" label="Surname" errors={errors} />
+                <TextField id="a1-email" name="attendee1.email" label="Email" errors={errors} type="email" />
+                <TextField id="a1-mobile" name="attendee1.mobile" label="Mobile" errors={errors} required={false} type="tel" />
+              </div>
+            ) : null}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <TextField
+                id="a1-job"
+                name="attendee1.jobTitle"
+                label="Job title"
+                errors={errors}
+                help="Goes on their badge."
+              />
+              <DietaryFields prefix="attendee1" errors={errors} />
+            </div>
+          </>
+        )}
       </fieldset>
 
       <fieldset className="grid gap-4 rounded-2xl border border-ignite-line bg-ignite-cream p-5">
         <legend className="text-h3 px-1">Attendee 2</legend>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <TextField id="a2-first" name="attendee2.firstName" label="First name" errors={errors} />
-          <TextField id="a2-surname" name="attendee2.surname" label="Surname" errors={errors} />
-          <TextField id="a2-email" name="attendee2.email" label="Email" errors={errors} type="email" />
-          <TextField id="a2-mobile" name="attendee2.mobile" label="Mobile" errors={errors} required={false} type="tel" />
-          <TextField
-            id="a2-job"
-            name="attendee2.jobTitle"
-            label="Job title"
-            errors={errors}
-            help="Goes on their badge."
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={a2Tbc}
+            onChange={(e) => setA2Tbc(e.target.checked)}
+            className="mt-1 h-4 w-4"
           />
-          <DietaryFields prefix="attendee2" errors={errors} />
-        </div>
+          <span className="text-small text-ignite-ink">
+            Name TBC, we&apos;ll confirm later.
+          </span>
+        </label>
+        {a2Tbc ? (
+          <p className="text-small text-ignite-muted">{tbcNote}</p>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <TextField id="a2-first" name="attendee2.firstName" label="First name" errors={errors} />
+            <TextField id="a2-surname" name="attendee2.surname" label="Surname" errors={errors} />
+            <TextField id="a2-email" name="attendee2.email" label="Email" errors={errors} type="email" />
+            <TextField id="a2-mobile" name="attendee2.mobile" label="Mobile" errors={errors} required={false} type="tel" />
+            <TextField
+              id="a2-job"
+              name="attendee2.jobTitle"
+              label="Job title"
+              errors={errors}
+              help="Goes on their badge."
+            />
+            <DietaryFields prefix="attendee2" errors={errors} />
+          </div>
+        )}
       </fieldset>
 
       <label className="flex items-start gap-3">
