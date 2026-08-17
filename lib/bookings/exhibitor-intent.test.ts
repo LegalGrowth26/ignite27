@@ -8,6 +8,7 @@ import {
 } from "./exhibitor-intent";
 
 const validAttendee1 = {
+  tbc: false,
   firstName: "Ada",
   surname: "Lovelace",
   email: "ada@example.com",
@@ -18,6 +19,7 @@ const validAttendee1 = {
 };
 
 const validAttendee2 = {
+  tbc: false,
   firstName: "Charles",
   surname: "Babbage",
   email: "charles@example.com",
@@ -153,6 +155,63 @@ describe("validateExhibitorBookingIntent", () => {
     expect(result.errors[0]?.field).toBe("form");
   });
 
+  // "Name TBC, we'll confirm later": the slot validates with no fields
+  // at all, and anything posted for it is dropped (the fields do not
+  // render, so values here are tampering).
+  it("TBC attendee: no fields required, booked as the literal name TBC", () => {
+    const result = validateExhibitorBookingIntent({
+      ...validInput,
+      attendee2: { tbc: true },
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.intent.attendees[1]).toEqual({
+      tbc: true,
+      firstName: "TBC",
+      surname: "",
+      email: "",
+      mobile: "",
+      jobTitle: "",
+      dietaryRequirement: "none",
+      dietaryOther: "",
+    });
+  });
+
+  it("TBC attendee: posted values are stripped, never validated", () => {
+    const result = validateExhibitorBookingIntent({
+      ...validInput,
+      attendee1: {
+        tbc: true,
+        firstName: "x".repeat(500),
+        email: "not-an-email",
+        dietaryRequirement: "platinum-banquet",
+      },
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.intent.attendees[0].firstName).toBe("TBC");
+    expect(result.intent.attendees[0].dietaryRequirement).toBe("none");
+  });
+
+  it("both attendees can be TBC; the main contact stays required", () => {
+    const bothTbc = validateExhibitorBookingIntent({
+      ...validInput,
+      attendee1: { tbc: true },
+      attendee2: { tbc: true },
+    });
+    expect(bothTbc.ok).toBe(true);
+
+    const noContact = validateExhibitorBookingIntent({
+      ...validInput,
+      contactEmail: "",
+      attendee1: { tbc: true },
+      attendee2: { tbc: true },
+    });
+    expect(noContact.ok).toBe(false);
+    if (noContact.ok) return;
+    expect(noContact.errors.some((e) => e.field === "contactEmail")).toBe(true);
+  });
+
   it("tolerates missing attendee objects with field errors, not a crash", () => {
     const result = validateExhibitorBookingIntent({
       ...validInput,
@@ -202,6 +261,48 @@ describe("exhibitor metadata round-trip", () => {
     expect(parsed.intent.attendees[0]).toEqual(result.intent.attendees[0]);
     expect(parsed.intent.attendees[1]).toEqual(result.intent.attendees[1]);
     expect(parsed.pricing).toEqual(pricing);
+  });
+
+  it("round-trips a TBC attendee through metadata", () => {
+    const result = validateExhibitorBookingIntent({
+      ...validInput,
+      attendee2: { tbc: true },
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    const metadata = exhibitorIntentToMetadata(
+      result.intent,
+      pricing,
+      "I27-ABCDEFG",
+      "2026-08-05T12:00:00.000Z",
+      "10.0.0.1",
+    );
+    expect(metadata.a2_tbc).toBe("true");
+    const parsed = metadataToParsedExhibitor(metadata as Record<string, string>);
+    expect(parsed.intent.attendees[1].tbc).toBe(true);
+    expect(parsed.intent.attendees[1].firstName).toBe("TBC");
+  });
+
+  it("legacy metadata without tbc keys parses as non-TBC (in-flight sessions)", () => {
+    // Sessions created before the TBC feature deployed must keep
+    // completing: an absent a1_tbc/a2_tbc key means false, never a
+    // missing-field throw (which would permanently skip the booking).
+    const result = validateExhibitorBookingIntent(validInput);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const metadata = exhibitorIntentToMetadata(
+      result.intent,
+      pricing,
+      "I27-ABCDEFG",
+      "2026-08-05T12:00:00.000Z",
+      "10.0.0.1",
+    ) as Record<string, string>;
+    delete metadata.a1_tbc;
+    delete metadata.a2_tbc;
+    const parsed = metadataToParsedExhibitor(metadata);
+    expect(parsed.intent.attendees[0].tbc).toBe(false);
+    expect(parsed.intent.attendees[0].firstName).toBe("Ada");
   });
 
   it("throws when booking_type is not exhibitor", () => {

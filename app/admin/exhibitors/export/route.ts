@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server-client";
 import { resolveAdminContext } from "@/lib/admin/guard";
 import { csvResponse, toCsv } from "@/lib/admin/csv";
+import { isTbcAttendeeName } from "@/lib/bookings/exhibitor-intent";
 import { buildExhibitorListing } from "@/lib/exhibitors/listing";
 
 export const dynamic = "force-dynamic";
@@ -86,8 +87,20 @@ export async function GET(): Promise<Response> {
       header: "Attendees",
       value: (r) =>
         r.booking_attendees
-          .map((a) => `${a.first_name} ${a.surname} <${a.email}> (${a.dietary_requirement})`)
+          .map((a) =>
+            isTbcAttendeeName(a.first_name, a.surname)
+              ? "TBC NAME NEEDED (chase via contact before badge printing)"
+              : `${a.first_name} ${a.surname} <${a.email}> (${a.dietary_requirement})`,
+          )
           .join("; "),
+    },
+    {
+      header: "TBC attendees",
+      value: (r) =>
+        String(
+          r.booking_attendees.filter((a) => isTbcAttendeeName(a.first_name, a.surname))
+            .length,
+        ),
     },
   ]);
 

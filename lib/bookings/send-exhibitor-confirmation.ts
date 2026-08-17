@@ -37,6 +37,9 @@ const DIETARY_LABELS: Record<DietaryRequirement, string> = {
 };
 
 export function attendeeLine(a: ExhibitorAttendeeIntent): string {
+  if (a.tbc) {
+    return "To be confirmed. Let us know nearer the event.";
+  }
   const dietary =
     a.dietaryRequirement === "other" && a.dietaryOther
       ? `${DIETARY_LABELS.other}: ${a.dietaryOther}`

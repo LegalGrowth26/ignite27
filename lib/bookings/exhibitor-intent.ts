@@ -16,6 +16,11 @@
 import { DIETARY_REQUIREMENTS, type DietaryRequirement } from "./intent";
 
 export interface ExhibitorAttendeeIntent {
+  // Exhibitors may not know who is coming at booking time. A TBC
+  // attendee carries tbc: true and empty identity fields; the booking
+  // stores the literal name "TBC" (no schema change) and no dietary is
+  // collected until the name is confirmed.
+  tbc: boolean;
   firstName: string;
   surname: string;
   email: string;
@@ -23,6 +28,28 @@ export interface ExhibitorAttendeeIntent {
   jobTitle: string;
   dietaryRequirement: DietaryRequirement;
   dietaryOther: string;
+}
+
+export const TBC_FIRST_NAME = "TBC";
+
+// A TBC attendee as stored: first_name literally "TBC" with an empty
+// surname. Shared by the email builder, the account page, the admin
+// view, and the CSV export so "to be confirmed" renders consistently.
+export function isTbcAttendeeName(firstName: string, surname: string): boolean {
+  return firstName === TBC_FIRST_NAME && surname.trim() === "";
+}
+
+export function tbcAttendeeIntent(): ExhibitorAttendeeIntent {
+  return {
+    tbc: true,
+    firstName: TBC_FIRST_NAME,
+    surname: "",
+    email: "",
+    mobile: "",
+    jobTitle: "",
+    dietaryRequirement: "none",
+    dietaryOther: "",
+  };
 }
 
 export interface ExhibitorBookingIntent {
@@ -85,6 +112,14 @@ function validateAttendee(
   label: string,
   errors: ExhibitorIntentFieldError[],
 ): ExhibitorAttendeeIntent {
+  // "Name TBC, we'll confirm later": every field for this slot is
+  // skipped, whatever was posted (the fields do not render when the box
+  // is ticked, so values arriving anyway are tampering and are
+  // dropped, same pattern as the delegate flow's hidden-field guards).
+  if (toBoolean(raw.tbc)) {
+    return tbcAttendeeIntent();
+  }
+
   const firstName = trimString(raw.firstName);
   if (firstName.length === 0 || firstName.length > MAX_NAME) {
     errors.push({ field: `${prefix}.firstName`, message: `We need ${label}'s first name.` });
@@ -138,7 +173,16 @@ function validateAttendee(
     dietaryOther = "";
   }
 
-  return { firstName, surname, email, mobile, jobTitle, dietaryRequirement, dietaryOther };
+  return {
+    tbc: false,
+    firstName,
+    surname,
+    email,
+    mobile,
+    jobTitle,
+    dietaryRequirement,
+    dietaryOther,
+  };
 }
 
 function attendeeRaw(input: Record<string, unknown>, key: string): Record<string, unknown> {
@@ -281,6 +325,7 @@ export function exhibitorIntentToMetadata(
     contact_surname: intent.contactSurname,
     contact_email: intent.contactEmail,
     contact_mobile: intent.contactMobile,
+    a1_tbc: String(a1.tbc),
     a1_first_name: a1.firstName,
     a1_surname: a1.surname,
     a1_email: a1.email,
@@ -288,6 +333,7 @@ export function exhibitorIntentToMetadata(
     a1_job_title: a1.jobTitle,
     a1_dietary: a1.dietaryRequirement,
     a1_dietary_other: a1.dietaryOther,
+    a2_tbc: String(a2.tbc),
     a2_first_name: a2.firstName,
     a2_surname: a2.surname,
     a2_email: a2.email,
@@ -348,7 +394,16 @@ function parseAttendee(
   metadata: Record<string, string | null>,
   prefix: "a1" | "a2",
 ): ExhibitorAttendeeIntent {
+  // The tbc key defaults to false when ABSENT, not just when "false":
+  // Checkout sessions created before the TBC feature deployed are still
+  // completing (sessions live 30 minutes; webhook retries longer), and
+  // a required-field throw here would permanently skip those bookings.
+  const tbc = metadata[`${prefix}_tbc`] === "true";
+  if (tbc) {
+    return tbcAttendeeIntent();
+  }
   return {
+    tbc: false,
     firstName: requireField(metadata, `${prefix}_first_name`),
     surname: requireField(metadata, `${prefix}_surname`),
     email: requireField(metadata, `${prefix}_email`),

@@ -121,26 +121,36 @@ export async function createExhibitorBookingFromCheckoutSession(
 
   const bookingId = bookingRow.id as string;
 
-  const attendeeRows = intent.attendees.map((a, i) => ({
-    booking_id: bookingId,
-    // Link the app user only where the attendee IS the main contact;
-    // the second attendee gets an account when/if they book themselves.
-    user_id: a.email.toLowerCase() === contactEmail ? appUserId : null,
-    first_name: a.firstName,
-    surname: a.surname,
-    email: a.email,
-    mobile: a.mobile.length > 0 ? a.mobile : null,
-    company: intent.company,
-    job_title: a.jobTitle,
-    dietary_requirement: a.dietaryRequirement,
-    dietary_other: a.dietaryRequirement === "other" ? a.dietaryOther : null,
-    // Both exhibitor attendees always get lunch.
-    lunch_entitlement: true,
-    // Badge QR is a VIP-only perk; exhibitor badges carry none.
-    badge_qr_url: null,
-    is_primary_contact: a.email.toLowerCase() === contactEmail,
-    attendee_index: i + 1,
-  }));
+  const attendeeRows = intent.attendees.map((a, i) => {
+    // TBC attendee: stored under the literal name "TBC" (no schema
+    // change). The email column is NOT NULL, so it carries the main
+    // contact's address, which is also where the name-chasing email
+    // goes. Never the primary contact and never linked to an app user.
+    const isTbc = a.tbc;
+    const isContact = !isTbc && a.email.toLowerCase() === contactEmail;
+    return {
+      booking_id: bookingId,
+      // Link the app user only where the attendee IS the main contact;
+      // the second attendee gets an account when/if they book themselves.
+      user_id: isContact ? appUserId : null,
+      first_name: isTbc ? "TBC" : a.firstName,
+      surname: isTbc ? "" : a.surname,
+      email: isTbc ? contactEmail : a.email,
+      mobile: !isTbc && a.mobile.length > 0 ? a.mobile : null,
+      company: intent.company,
+      job_title: isTbc ? null : a.jobTitle,
+      // No dietary is collected for a TBC attendee until the name is
+      // confirmed; the lunch itself still belongs to the booking.
+      dietary_requirement: isTbc ? "none" : a.dietaryRequirement,
+      dietary_other: !isTbc && a.dietaryRequirement === "other" ? a.dietaryOther : null,
+      // Both exhibitor attendees always get lunch.
+      lunch_entitlement: true,
+      // Badge QR is a VIP-only perk; exhibitor badges carry none.
+      badge_qr_url: null,
+      is_primary_contact: isContact,
+      attendee_index: i + 1,
+    };
+  });
 
   const { error: attendeeErr } = await client
     .from("booking_attendees")

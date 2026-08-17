@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { isTbcAttendeeName } from "@/lib/bookings/exhibitor-intent";
 import { env } from "@/lib/env";
 
 // Public exhibitor listing for /exhibit.
@@ -136,7 +137,10 @@ export function attendeeFallbacks(
   if (!first) return { attendeeCompany: null, attendeeName: null };
   return {
     attendeeCompany: first.company,
-    attendeeName: `${first.first_name} ${first.surname}`.trim() || null,
+    // A TBC placeholder must never become a display name.
+    attendeeName: isTbcAttendeeName(first.first_name, first.surname)
+      ? null
+      : `${first.first_name} ${first.surname}`.trim() || null,
   };
 }
 

@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Button } from "@/components/Button";
 import { Container } from "@/components/Container";
 import { Section } from "@/components/Section";
+import { isTbcAttendeeName } from "@/lib/bookings/exhibitor-intent";
 import { formatPoundsFromPence } from "@/lib/pricing";
 import { createSupabaseServiceClient } from "@/lib/supabase/service-client";
 
@@ -54,7 +55,11 @@ async function lookupBooking(sessionId: string): Promise<ExhibitorBookingLookup 
     bookingId: data.id as string,
     company: attendees[0]?.company ?? null,
     grossAmountPence: data.gross_amount_pence as number,
-    attendees: attendees.map((a) => `${a.first_name} ${a.surname}`),
+    attendees: attendees.map((a) =>
+      isTbcAttendeeName(a.first_name, a.surname)
+        ? "To be confirmed"
+        : `${a.first_name} ${a.surname}`,
+    ),
   };
 }
 
