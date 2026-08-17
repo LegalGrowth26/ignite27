@@ -391,7 +391,7 @@ function PreOpenPricing() {
           Bookings open 09:00, Saturday 1 August 2026.
         </p>
         <p className="mt-3 text-body text-ignite-muted">
-          Launch pricing is the lowest price of the year and runs until 16 August,
+          Launch pricing is the lowest price of the year and runs until 5pm, Monday 24 August,
           then standard pricing until Christmas. Late pricing runs 1 to 18 January
           2027. Bookings close 17:00, Monday 18 January 2027.
         </p>

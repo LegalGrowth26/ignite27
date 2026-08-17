@@ -21,17 +21,18 @@ function ukLocal(iso: string): Date {
 // close instant of each period equals the open instant of the next.
 export const PRICING_PERIODS: readonly PricingPeriodBoundary[] = [
   {
-    // Launch window, extended twice per organiser decision (the second
-    // extension, Aug 2026, added one more week): runs Sat 1 Aug 09:00 UK
-    // through Sun 16 Aug 23:59:59 UK. Half-open, so the close instant
-    // (Mon 17 Aug 00:00 UK, BST) belongs to standard.
+    // Launch window, extended three times per organiser decision (the
+    // third revision, Aug 2026): runs Sat 1 Aug 09:00 UK through Mon
+    // 24 Aug 16:59:59 UK. NOTE the close is an INTRA-DAY 17:00 cutover,
+    // not midnight. Half-open, so the close instant (Mon 24 Aug 17:00
+    // UK, BST) belongs to standard.
     period: "launch",
     opensAt: ukLocal("2026-08-01T09:00:00"),
-    closesAt: ukLocal("2026-08-17T00:00:00"),
+    closesAt: ukLocal("2026-08-24T17:00:00"),
   },
   {
     period: "standard",
-    opensAt: ukLocal("2026-08-17T00:00:00"),
+    opensAt: ukLocal("2026-08-24T17:00:00"),
     closesAt: ukLocal("2027-01-01T00:00:00"),
   },
   {

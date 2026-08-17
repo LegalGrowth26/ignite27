@@ -37,7 +37,7 @@ export function BookingCta({ tone = "cream" }: { tone?: "cream" | "light" }) {
                 <p className="text-h3 text-ignite-ink">Get ready.</p>
                 <p className="mt-2 text-body text-ignite-muted">
                   Bookings open 1 August at 9am. Launch pricing is the lowest
-                  price of the year, until 16 August.
+                  price of the year, until 5pm, Monday 24 August.
                 </p>
               </div>
               <span

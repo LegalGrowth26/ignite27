@@ -46,28 +46,38 @@ describe("getActivePeriod — launch period", () => {
     expect(getActivePeriod(uk("2026-08-06T12:00:00"))).toBe("launch");
   });
 
-  it("returns launch on 9 Aug, the old boundary erased by the second extension", () => {
+  it("returns launch on the old boundaries erased by later extensions (9 and 17 Aug)", () => {
     expect(getActivePeriod(uk("2026-08-09T00:00:00"))).toBe("launch");
-    expect(getActivePeriod(uk("2026-08-10T12:00:00"))).toBe("launch");
+    expect(getActivePeriod(uk("2026-08-17T00:00:00"))).toBe("launch");
+    expect(getActivePeriod(uk("2026-08-20T12:00:00"))).toBe("launch");
   });
 
-  it("returns launch one second before it closes (16 Aug 2026 23:59:59 UK)", () => {
-    expect(getActivePeriod(uk("2026-08-16T23:59:59"))).toBe("launch");
+  // Third revision: the close is an INTRA-DAY 17:00 cutover on Mon
+  // 24 Aug, not midnight. The morning of the 24th is still launch.
+  it("returns launch on the morning of the final day (24 Aug 2026 09:00 UK)", () => {
+    expect(getActivePeriod(uk("2026-08-24T09:00:00"))).toBe("launch");
+  });
+
+  it("returns launch one second before the 5pm close (24 Aug 2026 16:59:59 UK)", () => {
+    expect(getActivePeriod(uk("2026-08-24T16:59:59"))).toBe("launch");
   });
 });
 
 describe("getActivePeriod — standard period", () => {
-  it("returns standard exactly at the launch → standard transition", () => {
-    // Half-open [opens, closes): 17 Aug 00:00 belongs to standard, not launch.
-    expect(getActivePeriod(uk("2026-08-17T00:00:00"))).toBe("standard");
+  it("returns standard exactly at the 17:00 launch → standard cutover", () => {
+    // Half-open [opens, closes): 24 Aug 17:00:00 belongs to standard.
+    expect(getActivePeriod(uk("2026-08-24T17:00:00"))).toBe("standard");
   });
 
-  it("BST offset at the boundary: 17 Aug 00:00 UK is 16 Aug 23:00 UTC", () => {
-    // August is BST (UTC+1). The UK-local boundary must sit exactly at
-    // 23:00 UTC the previous calendar day; a naive UTC reading of the
-    // boundary would flip periods an hour late.
-    expect(getActivePeriod(new Date("2026-08-16T22:59:59Z"))).toBe("launch");
-    expect(getActivePeriod(new Date("2026-08-16T23:00:00Z"))).toBe("standard");
+  it("returns standard later the same evening (24 Aug 2026 18:00 UK)", () => {
+    expect(getActivePeriod(uk("2026-08-24T18:00:00"))).toBe("standard");
+  });
+
+  it("BST offset at the boundary: 24 Aug 17:00 UK is 16:00 UTC", () => {
+    // August is BST (UTC+1). The UK-local 5pm boundary must sit exactly
+    // at 16:00 UTC; a naive UTC reading would flip periods an hour late.
+    expect(getActivePeriod(new Date("2026-08-24T15:59:59Z"))).toBe("launch");
+    expect(getActivePeriod(new Date("2026-08-24T16:00:00Z"))).toBe("standard");
   });
 
   it("returns standard in early autumn", () => {

@@ -259,17 +259,18 @@ no event-day sales.
 
 | Period   | Opens                    | Closes                    |
 |----------|--------------------------|---------------------------|
-| Launch   | Sat 1 Aug 2026, 09:00    | Mon 17 Aug 2026, 00:00    |
-| Standard | Mon 17 Aug 2026, 00:00   | Thu 31 Dec 2026, 23:59    |
+| Launch   | Sat 1 Aug 2026, 09:00    | Mon 24 Aug 2026, 17:00    |
+| Standard | Mon 24 Aug 2026, 17:00   | Thu 31 Dec 2026, 23:59    |
 | Late     | Fri 1 Jan 2027, 00:00    | Mon 18 Jan 2027, 17:00    |
 
-Launch runs through Sunday 16 August 2026, 23:59:59 UK (the close
-instant, Monday 17 August 00:00, belongs to Standard per the half-open
-convention). Extended twice by organiser decision: from the original
-72-hour window to 8 August (July 2026), then by one more week to
-16 August (August 2026). Customer-facing copy frames it as "ends
-16 August" / "the lowest price of the year"; the earlier "one week
-only" phrasing was retired with the second extension.
+Launch runs through Monday 24 August 2026, 16:59:59 UK. NOTE the close
+is an intra-day 17:00 cutover, not midnight: the morning of the 24th is
+still launch pricing, and the close instant (Monday 24 August 17:00)
+belongs to Standard per the half-open convention. Extended three times
+by organiser decision: from the original 72-hour window to 8 August
+(July 2026), to 16 August, then to 5pm on 24 August (both August 2026).
+Customer-facing copy frames it as "ends 5pm, Monday 24 August" / "the
+lowest price of the year".
 
 **Bookings close entirely at Monday 18 January 2027, 17:00 UK.** After
 that instant, `getCurrentPricing` throws `BookingsClosedError` and every
