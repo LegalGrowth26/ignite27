@@ -11,6 +11,7 @@ import {
   type IntentFieldError,
 } from "@/lib/bookings/intent";
 import { formatExVatWithGross, formatPoundsFromPence } from "@/lib/pricing";
+import { VIP_PERKS } from "@/lib/vip-perks";
 import { Button } from "./Button";
 
 interface BookingFormProps {
@@ -146,10 +147,9 @@ export function BookingForm({
         <p className="mt-1 text-small text-ignite-muted">{lunchSummary}</p>
         {ticketType === "vip" ? (
           <ul className="mt-3 space-y-1 text-small text-ignite-ink">
-            <li>• Lunch included, with first access</li>
-            <li>• Priority seating at the front</li>
-            <li>• Special VIP lanyard</li>
-            <li>• QR code on your badge linking to your LinkedIn or website</li>
+            {VIP_PERKS.map((perk) => (
+              <li key={perk}>• {perk}</li>
+            ))}
           </ul>
         ) : null}
         <p className="mt-3 text-h2">{formatExVatWithGross(totalExVatPence, totalIncVatPence)}</p>
