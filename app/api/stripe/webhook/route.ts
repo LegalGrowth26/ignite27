@@ -9,6 +9,7 @@ import {
   ExhibitorMetadataParseError,
 } from "@/lib/bookings/exhibitor-intent";
 import { env } from "@/lib/env";
+import { crmTagForBooking, pushContactToCrmSafe } from "@/lib/crm/ghl";
 import { sendDelegateConfirmationEmail } from "@/lib/bookings/send-confirmation";
 import { sendExhibitorConfirmationEmail } from "@/lib/bookings/send-exhibitor-confirmation";
 import { EXHIBITOR_STAND_CAP } from "@/lib/pricing";
@@ -134,6 +135,21 @@ async function handleCheckoutSessionCompleted(event: Stripe.Event): Promise<void
     paymentStatus,
   });
 
+  // TomCRM sync. Runs on every delivery (not just isNew) so a crash
+  // between booking creation and this line is healed by Stripe's retry;
+  // both CRM calls are idempotent so re-delivery cannot duplicate a
+  // contact or stack a tag. Failures log loudly and change nothing.
+  await pushContactToCrmSafe(
+    {
+      email: parsed.intent.email,
+      firstName: parsed.intent.firstName,
+      lastName: parsed.intent.surname,
+      phone: parsed.intent.mobile || null,
+      tag: crmTagForBooking("delegate", parsed.intent.ticketType),
+    },
+    `delegate webhook ${result.bookingReference}`,
+  );
+
   // Three-branch idempotency + retry logic. See SPEC.md "Stripe webhook
   // idempotency and retry".
   //
@@ -212,6 +228,20 @@ async function handleExhibitorSessionCompleted(
     promo,
     paymentStatus,
   });
+
+  // TomCRM sync: the MAIN CONTACT is the CRM record for an exhibitor
+  // booking. Same idempotency/failure-isolation notes as the delegate
+  // path.
+  await pushContactToCrmSafe(
+    {
+      email: parsed.intent.contactEmail,
+      firstName: parsed.intent.contactFirstName,
+      lastName: parsed.intent.contactSurname,
+      phone: parsed.intent.contactMobile || null,
+      tag: crmTagForBooking("exhibitor", "exhibitor"),
+    },
+    `exhibitor webhook ${result.bookingReference}`,
+  );
 
   // The cap is enforced at page render and at checkout creation, but a
   // race (two checkouts open at stand 50) can still pay past it. Money
