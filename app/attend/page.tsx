@@ -6,6 +6,7 @@ import { HowBookingWorks, type BookingStep } from "@/components/HowBookingWorks"
 import { LaunchCountdown } from "@/components/LaunchCountdown";
 import { PhotoBand } from "@/components/PhotoBand";
 import { PriceCard } from "@/components/PriceCard";
+import { VIP_PERKS, VIP_SUMMARY_LINE } from "@/lib/vip-perks";
 import { Section } from "@/components/Section";
 import { SectionHeader } from "@/components/SectionHeader";
 
@@ -66,13 +67,9 @@ const REGULAR_INCLUDES: readonly string[] = [
   "Coffee and refreshments on the house",
 ];
 
-const VIP_INCLUDES: readonly string[] = [
-  "Everything in Regular",
-  "Lunch included, with first access",
-  "Priority seating at the front",
-  "Special VIP lanyard",
-  "QR code on your badge linking to your LinkedIn or website",
-];
+// Perks come from the shared VIP_PERKS constant (lib/vip-perks.ts) so
+// the card and the booking form can never drift apart.
+const VIP_INCLUDES: readonly string[] = ["Everything in Regular", ...VIP_PERKS];
 
 const ATTEND_STEPS: readonly BookingStep[] = [
   { label: "Choose", body: "Regular or VIP. Add lunch if you want it." },
@@ -206,7 +203,7 @@ function PricingSection({ pricing }: { pricing: AttendPricing }) {
             price={vipPrice}
             chip={chip ?? "Best value"}
             included={VIP_INCLUDES}
-            summaryLine="Lunch included, front-row seat, VIP lanyard."
+            summaryLine={VIP_SUMMARY_LINE}
             cta={vipCta}
             emphasised
           />
