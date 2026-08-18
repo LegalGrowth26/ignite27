@@ -102,6 +102,7 @@ export default async function AdminDiscountsPage() {
               <tr>
                 <th className="px-4 py-3 font-medium">Code</th>
                 <th className="px-4 py-3 font-medium">Discount</th>
+                <th className="px-4 py-3 font-medium">Applies to</th>
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium">Uses (Stripe)</th>
                 <th className="px-4 py-3 font-medium">Bookings</th>
@@ -132,6 +133,7 @@ export default async function AdminDiscountsPage() {
                           ? `${formatPoundsFromPence(c.amountOffPence)} off`
                           : "?"}
                     </td>
+                    <td className="px-4 py-3">{c.restrictionLabel}</td>
                     <td className="px-4 py-3">{status}</td>
                     <td className="px-4 py-3">
                       {c.timesRedeemed}
@@ -162,7 +164,7 @@ export default async function AdminDiscountsPage() {
               })}
               {codes.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-8 text-center text-ignite-muted">
+                  <td colSpan={10} className="px-4 py-8 text-center text-ignite-muted">
                     No codes yet. Create one above.
                   </td>
                 </tr>

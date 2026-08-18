@@ -16,6 +16,7 @@ import {
   BookingsNotOpenForCheckoutError,
 } from "./checkout";
 import { getStripe } from "./client";
+import { ensureStripeProducts, STRIPE_PRODUCT_IDS } from "./products";
 
 export interface CreateExhibitorCheckoutSessionInput {
   intent: ExhibitorBookingIntent;
@@ -66,7 +67,9 @@ export function buildExhibitorLineItems(
 ): Stripe.Checkout.SessionCreateParams.LineItem[] {
   // Ex-VAT with tax_behavior "exclusive", identical to the delegate
   // flow: Stripe Tax adds 20% UK VAT on top and itemises it on the
-  // receipt, and discount codes apply to the ex-VAT base.
+  // receipt, and discount codes apply to the ex-VAT base. References
+  // the FIXED exhibitor product (ad-hoc period price via price_data)
+  // so coupon applies_to restrictions can target stands.
   return [
     {
       quantity: 1,
@@ -74,10 +77,7 @@ export function buildExhibitorLineItems(
         currency: "gbp",
         unit_amount: pricing.standExVatPence,
         tax_behavior: "exclusive",
-        product_data: {
-          name: "IGNITE! 27 exhibitor stand",
-          description: "Stand for the day. Includes 2 attendee places and 2 lunches.",
-        },
+        product: STRIPE_PRODUCT_IDS.exhibitor,
       },
     },
   ];
@@ -117,6 +117,9 @@ export async function createExhibitorCheckoutSession(
   const cancelUrl = `${siteUrl}/exhibit/book/cancel`;
 
   const stripe = getStripe();
+  // Self-provision the fixed exhibitor product in this mode (no-op
+  // after the first call per process).
+  await ensureStripeProducts(stripe, ["exhibitor"]);
   const params: Stripe.Checkout.SessionCreateParams = {
     mode: "payment",
     payment_method_types: ["card"],
