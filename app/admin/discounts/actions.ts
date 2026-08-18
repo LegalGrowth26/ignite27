@@ -8,10 +8,14 @@ import {
   buildCouponParams,
   buildPromotionCodeParams,
   validateCreateCodeInput,
+  CODE_RESTRICTION_KEYS,
+  CODE_RESTRICTIONS,
+  type CodeRestriction,
   type CreateCodeInput,
 } from "@/lib/admin/stripe-codes";
 import { getStripe } from "@/lib/stripe/client";
 import { currentStripeKeyMode } from "@/lib/stripe/mode";
+import { ensureStripeProducts } from "@/lib/stripe/products";
 
 export interface CodeActionState {
   error: string | null;
@@ -34,6 +38,12 @@ async function createCode(
 
   const stripe = getStripe();
   try {
+    // A restricted coupon names product ids in applies_to, so those
+    // products must exist in this mode first (idempotent, cached).
+    const restriction = CODE_RESTRICTIONS[input.appliesTo ?? "everything"];
+    if (restriction.products) {
+      await ensureStripeProducts(stripe);
+    }
     const coupon = await stripe.coupons.create(buildCouponParams(input));
     const promo = await stripe.promotionCodes.create(
       buildPromotionCodeParams(coupon.id, input, actorUserId),
@@ -55,6 +65,7 @@ async function createCode(
       expires_at: input.expiresAt?.toISOString() ?? null,
       max_redemptions: input.maxRedemptions ?? null,
       note: input.note ?? null,
+      applies_to: input.appliesTo ?? "everything",
     });
     revalidatePath("/admin/discounts");
     return { error: null, created: promo.code };
@@ -75,8 +86,15 @@ export async function createDiscountCodeAction(
   const expiresRaw = String(formData.get("expiresAt") ?? "").trim();
   const maxRaw = String(formData.get("maxRedemptions") ?? "").trim();
   const amountRaw = String(formData.get("amountOffPounds") ?? "").trim();
+  const appliesToRaw = String(formData.get("appliesTo") ?? "everything");
+  const appliesTo: CodeRestriction = CODE_RESTRICTION_KEYS.includes(
+    appliesToRaw as CodeRestriction,
+  )
+    ? (appliesToRaw as CodeRestriction)
+    : "everything";
 
   const input: CreateCodeInput = {
+    appliesTo,
     code: String(formData.get("code") ?? "").trim().toUpperCase(),
     kind,
     percentOff: kind === "percent" ? Number(formData.get("percentOff") ?? 0) : undefined,

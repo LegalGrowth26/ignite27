@@ -94,6 +94,21 @@ export function CreateCodeForm() {
       </div>
 
       <div>
+        <label htmlFor="appliesTo" className={LABEL}>Applies to</label>
+        <select id="appliesTo" name="appliesTo" defaultValue="everything" className={INPUT}>
+          <option value="everything">Everything (default)</option>
+          <option value="delegates_only">Delegates only</option>
+          <option value="vip_only">VIP only</option>
+          <option value="exhibitors_only">Exhibitors only</option>
+          <option value="everything_except_lunch">Everything except lunch</option>
+        </select>
+        <p className="mt-1 text-small text-ignite-muted">
+          Restricted codes only discount the matching ticket line at
+          checkout; the lunch add-on and other lines stay full price.
+        </p>
+      </div>
+
+      <div>
         <label htmlFor="note" className={LABEL}>Note (optional, internal)</label>
         <input id="note" name="note" placeholder="e.g. Stephine's newsletter promo" className={INPUT} />
       </div>
