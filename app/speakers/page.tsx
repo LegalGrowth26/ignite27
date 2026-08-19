@@ -22,7 +22,11 @@ const NAMED_SPEAKERS: ReadonlyArray<
   {
     name: "Stephine Robinson",
     topic: "Practical AI for small businesses",
-    media: { variant: "initials", initials: "SR" },
+    media: {
+      variant: "photo",
+      src: "/images/speakers/stephine-robinson.webp",
+      alt: "Portrait of Stephine Robinson",
+    },
   },
   {
     name: "Nathan Littleton",
