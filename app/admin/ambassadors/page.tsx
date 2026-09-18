@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 import { requireSuperAdmin } from "@/lib/admin/guard";
 import { ambassadorShareUrl } from "@/lib/ambassadors/attribution";
@@ -126,6 +127,13 @@ export default async function AdminAmbassadorsPage() {
                       <span className="font-mono">{ambassadorShareUrl(siteUrl, r.slug)}</span>
                     </p>
                   </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                  <Link
+                    href={`/admin/ambassadors/${r.id}`}
+                    className="rounded-full border border-ignite-line px-4 py-2 text-small font-semibold text-ignite-ink hover:border-ignite-red"
+                  >
+                    View dashboard
+                  </Link>
                   <form action={toggleAmbassadorActiveAction.bind(null, r.id)}>
                     <button
                       type="submit"
@@ -134,6 +142,7 @@ export default async function AdminAmbassadorsPage() {
                       {r.deactivated_at ? "Reactivate" : "Deactivate"}
                     </button>
                   </form>
+                  </div>
                 </div>
 
                 <dl className="mt-4 grid gap-3 text-small sm:grid-cols-2 lg:grid-cols-5">
