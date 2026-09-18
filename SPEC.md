@@ -556,6 +556,38 @@ domains, which is what broke booking confirmations in production).
 
 ---
 
+## Pre-event scheduled emails (added September 2026)
+
+Admin-managed event-service emails to ticket holders (reminders,
+travel and parking, agenda updates, day-before practicalities),
+managed from /admin/emails and sent through the Resend choke point
+with the standard branded shell.
+
+- **Audiences:** all attendees / delegates (regular tickets, INCLUDING
+  comp recipients) / VIPs / exhibitors (every named attendee; TBC
+  placeholders skipped). Only active paid/comp bookings; deduped by
+  email. Recipients are resolved at SEND time so late bookers are
+  always included.
+- **Scheduling:** Vercel Cron hits /api/cron/send-scheduled-emails
+  every 5 minutes (authenticated by CRON_SECRET; a GitHub Actions
+  curl of the same route is the documented fallback). Send-time
+  precision is therefore about 5 minutes.
+- **Reliability:** recipients are snapshotted into
+  scheduled_email_sends whose unique (email, recipient) key is the
+  idempotency guard; each recipient sends inside its own try/catch;
+  sent/failed/pending counts are visible in admin with a retry-failed
+  action; sends are throttled inside Resend's rate limit and chunked
+  across cron ticks for large audiences.
+- **Compliance stance:** these are transactional/event-service emails
+  to ticket holders, so the footer is "manage your booking" plus a
+  contact link, deliberately NOT a marketing unsubscribe. Promotional
+  content routes through TomCRM (GoHighLevel), never this system.
+- **Ops:** requires the Resend PAID plan before the first real send
+  (free tier caps at 100 emails/day); a test-send-to-myself button
+  exists for proofing before scheduling.
+
+---
+
 ## Stripe webhook idempotency and retry
 
 The `checkout.session.completed` webhook handler at
