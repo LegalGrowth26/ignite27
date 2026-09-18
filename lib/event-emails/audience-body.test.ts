@@ -63,6 +63,23 @@ describe("resolveRecipients", () => {
     expect(resolveRecipients(rows, "exhibitors").map((r) => r.email)).toEqual(["ex@example.com"]);
   });
 
+  it("everyone_except_vips: delegates, comps, and exhibitors, but no VIP rows", () => {
+    const recipients = resolveRecipients(
+      [
+        row({}),
+        row({ email: "comp@example.com", payment_status: "comp" }),
+        row({ email: "vip@example.com", ticket_type: "vip" }),
+        row({ email: "ex@example.com", booking_type: "exhibitor", ticket_type: "exhibitor" }),
+      ],
+      "everyone_except_vips",
+    );
+    expect(recipients.map((r) => r.email).sort()).toEqual([
+      "ada@example.com",
+      "comp@example.com",
+      "ex@example.com",
+    ]);
+  });
+
   it("skips TBC placeholder attendees", () => {
     const recipients = resolveRecipients(
       [
