@@ -152,7 +152,7 @@ export function StatusBanner({
   }
   const text =
     status === "booked"
-      ? "You're booked. We'll remind you nearer the day."
+      ? "You're booked. It's on your day plan at /my-day, and we'll remind you nearer the day."
       : status === "already_booked"
         ? "You were already booked on that one. No changes made."
         : status === "cancelled"

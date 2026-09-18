@@ -77,6 +77,14 @@ export default async function WorkshopsPage({
               Booking opens 1 January for VIP ticket holders and 4 January for
               everyone else.
             </p>
+            <p className="mt-3 text-body">
+              <Link
+                href="/my-day"
+                className="font-semibold text-ignite-white underline underline-offset-4 hover:text-ignite-red"
+              >
+                See your day plan
+              </Link>
+            </p>
           </div>
         </Container>
       </section>
