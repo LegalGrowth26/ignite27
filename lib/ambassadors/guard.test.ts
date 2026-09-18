@@ -82,8 +82,34 @@ describe("resolveAmbassadorContext", () => {
     expect(String(warnSpy.mock.calls[0]?.[0])).toContain("no-session");
   });
 
-  it("denies attendees and super admins (role-mismatch)", async () => {
-    for (const role of ["attendee", "super_admin", "scanner_staff"]) {
+  it("allows a DUAL-ROLE super admin who has their own active ambassadors row", async () => {
+    const ctx = await resolveAmbassadorContext(
+      stubClient({
+        authUser: { id: "au-admin" },
+        userRow: { id: "u-admin", role: "super_admin" },
+        ambassadorRow: activeAmbassador,
+      }),
+    );
+    expect(ctx).not.toBeNull();
+    expect(ctx?.appUserId).toBe("u-admin");
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  it("denies a super admin WITHOUT an ambassadors row (admin view routes via /admin)", async () => {
+    expect(
+      await resolveAmbassadorContext(
+        stubClient({
+          authUser: { id: "au-admin" },
+          userRow: { id: "u-admin", role: "super_admin" },
+          ambassadorRow: null,
+        }),
+      ),
+    ).toBeNull();
+    expect(String(warnSpy.mock.calls[0]?.[0])).toContain("no-ambassador-row");
+  });
+
+  it("denies attendees and scanner staff (role-mismatch)", async () => {
+    for (const role of ["attendee", "scanner_staff"]) {
       warnSpy.mockClear();
       expect(
         await resolveAmbassadorContext(

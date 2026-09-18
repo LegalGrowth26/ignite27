@@ -29,9 +29,13 @@ function logAmbassadorDenied(reason: string, detail: Record<string, unknown> = {
 }
 
 // Core check, unit-testable with a stub client. Null unless the signed
-// in user's app row carries role 'ambassador' AND an ACTIVE ambassadors
-// row exists for them. Deactivated ambassadors are locked out (their
-// history is kept; reactivation restores access).
+// in user's app row carries role 'ambassador' OR 'super_admin', AND an
+// ACTIVE ambassadors row exists for them. The ambassadors row is the
+// real gate: a super admin WITHOUT their own row still 404s here (an
+// admin viewing someone else's numbers goes through /admin, read-only).
+// Dual role by design: Tom can hold full admin AND be an ambassador
+// with his own link and allowance. Deactivated ambassadors are locked
+// out (history kept; reactivation restores access).
 export async function resolveAmbassadorContext(
   client: SupabaseClient,
 ): Promise<AmbassadorContext | null> {
@@ -53,10 +57,11 @@ export async function resolveAmbassadorContext(
     });
     return null;
   }
-  if ((userRow as { role: string }).role !== "ambassador") {
+  const role = (userRow as { role: string }).role;
+  if (role !== "ambassador" && role !== "super_admin") {
     logAmbassadorDenied("role-mismatch", {
       appUserId: (userRow as { id: string }).id,
-      role: (userRow as { role: string }).role,
+      role,
     });
     return null;
   }

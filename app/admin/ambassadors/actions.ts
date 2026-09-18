@@ -14,10 +14,11 @@ export interface AmbassadorActionState {
 }
 
 // Provision an ambassador: auth account + users row (role upgraded to
-// 'ambassador'), ambassadors row, invite email with a set-password
-// link. Existing customers upgrade and keep their bookings; super
-// admins are refused outright (never downgrade Tom or Paul), as are
-// emails that are already ambassadors.
+// 'ambassador' unless they are a super admin, whose role is NEVER
+// touched: dual role rides on the ambassadors row alone), ambassadors
+// row, invite email with a set-password link. Existing customers
+// upgrade and keep their bookings; existing ambassadors are refused as
+// duplicates.
 export async function createAmbassadorAction(
   _prev: AmbassadorActionState,
   formData: FormData,
@@ -50,11 +51,19 @@ export async function createAmbassadorAction(
     .eq("email", email)
     .maybeSingle();
   const existing = existingUser as { id: string; role: string } | null;
-  if (existing?.role === "super_admin") {
-    return { error: "That email is a super admin. Not changing it.", created: null };
-  }
   if (existing?.role === "ambassador") {
     return { error: "That email is already an ambassador.", created: null };
+  }
+  const isSuperAdmin = existing?.role === "super_admin";
+  if (isSuperAdmin) {
+    const { data: existingAmb } = await service
+      .from("ambassadors")
+      .select("id")
+      .eq("user_id", existing!.id)
+      .maybeSingle();
+    if (existingAmb) {
+      return { error: "That email is already an ambassador.", created: null };
+    }
   }
 
   try {
@@ -72,11 +81,15 @@ export async function createAmbassadorAction(
       marketingOptIn: false,
     });
 
-    const { error: roleErr } = await service
-      .from("users")
-      .update({ role: "ambassador" })
-      .eq("id", appUserId);
-    if (roleErr) throw new Error(`role update failed: ${roleErr.message}`);
+    // Dual role: a super admin keeps super_admin; the ambassadors row
+    // alone grants them the dashboard. Everyone else upgrades.
+    if (!isSuperAdmin) {
+      const { error: roleErr } = await service
+        .from("users")
+        .update({ role: "ambassador" })
+        .eq("id", appUserId);
+      if (roleErr) throw new Error(`role update failed: ${roleErr.message}`);
+    }
 
     const { error: insertErr } = await service.from("ambassadors").insert({
       user_id: appUserId,
