@@ -89,6 +89,19 @@ export default async function BookingPage(props: { searchParams: SearchParams })
           />
 
           {state.status === "live" ? (
+            <p className="mt-4 text-small text-ignite-muted">
+              Booking for 2 or more?{" "}
+              <Link
+                href="/attend/book/group"
+                className="font-semibold text-ignite-red underline underline-offset-4"
+              >
+                Use the group form
+              </Link>{" "}
+              : 3+ tickets save 10%, 5+ save 25%.
+            </p>
+          ) : null}
+
+          {state.status === "live" ? (
             <div className="mt-10">
               <BookingForm
                 ticketType={ticketType}
