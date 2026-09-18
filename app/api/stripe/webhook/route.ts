@@ -9,7 +9,9 @@ import {
   ExhibitorMetadataParseError,
 } from "@/lib/bookings/exhibitor-intent";
 import { env } from "@/lib/env";
-import { crmTagForBooking, pushContactToCrmSafe } from "@/lib/crm/ghl";
+import { crmTagsForBooking, pushContactToCrmSafe } from "@/lib/crm/ghl";
+import { REF_METADATA_KEY } from "@/lib/ambassadors/attribution";
+import { resolveAmbassadorIdForSlug } from "@/lib/ambassadors/resolve";
 import { sendDelegateConfirmationEmail } from "@/lib/bookings/send-confirmation";
 import { sendExhibitorConfirmationEmail } from "@/lib/bookings/send-exhibitor-confirmation";
 import { EXHIBITOR_STAND_CAP } from "@/lib/pricing";
@@ -124,6 +126,14 @@ async function handleCheckoutSessionCompleted(event: Stripe.Event): Promise<void
 
   const supabase = createSupabaseServiceClient();
 
+  // Ambassador attribution: last-touch ref slug carried in the session
+  // metadata, resolved to an ACTIVE ambassador now. Unknown/inactive
+  // slugs (or none) degrade to null silently.
+  const ambassadorId = await resolveAmbassadorIdForSlug(
+    supabase,
+    metadata[REF_METADATA_KEY],
+  );
+
   const result = await createDelegateBookingFromCheckoutSession({
     client: supabase,
     parsed,
@@ -133,6 +143,7 @@ async function handleCheckoutSessionCompleted(event: Stripe.Event): Promise<void
     paidAt: new Date((event.created ?? Math.floor(Date.now() / 1000)) * 1000),
     promo,
     paymentStatus,
+    ambassadorId,
   });
 
   // TomCRM sync. Runs on every delivery (not just isNew) so a crash
@@ -145,7 +156,9 @@ async function handleCheckoutSessionCompleted(event: Stripe.Event): Promise<void
       firstName: parsed.intent.firstName,
       lastName: parsed.intent.surname,
       phone: parsed.intent.mobile || null,
-      tag: crmTagForBooking("delegate", parsed.intent.ticketType),
+      tags: crmTagsForBooking("delegate", parsed.intent.ticketType, {
+        ambassadorAttributed: Boolean(ambassadorId) && paymentStatus === "paid",
+      }),
     },
     `delegate webhook ${result.bookingReference}`,
   );
@@ -218,6 +231,11 @@ async function handleExhibitorSessionCompleted(
 
   const supabase = createSupabaseServiceClient();
 
+  const ambassadorId = await resolveAmbassadorIdForSlug(
+    supabase,
+    (eventSession.metadata ?? {})[REF_METADATA_KEY],
+  );
+
   const result = await createExhibitorBookingFromCheckoutSession({
     client: supabase,
     parsed,
@@ -227,6 +245,7 @@ async function handleExhibitorSessionCompleted(
     paidAt: new Date((event.created ?? Math.floor(Date.now() / 1000)) * 1000),
     promo,
     paymentStatus,
+    ambassadorId,
   });
 
   // TomCRM sync: the MAIN CONTACT is the CRM record for an exhibitor
@@ -238,7 +257,9 @@ async function handleExhibitorSessionCompleted(
       firstName: parsed.intent.contactFirstName,
       lastName: parsed.intent.contactSurname,
       phone: parsed.intent.contactMobile || null,
-      tag: crmTagForBooking("exhibitor", "exhibitor"),
+      tags: crmTagsForBooking("exhibitor", "exhibitor", {
+        ambassadorAttributed: Boolean(ambassadorId) && paymentStatus === "paid",
+      }),
     },
     `exhibitor webhook ${result.bookingReference}`,
   );

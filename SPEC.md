@@ -119,6 +119,11 @@ the venue (or replicating venue WiFi conditions) in January 2027 before
 - **Scanner staff** (event-day staff): access only to the mobile scanner
   pages. No access to admin dashboard, no access to attendee data beyond
   what a scan reveals.
+- **Ambassador** (speakers and key partners, e.g. Stephine, Impact):
+  access to own ambassador dashboard only (/ambassador): personal share
+  link with click and attributed-booking counts, comp ticket issuance
+  within an admin-set allowance, personal discount code when granted.
+  No revenue figures, no other ambassadors' numbers, no admin access.
 - **Attendee** (delegate, VIP, exhibitor contact): access to own account
   area only. View own booking, request cancellation, request correction,
   resend confirmation, manage own agenda (phase 2), access referral link
@@ -328,6 +333,35 @@ email, contact mobile, company website, optional logo upload.
 
 **Exhibitor (per attendee, x2):** first name, surname, email, mobile,
 job title, dietary requirement, badge QR URL.
+
+---
+
+## Ambassadors (added September 2026)
+
+Speakers and key partners who help sell tickets. Managed from
+/admin/ambassadors (super admins only); each ambassador gets a private
+dashboard at /ambassador.
+
+- **Share links:** ignite27.co.uk/?ref=<slug>. The ref is stored in a
+  90-day cookie (last-touch wins: every valid visit overwrites), rides
+  through Stripe Checkout metadata, and the webhook stamps
+  bookings.ambassador_id when the slug resolves to an ACTIVE
+  ambassador. Both delegate and exhibitor bookings count as attributed.
+  Clicks are counted coarsely (every ?ref= hit, no dedupe).
+- **Comp tickets:** admin-set allowance per ambassador. Issuing one
+  creates a REAL regular-delegate booking at £0 (payment_status comp,
+  no lunch, no Stripe object, terms_accepted_at null for v1), sends
+  the standard confirmation email, and lands in TomCRM tagged
+  Delegate27 + CompGuest27. Duplicate recipient emails warn and do not
+  double-book. Issuance is atomic against the allowance.
+- **Attribution to CRM:** attributed PAID bookings carry an extra
+  AmbassadorRef27 tag on top of their standard tag.
+- **Deactivation:** link stops attributing, dashboard locks, history
+  and past attributions are kept.
+- **Phase 2 (planned):** personal discount codes (everything except
+  lunch, requires the fixed-Stripe-products PR), terms acceptance on a
+  comp recipient's first login, admin drill-down and daily click
+  breakdowns.
 
 ---
 

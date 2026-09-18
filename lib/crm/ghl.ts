@@ -23,9 +23,16 @@ export const GHL_API_BASE = "https://services.leadconnectorhq.com";
 // GHL API 2.0 requires this exact date-versioned header.
 export const GHL_API_VERSION = "2021-07-28";
 
-// One tag per booking type. Partner27 is RESERVED for partner bookings
-// when that booking type exists; nothing applies it yet.
-export type CrmTag = "Delegate27" | "VIP27" | "Exhibitor27";
+// One base tag per booking type, plus situational extras. Partner27 is
+// RESERVED for partner bookings when that booking type exists; nothing
+// applies it yet. CompGuest27 marks ambassador-issued comp recipients;
+// AmbassadorRef27 marks paid bookings attributed to an ambassador link.
+export type CrmTag =
+  | "Delegate27"
+  | "VIP27"
+  | "Exhibitor27"
+  | "CompGuest27"
+  | "AmbassadorRef27";
 
 export function crmTagForBooking(
   bookingType: "delegate" | "exhibitor",
@@ -35,12 +42,25 @@ export function crmTagForBooking(
   return ticketType === "vip" ? "VIP27" : "Delegate27";
 }
 
+// Full tag set for a booking push. The tags endpoint is additive and
+// set-like, so over-sending an already-present tag is a no-op.
+export function crmTagsForBooking(
+  bookingType: "delegate" | "exhibitor",
+  ticketType: string,
+  opts: { ambassadorComp?: boolean; ambassadorAttributed?: boolean } = {},
+): CrmTag[] {
+  const tags: CrmTag[] = [crmTagForBooking(bookingType, ticketType)];
+  if (opts.ambassadorComp) tags.push("CompGuest27");
+  if (opts.ambassadorAttributed) tags.push("AmbassadorRef27");
+  return tags;
+}
+
 export interface CrmContactInput {
   email: string;
   firstName: string;
   lastName: string;
   phone: string | null;
-  tag: CrmTag;
+  tags: CrmTag[];
 }
 
 export function isCrmConfigured(): boolean {
@@ -96,7 +116,7 @@ export async function pushContactToCrm(input: CrmContactInput): Promise<void> {
   }
 
   const tagRes = await ghlPost(`/contacts/${contactId}/tags`, {
-    tags: [input.tag],
+    tags: input.tags,
   });
   if (!tagRes.ok) {
     throw new Error(`GHL tag apply failed: ${tagRes.status} ${await tagRes.text()}`);
@@ -115,13 +135,13 @@ export async function pushContactToCrmSafe(
   }
   try {
     await pushContactToCrm(input);
-    console.info(`[crm] pushed ${maskEmail(input.email)} tag=${input.tag}: ${context}`);
+    console.info(`[crm] pushed ${maskEmail(input.email)} tags=${input.tags.join("+")}: ${context}`);
     return true;
   } catch (err) {
     // LOUD but contained: the booking and confirmation email must
     // proceed exactly as if the CRM did not exist.
     console.error(
-      `[crm] push FAILED (continuing, booking unaffected) ${maskEmail(input.email)} tag=${input.tag}: ${context}`,
+      `[crm] push FAILED (continuing, booking unaffected) ${maskEmail(input.email)} tags=${input.tags.join("+")}: ${context}`,
       err,
     );
     return false;

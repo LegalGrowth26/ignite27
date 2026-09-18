@@ -40,6 +40,9 @@ interface CreateInput {
   // 'paid' for real card payments, 'comp' for 100%-off promotion codes
   // (Stripe returns payment_status "no_payment_required" on those).
   paymentStatus?: "paid" | "comp";
+  // Ambassador attribution, resolved by the webhook from the session's
+  // ref_slug metadata. Null when unattributed.
+  ambassadorId?: string | null;
 }
 
 // Look up a booking by its Stripe Checkout session id. Used for idempotency.
@@ -209,6 +212,7 @@ export async function createDelegateBookingFromCheckoutSession(
     vatAmountPence,
     promo,
     paymentStatus = "paid",
+    ambassadorId = null,
   } = input;
 
   // Idempotency guard: if we've already processed this session, return.
@@ -269,6 +273,7 @@ export async function createDelegateBookingFromCheckoutSession(
       promo_code: promo?.code ?? null,
       promo_code_id: promo?.promotionCodeId ?? null,
       discount_pence: promo?.discountPence ?? null,
+      ambassador_id: ambassadorId,
       terms_accepted_at: termsAcceptedAt,
       terms_accepted_ip: termsAcceptedIp,
     })

@@ -1,4 +1,5 @@
 import type Stripe from "stripe";
+import { REF_METADATA_KEY } from "@/lib/ambassadors/attribution";
 import { generateBookingReference } from "@/lib/bookings/reference";
 import {
   exhibitorIntentToMetadata,
@@ -20,6 +21,8 @@ import { getStripe } from "./client";
 export interface CreateExhibitorCheckoutSessionInput {
   intent: ExhibitorBookingIntent;
   termsAcceptedIp: string;
+  // Ambassador share-link attribution, same handling as the delegate flow.
+  refSlug?: string | null;
   // Pricing-window selection only; may be shifted by
   // BOOKING_TEST_OVERRIDE_DATE. Real wall-clock time is used for
   // anything Stripe validates or we persist as an audit record, same as
@@ -104,13 +107,16 @@ export async function createExhibitorCheckoutSession(
 
   const bookingReference = generateBookingReference();
   const termsAcceptedAt = realNow.toISOString();
-  const metadata = exhibitorIntentToMetadata(
+  const metadata: Record<string, string> = exhibitorIntentToMetadata(
     intent,
     pricing,
     bookingReference,
     termsAcceptedAt,
     termsAcceptedIp,
   );
+  if (input.refSlug) {
+    metadata[REF_METADATA_KEY] = input.refSlug;
+  }
 
   const siteUrl = env.siteUrl().replace(/\/$/, "");
   const successUrl = `${siteUrl}/exhibit/book/success?session_id={CHECKOUT_SESSION_ID}`;

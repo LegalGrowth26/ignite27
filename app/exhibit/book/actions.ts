@@ -1,6 +1,6 @@
 "use server";
 
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import {
   BookingsClosedForCheckoutError,
   BookingsNotOpenForCheckoutError,
@@ -15,6 +15,7 @@ import {
 } from "@/lib/bookings/exhibitor-intent";
 import { countCompletedExhibitorBookings } from "@/lib/bookings/exhibitor-count";
 import { resolveBookingNow } from "@/lib/bookings/test-override";
+import { normaliseRefSlug, REF_COOKIE_NAME } from "@/lib/ambassadors/attribution";
 import { isExhibitorAvailable } from "@/lib/pricing";
 import { createSupabaseServiceClient } from "@/lib/supabase/service-client";
 
@@ -55,10 +56,13 @@ export async function createExhibitorCheckoutSessionAction(
       throw new StandsSoldOutError();
     }
 
+    const cookieStore = await cookies();
+    const refSlug = normaliseRefSlug(cookieStore.get(REF_COOKIE_NAME)?.value);
     const result = await createExhibitorCheckoutSession({
       intent: validation.intent,
       termsAcceptedIp: ip,
       pricingNow: resolveBookingNow(),
+      refSlug,
     });
     return { ok: true, url: result.url };
   } catch (err) {

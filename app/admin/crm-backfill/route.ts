@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { logAdminAction } from "@/lib/admin/audit";
 import { resolveAdminContext } from "@/lib/admin/guard";
-import { crmTagForBooking, maskEmail, pushContactToCrmSafe } from "@/lib/crm/ghl";
+import { crmTagsForBooking, maskEmail, pushContactToCrmSafe } from "@/lib/crm/ghl";
 import { createSupabaseServerClient } from "@/lib/supabase/server-client";
 import { createSupabaseServiceClient } from "@/lib/supabase/service-client";
 
@@ -73,7 +73,7 @@ export async function POST(): Promise<Response> {
     const ok = await pushContactToCrmSafe(
       {
         ...contact,
-        tag: crmTagForBooking(b.booking_type, b.ticket_type),
+        tags: crmTagsForBooking(b.booking_type, b.ticket_type),
       },
       `backfill ${b.booking_reference ?? b.id}`,
     );

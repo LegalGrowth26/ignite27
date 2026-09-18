@@ -18,6 +18,7 @@ interface CreateExhibitorInput {
   paidAt: Date;
   promo?: PromoCodeDetails | null;
   paymentStatus?: "paid" | "comp";
+  ambassadorId?: string | null;
 }
 
 // Mirrors createDelegateBookingFromCheckoutSession: same idempotency
@@ -37,6 +38,7 @@ export async function createExhibitorBookingFromCheckoutSession(
     vatAmountPence,
     promo,
     paymentStatus = "paid",
+    ambassadorId = null,
   } = input;
 
   const existing = await findBookingByStripeSessionId(client, stripeCheckoutSessionId);
@@ -103,6 +105,7 @@ export async function createExhibitorBookingFromCheckoutSession(
       promo_code: promo?.code ?? null,
       promo_code_id: promo?.promotionCodeId ?? null,
       discount_pence: promo?.discountPence ?? null,
+      ambassador_id: ambassadorId,
       terms_accepted_at: termsAcceptedAt,
       terms_accepted_ip: termsAcceptedIp,
     })
