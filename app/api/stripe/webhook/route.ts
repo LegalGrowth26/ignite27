@@ -10,6 +10,7 @@ import {
 } from "@/lib/bookings/exhibitor-intent";
 import { env } from "@/lib/env";
 import { crmTagsForBooking, pushContactToCrmSafe } from "@/lib/crm/ghl";
+import { ensureExhibitorProfileSafe } from "@/lib/exhibitors/create-profile";
 import { REF_METADATA_KEY } from "@/lib/ambassadors/attribution";
 import { resolveAmbassadorIdForSlug } from "@/lib/ambassadors/resolve";
 import { sendDelegateConfirmationEmail } from "@/lib/bookings/send-confirmation";
@@ -247,6 +248,22 @@ async function handleExhibitorSessionCompleted(
     paymentStatus,
     ambassadorId,
   });
+
+  // Exhibitor profile page: paid (or comp) booking = page exists, no
+  // approval step. Idempotent, and a failure here never affects the
+  // booking or the email.
+  await ensureExhibitorProfileSafe(
+    supabase,
+    {
+      bookingId: result.bookingId,
+      companyName: parsed.intent.company,
+      fallbackName: null,
+      contactEmail: parsed.intent.contactEmail,
+      logoPath: null,
+      websiteUrl: parsed.intent.website || null,
+    },
+    `exhibitor webhook ${result.bookingReference}`,
+  );
 
   // TomCRM sync: the MAIN CONTACT is the CRM record for an exhibitor
   // booking. Same idempotency/failure-isolation notes as the delegate

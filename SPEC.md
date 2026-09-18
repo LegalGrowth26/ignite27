@@ -336,6 +336,41 @@ job title, dietary requirement, badge QR URL.
 
 ---
 
+## Exhibitor profile pages (added September 2026)
+
+Every completed exhibitor booking (paid LIVE payment, or comp, on an
+active booking) gets a public page at /exhibitors/<slug>, created
+automatically by the Stripe webhook (one-off admin backfill covers
+bookings that predate the feature). No approval step; admins can
+unpublish or edit any page as the safety net.
+
+- **Single source rule:** exhibitor_profiles drives everything public.
+  The /exhibit strip, the /exhibitors index, and the pages themselves
+  all show published profiles (published_at set) and nothing else.
+  The old bookings-derived listing rule and the listing_hidden_at hide
+  toggle are superseded (legacy hides carry over: the backfill creates
+  those pages unpublished).
+- **Slugs:** minted from the company name (accents stripped, & becomes
+  "and", collisions suffixed -2, -3...), stable once created. Only
+  admins can change a slug.
+- **Exhibitor-editable content** (from their account, plain UPDATE
+  under RLS + column grants; slug/booking_id/published_at are not
+  reachable): display name, description (plain text, max 2000 chars),
+  website URL, one link each for LinkedIn/X/Instagram/Facebook/TikTok/
+  YouTube, up to two CTA buttons (label + URL), optional public
+  contact email (off by default). All URLs http(s)-only; everything
+  rendered escaped.
+- **Logo:** uploaded via the stand requirements form (private bucket,
+  copied to the public bucket at save time) and synced onto the
+  profile. Unpublish removes the public copy; republish restores it.
+- **SEO:** pages are indexed, titled "<Company> at IGNITE! 27", and
+  the website link is a followable backlink (part of the exhibitor
+  package's value).
+- **Cancelled/refunded stands:** admin manually unpublishes the page
+  (no automation in v1).
+
+---
+
 ## Ambassadors (added September 2026)
 
 Speakers and key partners who help sell tickets. Managed from

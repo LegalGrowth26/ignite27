@@ -271,6 +271,25 @@ export default async function BookingDetailPage({
             </div>
           ) : null}
 
+          {booking.booking_type === "exhibitor" ? (
+            <div className="mt-6 rounded-2xl border border-ignite-line bg-ignite-white p-6">
+              <h2 className="text-h3">Your exhibitor page</h2>
+              <p className="mt-2 text-small text-ignite-muted">
+                Every stand gets a public page on the IGNITE! 27 site. Add
+                what you do, your links, and up to two buttons.
+              </p>
+              <div className="mt-4">
+                <Button
+                  href={`/account/booking/${booking.id}/profile`}
+                  variant="secondary"
+                  size="md"
+                >
+                  Edit your page
+                </Button>
+              </div>
+            </div>
+          ) : null}
+
           <div className="mt-8 rounded-2xl border border-ignite-line bg-ignite-cream p-6">
             <h2 className="text-h3">Manage your booking</h2>
             <p className="mt-2 text-small text-ignite-muted">
@@ -385,9 +404,11 @@ function buildNotice(
     return { text: "Confirmation email sent again.", tone: "info" };
   if (status === "requirements_saved")
     return {
-      text: "Stand requirements saved. We will review your logo and website before they appear on the public site.",
+      text: "Stand requirements saved. Your logo and website appear on your public page and the exhibitor list shortly.",
       tone: "info",
     };
+  if (status === "profile_saved")
+    return { text: "Your exhibitor page is saved and live.", tone: "info" };
   if (status === "error" && message)
     return { text: decodeURIComponent(message), tone: "error" };
   return null;
