@@ -101,6 +101,11 @@ const createMock = vi.fn(async (params: Record<string, unknown>) => ({
   ...params,
 }));
 
+vi.mock("./products", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("./products")>()),
+  ensureStripeProducts: vi.fn(async () => {}),
+}));
+
 vi.mock("./client", () => ({
   getStripe: () => ({
     checkout: {
@@ -135,7 +140,7 @@ describe("createDelegateCheckoutSession", () => {
     });
     expect(createMock).toHaveBeenCalledTimes(1);
     const params = createMock.mock.calls[0]?.[0] as {
-      line_items: Array<{ price_data: { unit_amount: number; product_data: { name: string } } }>;
+      line_items: Array<{ price_data: { unit_amount: number; product: string } }>;
       success_url: string;
       cancel_url: string;
       metadata: Record<string, string>;
@@ -196,12 +201,12 @@ describe("createDelegateCheckoutSession", () => {
       pricingNow: IN_STANDARD,
     });
     const params = createMock.mock.calls[0]?.[0] as {
-      line_items: Array<{ price_data: { unit_amount: number; product_data: { name: string } } }>;
+      line_items: Array<{ price_data: { unit_amount: number; product: string } }>;
     };
     expect(params.line_items).toHaveLength(2);
     expect(params.line_items[0]?.price_data.unit_amount).toBe(3500); // £35 ex-VAT
     expect(params.line_items[1]?.price_data.unit_amount).toBe(1250); // £12.50 ex-VAT (£15 inc)
-    expect(params.line_items[1]?.price_data.product_data.name).toMatch(/lunch/i);
+    expect(params.line_items[1]?.price_data.product).toBe("ignite27_lunch");
   });
 
   it("emits only 2 line items maximum (no charity uplift in pricing v2)", async () => {

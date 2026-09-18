@@ -55,10 +55,8 @@ const VALUE_PROPS: ReadonlyArray<{ title: string; body: string }> = [
   },
 ];
 
-// Named speakers announced ahead of IGNITE! 27. Nathan and Mark have
-// downloaded portraits; Stephine ships as an initials-card placeholder
-// until her photo lands. To add a new speaker, drop a webp into
-// public/images/speakers/ and add an entry here.
+// Named speakers announced ahead of IGNITE! 27. To add a new speaker,
+// drop a webp into public/images/speakers/ and add an entry here.
 const NAMED_SPEAKERS: ReadonlyArray<
   | { name: string; topic: string; media: { variant: "photo"; src: string; alt: string } }
   | { name: string; topic: string; media: { variant: "initials"; initials: string } }
@@ -66,7 +64,11 @@ const NAMED_SPEAKERS: ReadonlyArray<
   {
     name: "Stephine Robinson",
     topic: "Practical AI for small businesses",
-    media: { variant: "initials", initials: "SR" },
+    media: {
+      variant: "photo",
+      src: "/images/speakers/stephine-robinson.webp",
+      alt: "Portrait of Stephine Robinson",
+    },
   },
   {
     name: "Nathan Littleton",

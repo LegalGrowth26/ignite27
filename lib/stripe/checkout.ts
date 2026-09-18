@@ -15,6 +15,7 @@ import {
 } from "@/lib/pricing";
 import { REF_METADATA_KEY } from "@/lib/ambassadors/attribution";
 import { getStripe } from "./client";
+import { ensureStripeProducts, STRIPE_PRODUCT_IDS } from "./products";
 
 export interface CreateDelegateCheckoutSessionInput {
   intent: DelegateBookingIntent;
@@ -79,19 +80,7 @@ export function computeDelegatePricing(
   };
 }
 
-function ticketProductName(intent: DelegateBookingIntent): string {
-  if (intent.ticketType === "vip") return "IGNITE! 27 VIP ticket";
-  return "IGNITE! 27 delegate ticket";
-}
-
-function ticketProductDescription(intent: DelegateBookingIntent): string {
-  if (intent.ticketType === "vip") {
-    return "Full-day access, lunch included, premium badge.";
-  }
-  return "Full-day access. Add lunch separately if you picked it.";
-}
-
-function buildLineItems(
+export function buildLineItems(
   intent: DelegateBookingIntent,
   pricing: DelegatePricingSnapshot,
 ): Stripe.Checkout.SessionCreateParams.LineItem[] {
@@ -102,6 +91,13 @@ function buildLineItems(
   // ticket still charges £30 in total), but tax reporting and any future
   // discount codes apply cleanly to the ex-VAT base — the discount reduces
   // the ex-VAT amount and VAT is recomputed on the discounted total.
+  //
+  // Line items reference the FIXED products (price_data.product, still
+  // with ad-hoc period pricing) instead of throwaway product_data, so
+  // discount codes can target ticket types via coupon applies_to. The
+  // products are ensured to exist before the session is created.
+  const ticketProduct =
+    intent.ticketType === "vip" ? STRIPE_PRODUCT_IDS.vip : STRIPE_PRODUCT_IDS.delegate;
   const items: Stripe.Checkout.SessionCreateParams.LineItem[] = [
     {
       quantity: 1,
@@ -109,10 +105,7 @@ function buildLineItems(
         currency: "gbp",
         unit_amount: pricing.ticketExVatPence,
         tax_behavior: "exclusive",
-        product_data: {
-          name: ticketProductName(intent),
-          description: ticketProductDescription(intent),
-        },
+        product: ticketProduct,
       },
     },
   ];
@@ -124,10 +117,7 @@ function buildLineItems(
         currency: "gbp",
         unit_amount: pricing.lunchExVatPence,
         tax_behavior: "exclusive",
-        product_data: {
-          name: "Lunch at IGNITE! 27",
-          description: "Hot lunch on the day, dietary options catered for.",
-        },
+        product: STRIPE_PRODUCT_IDS.lunch,
       },
     });
   }
@@ -182,6 +172,12 @@ export async function createDelegateCheckoutSession(
   const cancelUrl = `${siteUrl}/attend/book/cancel`;
 
   const stripe = getStripe();
+  // Self-provision the fixed products in this mode (no-op after the
+  // first call per process; test and live provision independently).
+  await ensureStripeProducts(stripe, [
+    intent.ticketType === "vip" ? "vip" : "delegate",
+    "lunch",
+  ]);
   const params: Stripe.Checkout.SessionCreateParams = {
     mode: "payment",
     payment_method_types: ["card"],

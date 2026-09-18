@@ -6,8 +6,10 @@ import {
   buildPromotionCodeParams,
   codeStatusLabel,
   toAdminCodeRow,
+  restrictionLabelFromProducts,
   validateCreateCodeInput,
   type AdminCodeRow,
+  type CodeRestriction,
   type CreateCodeInput,
 } from "./stripe-codes";
 
@@ -128,5 +130,97 @@ describe("toAdminCodeRow / codeStatusLabel", () => {
       codeStatusLabel({ ...rowBase, expiresAt: Math.floor(now / 1000) - 60 } as AdminCodeRow, now),
     ).toBe("Expired");
     expect(codeStatusLabel({ ...rowBase, timesRedeemed: 1 }, now)).toBe("Fully redeemed");
+  });
+});
+
+// -----------------------------------------------------------------------------
+// Ticket-type restrictions (coupon applies_to against the fixed products).
+// -----------------------------------------------------------------------------
+describe("code restrictions", () => {
+  it("maps every restriction option to the right applies_to products", () => {
+    const cases: Array<[CodeRestriction, string[] | undefined]> = [
+      ["everything", undefined],
+      ["delegates_only", ["ignite27_delegate"]],
+      ["vip_only", ["ignite27_vip"]],
+      ["exhibitors_only", ["ignite27_exhibitor"]],
+      [
+        "everything_except_lunch",
+        ["ignite27_delegate", "ignite27_vip", "ignite27_exhibitor"],
+      ],
+    ];
+    for (const [appliesTo, expected] of cases) {
+      const params = buildCouponParams({ ...base, appliesTo });
+      if (expected === undefined) {
+        expect(params.applies_to).toBeUndefined();
+      } else {
+        expect(params.applies_to).toEqual({ products: expected });
+      }
+    }
+  });
+
+  it("legacy input with NO appliesTo builds exactly the pre-restriction coupon shape", () => {
+    // Existing unrestricted codes and any older callers must keep
+    // working unchanged: no applies_to key at all.
+    const params = buildCouponParams(base);
+    expect("applies_to" in params).toBe(false);
+    expect(params).toEqual({ duration: "once", name: "STEPHINE20", percent_off: 20 });
+  });
+
+  it("rejects an unknown appliesTo value", () => {
+    const errors = validateCreateCodeInput({
+      ...base,
+      appliesTo: "platinum_only" as CodeRestriction,
+    });
+    expect(errors.some((e) => e.field === "appliesTo")).toBe(true);
+  });
+
+  it("comps stay unrestricted", () => {
+    const comp = buildCompInput("COMP-JANE-AB12", "Jane");
+    expect(comp.appliesTo).toBe("everything");
+    expect("applies_to" in buildCouponParams(comp)).toBe(false);
+  });
+
+  it("restrictionLabelFromProducts round-trips every option and handles legacy/custom", () => {
+    expect(restrictionLabelFromProducts(undefined)).toBe("Everything"); // legacy coupon, no applies_to
+    expect(restrictionLabelFromProducts([])).toBe("Everything");
+    expect(restrictionLabelFromProducts(["ignite27_delegate"])).toBe("Delegates only");
+    expect(restrictionLabelFromProducts(["ignite27_vip"])).toBe("VIP only");
+    expect(restrictionLabelFromProducts(["ignite27_exhibitor"])).toBe("Exhibitors only");
+    // Order must not matter.
+    expect(
+      restrictionLabelFromProducts(["ignite27_vip", "ignite27_exhibitor", "ignite27_delegate"]),
+    ).toBe("Everything except lunch");
+    // Hand-edited sets in the Stripe dashboard render honestly.
+    expect(restrictionLabelFromProducts(["prod_manually_made"])).toBe("Custom");
+  });
+
+  it("toAdminCodeRow surfaces the restriction label, Everything for legacy coupons", () => {
+    const restricted = toAdminCodeRow({
+      id: "promo_2",
+      code: "VIPONLY10",
+      active: true,
+      coupon: {
+        percent_off: 10,
+        amount_off: null,
+        applies_to: { products: ["ignite27_vip"] },
+      },
+      times_redeemed: 0,
+      max_redemptions: null,
+      expires_at: null,
+      metadata: {},
+    } as unknown as Stripe.PromotionCode);
+    expect(restricted.restrictionLabel).toBe("VIP only");
+
+    const legacy = toAdminCodeRow({
+      id: "promo_1",
+      code: "TOMS20",
+      active: true,
+      coupon: { percent_off: 20, amount_off: null },
+      times_redeemed: 3,
+      max_redemptions: null,
+      expires_at: null,
+      metadata: {},
+    } as unknown as Stripe.PromotionCode);
+    expect(legacy.restrictionLabel).toBe("Everything");
   });
 });
