@@ -57,20 +57,20 @@ store it in whatever cold storage we settle on.
 
 ## Restoring a backup
 
-Restore into a **fresh Postgres 15+ database** — never into
+Restore into a **fresh Postgres 17+ database** — never into
 production. Practise the restore in dev first.
 
 Prerequisites:
 
-- Postgres 15 client tools locally (`psql`, `pg_restore` if needed).
-  On macOS: `brew install postgresql@15`. Verify: `psql --version`
-  should say `15.x`.
+- Postgres 17 client tools locally (`psql`, `pg_restore` if needed).
+  On macOS: `brew install postgresql@17`. Verify: `psql --version`
+  should say `17.x`.
 - A target database URL. For dev/testing, spin up a local Postgres:
 
     ```sh
     docker run --rm -d --name ignite27-restore \
       -e POSTGRES_PASSWORD=restore -p 55432:5432 \
-      postgres:15
+      postgres:17
     ```
 
     Target URL: `postgresql://postgres:restore@localhost:55432/postgres`.

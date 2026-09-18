@@ -49,15 +49,20 @@ jobs:
           fi
           echo "SUPABASE_DB_URL is set (length=${#SUPABASE_DB_URL})"
 
-      # Supabase Postgres is currently 15. pg_dump versions must be
-      # >= the server version. Ubuntu's default is 14, so we install
-      # the PGDG 15 client explicitly.
-      - name: Install PostgreSQL 15 client
+      # Supabase prod is Postgres 17; pg_dump must be >= the server
+      # major version or it aborts with a version mismatch. The runner
+      # image ships an older client, so install the PGDG 17 client.
+      # Key handling uses the signed-by keyring file: apt-key is
+      # removed on current ubuntu-latest images.
+      - name: Install PostgreSQL 17 client
         run: |
-          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
-          wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          sudo sh -c 'echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
           sudo apt-get update
-          sudo apt-get install -y postgresql-client-15
+          sudo apt-get install -y postgresql-client-17
+          /usr/lib/postgresql/17/bin/pg_dump --version
 
       - name: Compute backup filename
         id: filename
@@ -69,13 +74,15 @@ jobs:
       # environments (the restore target likely won't have the same
       # role names as Supabase). --clean --if-exists makes the dump
       # safely re-runnable against an empty target. Pipe straight to
-      # gzip so we never write the plaintext SQL to disk.
+      # gzip so we never write the plaintext SQL to disk. The absolute
+      # v17 path sidesteps the postgresql-common wrapper, so the runner
+      # image's bundled older client can never be picked by accident.
       - name: pg_dump | gzip
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
           set -o pipefail
-          pg_dump \
+          /usr/lib/postgresql/17/bin/pg_dump \
             --dbname="${SUPABASE_DB_URL}" \
             --format=plain \
             --no-owner \
