@@ -43,6 +43,6 @@ export const config = {
   // Everything except static assets and the Stripe webhook (signed
   // server-to-server calls carry no session and must not be touched).
   matcher: [
-    "/((?!_next/static|_next/image|api/stripe/webhook|favicon|images/|fonts/|.*\\.(?:png|jpg|jpeg|webp|svg|ico|txt|xml)$).*)",
+    "/((?!_next/static|_next/image|api/stripe/webhook|api/cron/|favicon|images/|fonts/|.*\\.(?:png|jpg|jpeg|webp|svg|ico|txt|xml)$).*)",
   ],
 };
