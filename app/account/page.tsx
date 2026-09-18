@@ -77,6 +77,23 @@ export default async function AccountHome() {
             </form>
           </div>
 
+          {rows.length > 0 ? (
+            <div className="mt-6 rounded-2xl border border-ignite-line bg-ignite-cream p-5">
+              <p className="text-body text-ignite-ink">
+                Plan your day: the main-stage running order plus any workshops
+                you book, all in one place.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-3">
+                <Button href="/my-day" variant="primary" size="md">
+                  See your day plan
+                </Button>
+                <Button href="/workshops" variant="secondary" size="md">
+                  Browse workshops
+                </Button>
+              </div>
+            </div>
+          ) : null}
+
           {rows.length === 0 ? (
             <div className="mt-10 rounded-2xl border border-ignite-line bg-ignite-cream p-6">
               <p className="text-body text-ignite-ink">No bookings yet.</p>

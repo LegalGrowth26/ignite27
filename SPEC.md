@@ -427,6 +427,13 @@ For each booking, the system stores:
 - Workshop announcements go through the scheduled email system; the
   'everyone_except_vips' audience exists so the "open to everyone"
   email does not double-mail VIPs.
+- **Day planner (/my-day, Part 2):** signed-in attendees see the
+  published main-stage running order (agenda_items, admin-entered from
+  /admin/agenda) merged with their booked workshops in time order,
+  mobile-first. Every workshop that overlaps a talk is flagged
+  ("You'll miss part of X"); back-to-back is not an overlap. The main
+  stage is always shown; agenda items are display-only (nothing books
+  onto them).
 
 ---
 
