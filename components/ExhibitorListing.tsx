@@ -1,29 +1,26 @@
 /* eslint-disable @next/next/no-img-element */
+import Link from "next/link";
 import { Container } from "./Container";
 import { Section } from "./Section";
-import { fetchExhibitorListing } from "@/lib/exhibitors/listing";
+import { fetchPublishedProfileCards } from "@/lib/exhibitors/profiles";
 import { createSupabaseServiceClient } from "@/lib/supabase/service-client";
 
-// Public exhibitor strip for /exhibit. Lists every exhibitor booking
-// with a successful LIVE payment automatically (no admin approval):
-// company name from the booking immediately, logo and website joining
-// as the exhibitor submits them. Admin-hidden listings are excluded.
-// Renders NOTHING (no section at all) while there are zero exhibitors,
-// same as the approval-era component.
-//
-// The service client is required for the bookings read (no anon RLS on
-// bookings) and exposes only name/logo/website. Logos are served from
-// the PUBLIC bucket only; the private bucket is never read here.
+// Public exhibitor strip for /exhibit, fed by exhibitor_profiles: one
+// rule for the whole site, published profile = listed. Pages are
+// created automatically when a stand is paid for (webhook/backfill),
+// so this shows the same set as /exhibitors; tiles link to each
+// exhibitor's own page. Renders NOTHING (no section at all) while
+// there are zero published profiles.
 export async function ExhibitorListing() {
-  let rows: Awaited<ReturnType<typeof fetchExhibitorListing>>;
+  let cards: Awaited<ReturnType<typeof fetchPublishedProfileCards>>;
   try {
-    rows = await fetchExhibitorListing(createSupabaseServiceClient());
+    cards = await fetchPublishedProfileCards(createSupabaseServiceClient());
   } catch (err) {
     // A listing failure must never take /exhibit down.
     console.error("[exhibitor-listing] fetch failed:", err);
     return null;
   }
-  if (rows.length === 0) return null;
+  if (cards.length === 0) return null;
 
   return (
     <Section tone="cream">
@@ -31,38 +28,38 @@ export async function ExhibitorListing() {
         <p className="text-eyebrow uppercase text-ignite-red">Confirmed exhibitors</p>
         <h2 className="mt-3 text-h2">Already in the room.</h2>
         <ul className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          {rows.map((r) => {
-            const tile = (
-              <span className="flex h-full flex-col items-center justify-center gap-2 p-4 text-center">
-                {r.logoUrl ? (
+          {cards.map((c) => (
+            <li
+              key={c.slug}
+              className="rounded-lg border border-ignite-line bg-ignite-white transition-colors hover:border-ignite-red/40"
+            >
+              <Link
+                href={`/exhibitors/${c.slug}`}
+                className="flex h-full flex-col items-center justify-center gap-2 p-4 text-center"
+              >
+                {c.logoUrl ? (
                   <img
-                    src={r.logoUrl}
-                    alt={`${r.displayName} logo`}
+                    src={c.logoUrl}
+                    alt={`${c.displayName} logo`}
                     loading="lazy"
                     className="max-h-14 max-w-full object-contain"
                   />
                 ) : null}
                 <span className="text-small font-semibold text-ignite-ink">
-                  {r.displayName}
+                  {c.displayName}
                 </span>
-              </span>
-            );
-            return (
-              <li
-                key={r.bookingId}
-                className="rounded-lg border border-ignite-line bg-ignite-white transition-colors hover:border-ignite-red/40"
-              >
-                {r.websiteUrl ? (
-                  <a href={r.websiteUrl} target="_blank" rel="noreferrer" className="block h-full">
-                    {tile}
-                  </a>
-                ) : (
-                  tile
-                )}
-              </li>
-            );
-          })}
+              </Link>
+            </li>
+          ))}
         </ul>
+        <p className="mt-8 text-body">
+          <Link
+            href="/exhibitors"
+            className="font-semibold text-ignite-ink underline underline-offset-4 hover:text-ignite-red"
+          >
+            Meet this year&apos;s exhibitors
+          </Link>
+        </p>
       </Container>
     </Section>
   );

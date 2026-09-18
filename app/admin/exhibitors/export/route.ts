@@ -2,7 +2,6 @@ import { createSupabaseServerClient } from "@/lib/supabase/server-client";
 import { resolveAdminContext } from "@/lib/admin/guard";
 import { csvResponse, toCsv } from "@/lib/admin/csv";
 import { isTbcAttendeeName } from "@/lib/bookings/exhibitor-intent";
-import { buildExhibitorListing } from "@/lib/exhibitors/listing";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +14,10 @@ interface Row {
   payment_status: string;
   booking_status: string;
   stripe_checkout_session_id: string | null;
-  listing_hidden_at: string | null;
+  exhibitor_profiles: {
+    slug: string;
+    published_at: string | null;
+  } | null;
   exhibitor_requirements: {
     needs_power: boolean;
     needs_table_chairs: boolean;
@@ -41,7 +43,8 @@ export async function GET(): Promise<Response> {
     .select(
       `booking_reference, company_name, company_contact_name,
        company_contact_email, company_website, payment_status,
-       booking_status, stripe_checkout_session_id, listing_hidden_at,
+       booking_status, stripe_checkout_session_id,
+       exhibitor_profiles (slug, published_at),
        exhibitor_requirements (needs_power, needs_table_chairs, signage_name, website_url),
        booking_attendees (first_name, surname, email, company, dietary_requirement)`,
     )
@@ -60,27 +63,13 @@ export async function GET(): Promise<Response> {
     { header: "Needs power", value: (r) => r.exhibitor_requirements ? (r.exhibitor_requirements.needs_power ? "yes" : "no") : "" },
     { header: "Table + chairs", value: (r) => r.exhibitor_requirements ? (r.exhibitor_requirements.needs_table_chairs ? "yes" : "no") : "" },
     {
-      header: "Listed on public site",
+      header: "Public page",
       value: (r) =>
-        buildExhibitorListing([
-          {
-            bookingId: r.booking_reference ?? "",
-            companyName: r.company_name,
-            signageName: r.exhibitor_requirements?.signage_name ?? null,
-            attendeeCompany: r.booking_attendees[0]?.company ?? null,
-            contactName: r.company_contact_name,
-            websiteUrl: null,
-            logoPath: null,
-            paymentStatus: r.payment_status,
-            bookingStatus: r.booking_status,
-            stripeCheckoutSessionId: r.stripe_checkout_session_id,
-            listingHiddenAt: r.listing_hidden_at,
-          },
-        ]).length > 0
-          ? "yes"
-          : r.listing_hidden_at
-            ? "hidden by admin"
-            : "no",
+        r.exhibitor_profiles
+          ? r.exhibitor_profiles.published_at
+            ? `/exhibitors/${r.exhibitor_profiles.slug}`
+            : "unpublished"
+          : "none",
     },
     { header: "Payment status", value: (r) => r.payment_status },
     {
