@@ -61,6 +61,7 @@ describe("buildExhibitorLineItems", () => {
     // Ex-VAT amount goes to Stripe; Stripe Tax adds the 20% on top.
     expect(item.price_data?.unit_amount).toBe(18900);
     expect(item.price_data?.tax_behavior).toBe("exclusive");
-    expect(item.price_data?.product_data?.name).toBe("IGNITE! 27 exhibitor stand");
+    // Fixed product reference: coupons can target the exhibitor stand.
+    expect(item.price_data?.product).toBe("ignite27_exhibitor");
   });
 });
