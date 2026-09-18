@@ -50,6 +50,7 @@ export function ScheduleEmailForm() {
             <option value="delegates">Delegates (includes comp guests)</option>
             <option value="vips">VIPs</option>
             <option value="exhibitors">Exhibitors (named attendees)</option>
+            <option value="everyone_except_vips">Everyone except VIPs</option>
           </select>
         </div>
         <div>

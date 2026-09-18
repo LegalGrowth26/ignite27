@@ -25,6 +25,7 @@ const FOOTER_COLUMNS: readonly FooterColumn[] = [
     heading: "The day",
     items: [
       { href: "/agenda", label: "Agenda" },
+      { href: "/workshops", label: "Workshops" },
       { href: "/speakers", label: "Speakers" },
       { href: "/venue", label: "Venue" },
     ],
