@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/Button";
 import { Container } from "@/components/Container";
+import { LatestFromIgnite } from "@/components/LatestFromIgnite";
 import { LaunchCountdown } from "@/components/LaunchCountdown";
 import { Section } from "@/components/Section";
 import { SectionHeader } from "@/components/SectionHeader";
@@ -127,6 +128,7 @@ export default function HomePage() {
     <>
       <Hero />
       <WhatIsIgnite />
+      <LatestFromIgnite />
       <ValueProps />
       <LastYear />
       <Speakers />

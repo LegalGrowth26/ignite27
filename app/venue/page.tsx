@@ -47,6 +47,10 @@ const PRACTICAL_INFO: ReadonlyArray<{ label: string; body: string }> = [
     body: "Fully accessible throughout. Lift, ramps, accessible WCs.",
   },
   {
+    label: "Quiet room",
+    body: "Need a breather? IGNITE! has a dedicated quiet room, away from the noise, open all day.",
+  },
+  {
     label: "Getting here",
     body: "Good road links via the A1 and A46. Around 90 minutes from London. Local hotels are available for delegates wanting to stay overnight.",
   },
