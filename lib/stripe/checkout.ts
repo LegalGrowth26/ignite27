@@ -13,12 +13,16 @@ import {
   BookingsNotOpenError,
   getCurrentPricing,
 } from "@/lib/pricing";
+import { REF_METADATA_KEY } from "@/lib/ambassadors/attribution";
 import { getStripe } from "./client";
 import { ensureStripeProducts, STRIPE_PRODUCT_IDS } from "./products";
 
 export interface CreateDelegateCheckoutSessionInput {
   intent: DelegateBookingIntent;
   termsAcceptedIp: string;
+  // Ambassador share-link attribution (validated slug from the ref
+  // cookie), carried in session metadata and resolved by the webhook.
+  refSlug?: string | null;
   // The instant used for pricing-window selection only. May be shifted by
   // BOOKING_TEST_OVERRIDE_DATE (see lib/bookings/test-override.ts). This
   // function internally uses real wall-clock time for any timestamp that
@@ -159,6 +163,9 @@ export async function createDelegateCheckoutSession(
   // Stripe's MetadataParam is Record<string, string>; our typed shape is a
   // superset but TS needs an index signature. Spread into a plain record.
   const metadata: Record<string, string> = { ...metadataObject };
+  if (input.refSlug) {
+    metadata[REF_METADATA_KEY] = input.refSlug;
+  }
 
   const siteUrl = env.siteUrl().replace(/\/$/, "");
   const successUrl = `${siteUrl}/attend/book/success?session_id={CHECKOUT_SESSION_ID}`;

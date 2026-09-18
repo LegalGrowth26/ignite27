@@ -1,6 +1,6 @@
 "use server";
 
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import {
   createDelegateCheckoutSession,
   BookingsNotOpenForCheckoutError,
@@ -11,6 +11,7 @@ import {
   type IntentFieldError,
 } from "@/lib/bookings/intent";
 import { resolveBookingNow } from "@/lib/bookings/test-override";
+import { normaliseRefSlug, REF_COOKIE_NAME } from "@/lib/ambassadors/attribution";
 
 export type CreateCheckoutSessionActionResult =
   | { ok: true; url: string }
@@ -41,12 +42,17 @@ export async function createCheckoutSessionAction(
     headerList.get("x-forwarded-for"),
     headerList.get("x-real-ip"),
   );
+  // Ambassador attribution: last-touch ref cookie, set by the
+  // middleware, re-validated here before it rides into metadata.
+  const cookieStore = await cookies();
+  const refSlug = normaliseRefSlug(cookieStore.get(REF_COOKIE_NAME)?.value);
 
   try {
     const result = await createDelegateCheckoutSession({
       intent: validation.intent,
       termsAcceptedIp: ip,
       pricingNow: resolveBookingNow(),
+      refSlug,
     });
     return { ok: true, url: result.url };
   } catch (err) {

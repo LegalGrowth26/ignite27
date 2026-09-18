@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   crmTagForBooking,
+  crmTagsForBooking,
   isCrmConfigured,
   maskEmail,
   pushContactToCrmSafe,
@@ -18,6 +19,29 @@ describe("crmTagForBooking", () => {
   });
   // Partner27 is reserved in lib/crm/ghl.ts for partner bookings; no
   // booking type maps to it yet, so there is nothing more to test here.
+});
+
+describe("crmTagsForBooking", () => {
+  it("base tag only for ordinary bookings", () => {
+    expect(crmTagsForBooking("delegate", "regular")).toEqual(["Delegate27"]);
+    expect(crmTagsForBooking("exhibitor", "exhibitor")).toEqual(["Exhibitor27"]);
+  });
+
+  it("ambassador comp recipients gain CompGuest27 on top of the base tag", () => {
+    expect(crmTagsForBooking("delegate", "regular", { ambassadorComp: true })).toEqual([
+      "Delegate27",
+      "CompGuest27",
+    ]);
+  });
+
+  it("ambassador-attributed paid bookings gain AmbassadorRef27", () => {
+    expect(
+      crmTagsForBooking("delegate", "vip", { ambassadorAttributed: true }),
+    ).toEqual(["VIP27", "AmbassadorRef27"]);
+    expect(
+      crmTagsForBooking("exhibitor", "exhibitor", { ambassadorAttributed: true }),
+    ).toEqual(["Exhibitor27", "AmbassadorRef27"]);
+  });
 });
 
 describe("maskEmail", () => {
@@ -49,7 +73,7 @@ describe("pushContactToCrmSafe", () => {
     firstName: "Ada",
     lastName: "Lovelace",
     phone: "07700900000",
-    tag: "Delegate27" as const,
+    tags: ["Delegate27" as const],
   };
 
   function okResponse(body: unknown): Response {
