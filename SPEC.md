@@ -202,9 +202,12 @@ No checkout flow for sponsorship.
 ### Partners (reworked September 2026)
 
 Partner deals are sold by Tom/Paul and invoiced OFFLINE; there is no
-checkout flow. Three tiers, each with category exclusivity, and the
-tier prices ARE displayed publicly on /exhibit (September 2026
-decision, superseding the old "do not display partner pricing" rule):
+checkout flow. Three tiers, each with category exclusivity. Partner
+pricing is **enquiry-led and NOT displayed publicly** (the tier prices
+were briefly shown on /exhibit in September 2026 and then reverted the
+same month; the rule stands: tier NAMES public, £ figures never). The
+standard prices below are internal, for this file and the admin
+agreed-price default only:
 
 | Tier                  | Standard price (ex-VAT) |
 |-----------------------|-------------------------|
@@ -216,6 +219,9 @@ decision, superseding the old "do not display partner pricing" rule):
   **agreed_price_pence** (defaults from the tier, overridable per
   deal), category (fixed exclusivity list + "other"), status
   (agreed / paid / ended), notes, website, logo.
+- **Public display shows tier names and benefits only** (Headline
+  Partner / Speakers' Den Partner / Partner) with the enquiry CTA;
+  prices live in admin and this file.
 - **Category exclusivity WARNS, never blocks**: adding a partner into
   an occupied category names the clash and needs an explicit
   "add anyway" confirmation. "other" is exempt.
