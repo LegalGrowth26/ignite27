@@ -403,6 +403,42 @@ unpublish or edit any page as the safety net.
 
 ---
 
+## Speaker profiles (added September 2026)
+
+Speakers manage their own public pages, mirroring the exhibitor
+pattern. Admin adds a speaker in /admin/speakers (name, email, talk
+title) -> the page at /speakers/<slug> is LIVE immediately (adding =
+announcing), the login is created, and the invite email (set-password
+link + editor link) goes out. A speaker can be added WITHOUT an email:
+the page exists account-less and admin attaches the email later, which
+creates the account and sends the invite then.
+
+- **Single source:** published speaker_profiles drive /speakers, each
+  /speakers/<slug> page, and the home speaker cards. The hardcoded
+  speaker arrays are gone.
+- **Speaker-editable** (from /speaker; plain UPDATE under RLS + column
+  grants, slug/user_id/published_at unreachable): photo (private
+  bucket -> public copy at save, like logos; JPG/PNG/WebP, no SVG),
+  bio, talk title + description, up to 6 "what you'll learn" bullets,
+  website, social links (shared allow-list), one optional CTA button,
+  and an optional enquiries email.
+- **Contact form** on every page: relays via the Resend choke point TO
+  the speaker (enquiries email, else account email; NEVER rendered
+  publicly), reply-to the sender. Spam defence: hidden honeypot
+  (silently dropped), max 5 messages/hour per IP and 20/day per
+  speaker (DB-backed via speaker_messages, which also stores an
+  admin-visible copy of every message).
+- **Admin:** view/edit any page (slug included), unpublish/republish
+  (public photo copy pulled/restored), attach-email + invite for
+  account-less pages, per-speaker message log.
+- Speakers are NOT ambassadors by this feature; that stays a separate
+  add via /admin -> Ambassadors.
+- One-off backfill seeds the three announced speakers from the old
+  hardcoded content (published, account-less) and is skip-safe on
+  re-run.
+
+---
+
 ## Ambassadors (added September 2026)
 
 Speakers and key partners who help sell tickets. Managed from
