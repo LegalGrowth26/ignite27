@@ -5,7 +5,11 @@ import { redirect } from "next/navigation";
 import { resolveOwnAppUserId } from "@/lib/account/queries";
 import { SOCIAL_PLATFORMS } from "@/lib/exhibitors/profile";
 import { publishSpeakerPhotoCopy } from "@/lib/speakers/photo";
-import { validateSpeakerContent } from "@/lib/speakers/profile";
+import {
+  showsOnMainStage,
+  validateSpeakerContent,
+  type SpeakerProfileType,
+} from "@/lib/speakers/profile";
 import { createSupabaseServerClient } from "@/lib/supabase/server-client";
 import { createSupabaseServiceClient } from "@/lib/supabase/service-client";
 
@@ -40,20 +44,29 @@ export async function saveSpeakerProfileAction(
   // photo path.
   const { data: profileData, error: profileErr } = await supabase
     .from("speaker_profiles")
-    .select("id, slug, photo_path")
+    .select("id, slug, photo_path, profile_type")
     .eq("user_id", appUserId)
     .maybeSingle();
   if (profileErr || !profileData) {
     return { error: "No speaker page is linked to this account." };
   }
-  const profile = profileData as { id: string; slug: string; photo_path: string | null };
+  const profile = profileData as {
+    id: string;
+    slug: string;
+    photo_path: string | null;
+    profile_type: SpeakerProfileType;
+  };
+  // Workshop hosts do not edit the talk block: their session data
+  // lives in the workshops admin. Server-side gate, not just hidden
+  // fields; stored talk values (if any) survive untouched.
+  const editsTalk = showsOnMainStage(profile.profile_type);
 
   const validated = validateSpeakerContent({
     displayName: formData.get("displayName"),
     bio: formData.get("bio"),
-    talkTitle: formData.get("talkTitle"),
-    talkDescription: formData.get("talkDescription"),
-    talkTakeaways: formData.get("talkTakeaways"),
+    talkTitle: editsTalk ? formData.get("talkTitle") : "",
+    talkDescription: editsTalk ? formData.get("talkDescription") : "",
+    talkTakeaways: editsTalk ? formData.get("talkTakeaways") : "",
     websiteUrl: formData.get("websiteUrl"),
     socialLinks: SOCIAL_PLATFORMS.map((platform) => ({
       platform,
@@ -89,9 +102,13 @@ export async function saveSpeakerProfileAction(
     .update({
       display_name: v.displayName,
       bio: v.bio,
-      talk_title: v.talkTitle,
-      talk_description: v.talkDescription,
-      talk_takeaways: v.talkTakeaways,
+      ...(editsTalk
+        ? {
+            talk_title: v.talkTitle,
+            talk_description: v.talkDescription,
+            talk_takeaways: v.talkTakeaways,
+          }
+        : {}),
       website_url: v.websiteUrl,
       social_links: v.socialLinks,
       cta_label: v.ctaLabel,

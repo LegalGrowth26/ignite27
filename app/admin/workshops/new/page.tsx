@@ -10,7 +10,16 @@ export const metadata: Metadata = {
 };
 
 export default async function NewWorkshopPage() {
-  await requireSuperAdmin();
+  const { client } = await requireSuperAdmin();
+
+  const { data: hostRows } = await client
+    .from("speaker_profiles")
+    .select("id, display_name")
+    .in("profile_type", ["workshop_host", "both"])
+    .order("display_name", { ascending: true });
+  const hostOptions = ((hostRows ?? []) as Array<{ id: string; display_name: string }>).map(
+    (h) => ({ id: h.id, name: h.display_name }),
+  );
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -29,10 +38,12 @@ export default async function NewWorkshopPage() {
         <WorkshopForm
           action={createWorkshopAction}
           submitLabel="Create draft workshop"
+          hostOptions={hostOptions}
           defaults={{
             title: "",
             description: "",
             speakerName: "",
+            hostProfileId: "",
             room: "",
             startsAt: "2027-01-21T10:00",
             endsAt: "2027-01-21T11:00",

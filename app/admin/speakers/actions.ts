@@ -10,7 +10,12 @@ import {
   ensureSpeakerProfile,
 } from "@/lib/speakers/create-profile";
 import { publishSpeakerPhotoCopy } from "@/lib/speakers/photo";
-import { validateSpeakerContent } from "@/lib/speakers/profile";
+import {
+  SPEAKER_PROFILE_TYPES,
+  showsOnMainStage,
+  validateSpeakerContent,
+  type SpeakerProfileType,
+} from "@/lib/speakers/profile";
 import { sendSpeakerInvite } from "@/lib/speakers/send-invite";
 import { createSupabaseServiceClient } from "@/lib/supabase/service-client";
 
@@ -45,6 +50,10 @@ export async function addSpeakerAction(
   const name = String(formData.get("name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const talkTitle = String(formData.get("talkTitle") ?? "").trim();
+  const profileType = String(formData.get("profileType") ?? "main_stage") as SpeakerProfileType;
+  if (!SPEAKER_PROFILE_TYPES.includes(profileType)) {
+    return { error: "Pick a profile type." };
+  }
 
   if (!name || name.length > 120) return { error: "Speaker name is required (max 120 characters)." };
   if (talkTitle.length > 200) return { error: "Talk title is too long (max 200 characters)." };
@@ -54,7 +63,11 @@ export async function addSpeakerAction(
 
   let created;
   try {
-    created = await ensureSpeakerProfile(service, { displayName: name, talkTitle });
+    created = await ensureSpeakerProfile(service, {
+      displayName: name,
+      talkTitle,
+      profileType,
+    });
   } catch (err) {
     console.error("[admin/speakers] create failed:", err);
     return { error: "Could not create the speaker page. Try again." };
@@ -79,6 +92,7 @@ export async function addSpeakerAction(
   await logAdminAction(ctx.appUserId, "speaker.add", {
     speaker_profile_id: created.profileId,
     slug: created.slug,
+    profile_type: profileType,
     with_account: Boolean(email),
     invited,
   });
@@ -167,12 +181,21 @@ export async function adminSaveSpeakerAction(
     };
   }
 
+  const profileType = String(formData.get("profileType") ?? "main_stage") as SpeakerProfileType;
+  if (!SPEAKER_PROFILE_TYPES.includes(profileType)) {
+    return { error: "Pick a profile type." };
+  }
+  // Same rule as the speaker's own editor: workshop hosts' session
+  // data lives in the workshops admin, so talk fields only apply to
+  // main-stage(-and-both) profiles.
+  const editsTalk = showsOnMainStage(profileType);
+
   const validated = validateSpeakerContent({
     displayName: formData.get("displayName"),
     bio: formData.get("bio"),
-    talkTitle: formData.get("talkTitle"),
-    talkDescription: formData.get("talkDescription"),
-    talkTakeaways: formData.get("talkTakeaways"),
+    talkTitle: editsTalk ? formData.get("talkTitle") : "",
+    talkDescription: editsTalk ? formData.get("talkDescription") : "",
+    talkTakeaways: editsTalk ? formData.get("talkTakeaways") : "",
     websiteUrl: formData.get("websiteUrl"),
     socialLinks: SOCIAL_PLATFORMS.map((platform) => ({
       platform,
@@ -189,11 +212,16 @@ export async function adminSaveSpeakerAction(
     .from("speaker_profiles")
     .update({
       slug,
+      profile_type: profileType,
       display_name: v.displayName,
       bio: v.bio,
-      talk_title: v.talkTitle,
-      talk_description: v.talkDescription,
-      talk_takeaways: v.talkTakeaways,
+      ...(editsTalk
+        ? {
+            talk_title: v.talkTitle,
+            talk_description: v.talkDescription,
+            talk_takeaways: v.talkTakeaways,
+          }
+        : {}),
       website_url: v.websiteUrl,
       social_links: v.socialLinks,
       cta_label: v.ctaLabel,
@@ -212,6 +240,7 @@ export async function adminSaveSpeakerAction(
   await logAdminAction(ctx.appUserId, "speaker.edit", {
     speaker_profile_id: profileId,
     slug,
+    profile_type: profileType,
     slug_changed: slug !== existing.slug,
     previous_slug: existing.slug,
   });

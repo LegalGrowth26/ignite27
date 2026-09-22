@@ -17,9 +17,53 @@ export interface WorkshopRow {
   published_at: string | null;
 }
 
+// The host's public identity, when the workshop is linked to a
+// PUBLISHED speaker profile (host_profile_id). The free-text
+// speaker_name stays as the fallback for unlinked hosts.
+export interface WorkshopHost {
+  slug: string;
+  displayName: string;
+}
+
 export interface PublicWorkshop extends WorkshopRow {
   booked: number;
   spacesLeft: number;
+  host: WorkshopHost | null;
+}
+
+interface HostEmbedRow {
+  slug: string;
+  display_name: string;
+  published_at: string | null;
+}
+
+// Pure and unit-tested: a linked UNPUBLISHED profile must not leak a
+// dead link; it falls back to the plain text name like an unlinked
+// workshop.
+export function resolveWorkshopHost(
+  embed: HostEmbedRow | null | undefined,
+): WorkshopHost | null {
+  if (!embed || !embed.published_at) return null;
+  return { slug: embed.slug, displayName: embed.display_name };
+}
+
+const PUBLIC_WORKSHOP_COLUMNS =
+  "id, title, description, speaker_name, room, starts_at, ends_at, capacity, published_at, " +
+  "workshop_bookings(count), speaker_profiles ( slug, display_name, published_at )";
+
+type RawPublicWorkshop = WorkshopRow & {
+  workshop_bookings: Array<{ count: number }>;
+  speaker_profiles: HostEmbedRow | null;
+};
+
+function toPublicWorkshop(w: RawPublicWorkshop): PublicWorkshop {
+  const booked = w.workshop_bookings?.[0]?.count ?? 0;
+  return {
+    ...w,
+    booked,
+    spacesLeft: Math.max(0, w.capacity - booked),
+    host: resolveWorkshopHost(w.speaker_profiles),
+  };
 }
 
 export async function fetchPublishedWorkshops(
@@ -27,22 +71,11 @@ export async function fetchPublishedWorkshops(
 ): Promise<PublicWorkshop[]> {
   const { data, error } = await client
     .from("workshops")
-    .select(
-      "id, title, description, speaker_name, room, starts_at, ends_at, capacity, published_at, workshop_bookings(count)",
-    )
+    .select(PUBLIC_WORKSHOP_COLUMNS)
     .not("published_at", "is", null)
     .order("starts_at", { ascending: true });
   if (error) throw new Error(`workshops query failed: ${error.message}`);
-  return ((data ?? []) as unknown as Array<
-    WorkshopRow & { workshop_bookings: Array<{ count: number }> }
-  >).map((w) => {
-    const booked = w.workshop_bookings?.[0]?.count ?? 0;
-    return {
-      ...w,
-      booked,
-      spacesLeft: Math.max(0, w.capacity - booked),
-    };
-  });
+  return ((data ?? []) as unknown as RawPublicWorkshop[]).map(toPublicWorkshop);
 }
 
 export async function fetchPublishedWorkshop(
@@ -51,19 +84,13 @@ export async function fetchPublishedWorkshop(
 ): Promise<PublicWorkshop | null> {
   const { data, error } = await client
     .from("workshops")
-    .select(
-      "id, title, description, speaker_name, room, starts_at, ends_at, capacity, published_at, workshop_bookings(count)",
-    )
+    .select(PUBLIC_WORKSHOP_COLUMNS)
     .eq("id", id)
     .not("published_at", "is", null)
     .maybeSingle();
   if (error) throw new Error(`workshop query failed: ${error.message}`);
   if (!data) return null;
-  const w = data as unknown as WorkshopRow & {
-    workshop_bookings: Array<{ count: number }>;
-  };
-  const booked = w.workshop_bookings?.[0]?.count ?? 0;
-  return { ...w, booked, spacesLeft: Math.max(0, w.capacity - booked) };
+  return toPublicWorkshop(data as unknown as RawPublicWorkshop);
 }
 
 // The signed-in user's booked workshop ids (RLS: own rows only).

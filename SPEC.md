@@ -460,6 +460,20 @@ creates the account and sends the invite then.
 - **Admin:** view/edit any page (slug included), unpublish/republish
   (public photo copy pulled/restored), attach-email + invite for
   account-less pages, per-speaker message log.
+- **Profile types (added September 2026):** profile_type is
+  main_stage | workshop_host | both ('both' = one profile, both
+  places). /speakers and the home cards show main_stage + both only
+  ("On the main stage"). Workshop hosts surface via /workshops:
+  workshops.host_profile_id links a workshop to its host's profile
+  (free-text speaker_name remains the fallback for unlinked hosts,
+  and a linked but UNPUBLISHED profile falls back too, never a dead
+  link); the host's page swaps the talk block for their workshop(s)
+  (title, time, room, booking link; no live spaces-left figure).
+  One canonical URL for everyone: /speakers/<slug>. Hosts do not
+  edit talk fields (their session data lives in the workshops
+  admin), enforced server-side in both editors; profile_type is
+  admin-only, like the slug. The three seeded speakers defaulted to
+  main_stage.
 - Speakers are NOT ambassadors by this feature; that stays a separate
   add via /admin -> Ambassadors.
 - One-off backfill seeds the three announced speakers from the old
