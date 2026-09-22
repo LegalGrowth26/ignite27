@@ -6,6 +6,7 @@ import { env } from "@/lib/env";
 import {
   adjustAllowanceAction,
   createAmbassadorAction,
+  resendAmbassadorInviteAction,
   toggleAmbassadorActiveAction,
 } from "./actions";
 import { CreateAmbassadorForm } from "./CreateAmbassadorForm";
@@ -134,6 +135,14 @@ export default async function AdminAmbassadorsPage() {
                   >
                     View dashboard
                   </Link>
+                  <form action={resendAmbassadorInviteAction.bind(null, r.id)}>
+                    <button
+                      type="submit"
+                      className="rounded-full border border-ignite-line px-4 py-2 text-small font-semibold text-ignite-ink hover:border-ignite-red"
+                    >
+                      Resend invite
+                    </button>
+                  </form>
                   <form action={toggleAmbassadorActiveAction.bind(null, r.id)}>
                     <button
                       type="submit"

@@ -11,12 +11,19 @@ import {
 } from "@react-email/components";
 import * as React from "react";
 
+// Ambassador welcome (September 2026 rewrite): a proper welcome built
+// from the ambassador's actual record. The comps and discount blocks
+// are CONDITIONAL: the caller passes null to omit them entirely, so
+// nobody reads about perks they do not have. Copy lines come from
+// lib/ambassadors/welcome.ts, where every branch is unit-tested.
+
 export interface AmbassadorInviteProps {
   firstName: string;
   shareUrl: string;
-  compAllowance: number;
   dashboardUrl: string;
   setPasswordUrl: string;
+  compLine: string | null; // null = no allowance, omit the block
+  discountLines: string[] | null; // null = no code, omit the block
 }
 
 const WRAPPER = {
@@ -81,31 +88,72 @@ const BUTTON = {
   fontSize: "15px",
 } as const;
 
+const PERK_BOX = {
+  backgroundColor: "#F7F5F0",
+  borderRadius: "12px",
+  padding: "16px",
+  margin: "0 0 16px 0",
+} as const;
+
 export function AmbassadorInviteEmail(props: AmbassadorInviteProps) {
-  const { firstName, shareUrl, compAllowance, dashboardUrl, setPasswordUrl } = props;
+  const { firstName, shareUrl, dashboardUrl, setPasswordUrl, compLine, discountLines } =
+    props;
   return (
     <Html>
       <Head />
-      <Preview>Your IGNITE! 27 ambassador dashboard is ready.</Preview>
+      <Preview>Welcome aboard. Your IGNITE! 27 ambassador dashboard is ready.</Preview>
       <Body style={WRAPPER}>
         <Container style={CONTAINER}>
           <Text style={EYEBROW}>IGNITE! 27</Text>
           <Heading style={HEADING}>You&apos;re an IGNITE! 27 ambassador.</Heading>
           <Text style={PARAGRAPH}>
-            Hi {firstName}, thanks for helping us pack the room. Your private
-            dashboard is ready: your personal share link, live numbers for the
-            clicks and bookings it brings in
-            {compAllowance > 0
-              ? `, and ${compAllowance} guest ticket${compAllowance === 1 ? "" : "s"} to give away`
-              : ""}
-            .
+            Hi {firstName}, thank you for helping us fill the room. Ambassadors
+            are the reason IGNITE! feels like a room full of friends rather
+            than a room full of name badges, and we are glad you are one of
+            them.
           </Text>
           <Text style={PARAGRAPH}>
-            <strong>Your share link:</strong>{" "}
-            <Link style={LINK} href={shareUrl}>
-              {shareUrl}
-            </Link>
+            You now have your own private dashboard. It shows the clicks your
+            link gets and every ticket you have driven, as it happens. No
+            spreadsheets, no chasing us for numbers.
           </Text>
+
+          <div style={PERK_BOX}>
+            <Text style={{ ...PARAGRAPH, margin: "0 0 8px 0" }}>
+              <strong>Your share link:</strong>{" "}
+              <Link style={LINK} href={shareUrl}>
+                {shareUrl}
+              </Link>
+            </Text>
+            <Text style={{ ...SMALL, margin: 0 }}>
+              Share it anywhere: email signature, socials, that WhatsApp group
+              you are in. When someone follows it and books, the booking counts
+              as yours (we remember their click for 90 days).
+            </Text>
+          </div>
+
+          {compLine ? (
+            <div style={PERK_BOX}>
+              <Text style={{ ...PARAGRAPH, margin: 0 }}>{compLine}</Text>
+            </div>
+          ) : null}
+
+          {discountLines ? (
+            <div style={PERK_BOX}>
+              {discountLines.map((line, i) => (
+                <Text
+                  key={i}
+                  style={{
+                    ...PARAGRAPH,
+                    margin: i === discountLines.length - 1 ? 0 : "0 0 8px 0",
+                  }}
+                >
+                  {line}
+                </Text>
+              ))}
+            </div>
+          ) : null}
+
           <Text style={PARAGRAPH}>Set a password first, then have a look around:</Text>
           <Text style={{ ...PARAGRAPH, margin: "16px 0 24px 0" }}>
             <Link style={BUTTON} href={setPasswordUrl}>
@@ -121,7 +169,9 @@ export function AmbassadorInviteEmail(props: AmbassadorInviteProps) {
             .
           </Text>
           <Hr style={{ borderColor: "#E6E7EA", margin: "24px 0" }} />
-          <Text style={{ ...SMALL, margin: 0 }}>The IGNITE! team</Text>
+          <Text style={{ ...SMALL, margin: 0 }}>
+            Questions? Just reply to this email. The IGNITE! team
+          </Text>
         </Container>
       </Body>
     </Html>
@@ -132,20 +182,19 @@ export function renderAmbassadorInvitePlainText(props: AmbassadorInviteProps): s
   return [
     "IGNITE! 27, you're an ambassador",
     "",
-    `Hi ${props.firstName}, thanks for helping us pack the room.`,
+    `Hi ${props.firstName}, thank you for helping us fill the room. Ambassadors are the reason IGNITE! feels like a room full of friends rather than a room full of name badges, and we are glad you are one of them.`,
+    "",
+    "You now have your own private dashboard. It shows the clicks your link gets and every ticket you have driven, as it happens.",
     "",
     `Your share link: ${props.shareUrl}`,
-    props.compAllowance > 0
-      ? `Guest tickets to give away: ${props.compAllowance}`
-      : "",
+    "Share it anywhere. When someone follows it and books, the booking counts as yours (we remember their click for 90 days).",
+    ...(props.compLine ? ["", props.compLine] : []),
+    ...(props.discountLines ? ["", ...props.discountLines] : []),
     "",
-    "Set a password to get into your dashboard:",
-    props.setPasswordUrl,
-    "",
+    `Set your password: ${props.setPasswordUrl}`,
     `Your dashboard: ${props.dashboardUrl}`,
     "",
+    "Questions? Just reply to this email.",
     "The IGNITE! team",
-  ]
-    .filter((line) => line !== "")
-    .join("\n");
+  ].join("\n");
 }
