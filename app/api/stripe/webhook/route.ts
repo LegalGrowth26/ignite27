@@ -3,6 +3,9 @@ import { NextResponse } from "next/server";
 import { createDelegateBookingFromCheckoutSession } from "@/lib/bookings/create";
 import { createExhibitorBookingFromCheckoutSession } from "@/lib/bookings/exhibitor-create";
 import { countCompletedExhibitorBookings } from "@/lib/bookings/exhibitor-count";
+import { createGroupBookingsFromCheckoutSession } from "@/lib/bookings/group-create";
+import { GroupPayloadParseError, groupLead } from "@/lib/bookings/group-intent";
+import { sendGroupConfirmationEmail } from "@/lib/bookings/send-group-confirmation";
 import { metadataToParsed, MetadataParseError } from "@/lib/bookings/intent";
 import {
   metadataToParsedExhibitor,
@@ -54,7 +57,11 @@ export async function POST(request: Request) {
     }
   } catch (err) {
     console.error("[stripe-webhook] handler error:", err);
-    if (err instanceof MetadataParseError || err instanceof ExhibitorMetadataParseError) {
+    if (
+      err instanceof MetadataParseError ||
+      err instanceof ExhibitorMetadataParseError ||
+      err instanceof GroupPayloadParseError
+    ) {
       // Malformed metadata means we can't ever process this session. Return
       // 200 so Stripe stops retrying; the admin will see an unsent
       // confirmation and can investigate.
@@ -92,6 +99,10 @@ async function handleCheckoutSessionCompleted(event: Stripe.Event): Promise<void
   const metadata = eventSession.metadata ?? {};
   if (metadata.booking_type === "exhibitor") {
     await handleExhibitorSessionCompleted(eventSession, event);
+    return;
+  }
+  if (metadata.booking_type === "group_delegate") {
+    await handleGroupSessionCompleted(eventSession);
     return;
   }
   if (metadata.booking_type !== "delegate") {
@@ -204,6 +215,107 @@ async function handleCheckoutSessionCompleted(event: Stripe.Event): Promise<void
     session.id,
     result.bookingId,
     result.confirmationEmailSentAt,
+  );
+}
+
+// Group delegate bookings: metadata carries only the intent id (the
+// full 2-10 ticket intent lives in pending_group_intents). One booking
+// per ticket is created idempotently, ONE confirmation email goes to
+// the lead, and every named attendee is pushed to the CRM.
+async function handleGroupSessionCompleted(
+  eventSession: Stripe.Checkout.Session,
+): Promise<void> {
+  const metadata = eventSession.metadata ?? {};
+  const groupIntentId = metadata.group_intent_id;
+  if (!groupIntentId) {
+    throw new MetadataParseError("group session missing group_intent_id");
+  }
+
+  const stripe = getStripe();
+  const session = await stripe.checkout.sessions.retrieve(eventSession.id, {
+    expand: ["total_details.breakdown.discounts", "discounts.promotion_code"],
+  });
+
+  const stripePaymentIntentId =
+    typeof session.payment_intent === "string"
+      ? session.payment_intent
+      : session.payment_intent?.id ?? null;
+  const vatAmountPence = session.total_details?.amount_tax ?? 0;
+  const grossPaidPence = session.amount_total ?? 0;
+  const paymentStatus: "paid" | "comp" =
+    session.payment_status === "no_payment_required" ? "comp" : "paid";
+
+  const supabase = createSupabaseServiceClient();
+  const ambassadorId = await resolveAmbassadorIdForSlug(
+    supabase,
+    metadata[REF_METADATA_KEY],
+  );
+
+  const result = await createGroupBookingsFromCheckoutSession({
+    client: supabase,
+    groupIntentId,
+    stripeCheckoutSessionId: session.id,
+    stripePaymentIntentId,
+    paymentStatus,
+    ambassadorId,
+  });
+
+  // CRM: every NAMED attendee, each under their own ticket's tag. TBC
+  // placeholders are skipped (their seat has no person yet). Same
+  // idempotency and failure isolation as the single paths.
+  const { intent } = result.payload;
+  const lead = groupLead(intent);
+  for (const t of intent.tickets) {
+    if (t.tbc) continue;
+    await pushContactToCrmSafe(
+      {
+        email: t.email,
+        firstName: t.firstName,
+        lastName: t.surname,
+        phone: t.email === lead.email ? intent.leadMobile || null : null,
+        tags: crmTagsForBooking("delegate", t.ticketType, {
+          ambassadorAttributed: Boolean(ambassadorId) && paymentStatus === "paid",
+        }),
+      },
+      `group webhook ${result.leadBookingReference}`,
+    );
+  }
+
+  const trySend = async (pathLabel: string) => {
+    try {
+      await sendGroupConfirmationEmail({
+        leadBookingId: result.leadBookingId,
+        bookingReferences: result.bookingReferences,
+        payload: result.payload,
+        grossPaidPence,
+        vatAmountPence,
+      });
+    } catch (err) {
+      console.error(
+        `[stripe-webhook] group confirmation email failed on ${pathLabel} (continuing)`,
+        result.leadBookingId,
+        err,
+      );
+    }
+  };
+
+  if (result.isNew) {
+    await trySend("new booking");
+    return;
+  }
+  if (result.confirmationEmailSentAt === null) {
+    console.info(
+      "[stripe-webhook] retrying group confirmation email",
+      session.id,
+      result.leadBookingId,
+    );
+    await trySend("retry");
+    return;
+  }
+  console.info(
+    "[stripe-webhook] duplicate group webhook, email already sent",
+    session.id,
+    result.leadBookingId,
   );
 }
 

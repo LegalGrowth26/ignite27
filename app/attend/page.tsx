@@ -216,6 +216,24 @@ function PricingSection({ pricing }: { pricing: AttendPricing }) {
             cta={regularCta}
           />
         </div>
+        <div className="mt-8 rounded-2xl border border-ignite-line bg-ignite-white p-5">
+          <p className="text-body font-semibold text-ignite-ink">
+            Bringing the team? Group bookings save money.
+          </p>
+          <p className="mt-1 text-body text-ignite-muted">
+            3 or more tickets save 10%, 5 or more save 25%. Regular and VIP
+            both count, and you can leave names as TBC for now. Discounts
+            apply to tickets, never the £15 lunch.
+          </p>
+          <p className="mt-3">
+            <Link
+              href="/attend/book/group"
+              className="font-semibold text-ignite-red underline underline-offset-4"
+            >
+              Book for your team
+            </Link>
+          </p>
+        </div>
         <p className="mt-8 text-small text-ignite-muted">
           Prices shown are ex-VAT with the VAT-inclusive total in
           brackets. Lunch is £15 flat, already VAT-inclusive. See the{" "}

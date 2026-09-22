@@ -254,6 +254,38 @@ code**, attach it to the coupon, and set the customer-facing code
 (e.g. `STEPHINE20`). Nothing else to do — the code goes live in the
 customer's Checkout page immediately.
 
+### Group bookings and discounts (added September 2026)
+
+/attend/book/group books 2-10 delegate tickets in ONE payment (regular
+and VIP mixed freely; both count toward the group size). The single
+booking form is unchanged.
+
+- **Tiers:** 3-4 tickets = 10% off, 5+ = 25% off. TICKET lines only;
+  the £15 lunch add-on is never discounted, by anything.
+- **No stacking:** the group form collects any discount code itself
+  (Stripe's own code field is off for group sessions; the two are
+  mutually exclusive in Stripe anyway). The code's value is computed
+  over the same lines and the single LARGER discount is applied; a tie
+  goes to the code. The form and confirmation email say which one won.
+- **Per-ticket details** with the same "Name TBC" pattern as
+  exhibitors: ticket 1 (the lead booker) is always named; other seats
+  can be TBC and named later. Dietary is collected only where that
+  ticket eats.
+- **Storage:** the full intent lives in `pending_group_intents`
+  (Stripe's 50-key metadata cap cannot fit 10 attendees); the session
+  carries just the intent id. The webhook creates ONE BOOKING PER
+  TICKET: the lead's booking holds the Stripe session/payment ids,
+  every booking holds `group_intent_id` + `group_position` (unique),
+  and each row carries its own allocated share of the money so sums
+  and per-ticket refunds stay honest. TBC seats attach to the lead's
+  account until named.
+- **One confirmation email** to the lead, listing every ticket, the
+  applied discount, and the total.
+- Group discounts are implemented as fixed Stripe coupons
+  (`ignite27_group10` / `ignite27_group25`, self-provisioned per mode)
+  restricted via `applies_to` to the delegate and VIP products, which
+  is what keeps lunch undiscountable at Stripe level too.
+
 ---
 
 ## Pricing periods
