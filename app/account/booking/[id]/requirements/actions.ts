@@ -140,6 +140,24 @@ export async function submitExhibitorRequirementsAction(
     if (copyErr) {
       console.error("[requirements] public logo copy failed:", copyErr);
     }
+
+    // Keep the exhibitor's public profile page in step: a logo saved
+    // here should show on /exhibitors/<slug> without a second upload.
+    // User-scoped client; RLS owner_update + the logo_path column grant
+    // cover this, and booking_id appears only in the filter. A failure
+    // logs but never fails the requirements save.
+    const { data: profileRows, error: profileErr } = await supabase
+      .from("exhibitor_profiles")
+      .update({ logo_path: logoPath })
+      .eq("booking_id", bookingId)
+      .select("slug");
+    if (profileErr) {
+      console.error("[requirements] profile logo sync failed:", profileErr.message);
+    } else {
+      const slug = (profileRows as Array<{ slug: string }> | null)?.[0]?.slug;
+      if (slug) revalidatePath(`/exhibitors/${slug}`);
+      revalidatePath("/exhibitors");
+    }
   }
 
   revalidatePath("/exhibit");
