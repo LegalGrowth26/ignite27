@@ -212,8 +212,7 @@ export function GroupBookingForm(props: GroupBookingFormProps) {
                     className="h-4 w-4"
                   />
                   <span className="text-body text-ignite-ink">
-                    Add lunch ({formatPoundsFromPence(props.lunchIncVatPence)} flat, never
-                    discounted)
+                    Add lunch ({formatPoundsFromPence(props.lunchIncVatPence)} flat)
                   </span>
                 </label>
               ) : null}
@@ -380,14 +379,12 @@ export function GroupBookingForm(props: GroupBookingFormProps) {
         </p>
         {summary.percent > 0 ? (
           <p className="mt-1 text-body text-ignite-red">
-            Group discount: {summary.percent}% off tickets (
-            {formatPoundsFromPence(summary.discount)} ex VAT). Lunch is never
-            discounted.
+            Group discount: {summary.percent}% off {summary.count} tickets (
+            {formatPoundsFromPence(summary.discount)} ex VAT).
           </p>
         ) : (
           <p className="mt-1 text-small text-ignite-muted">
-            3 or more tickets save 10%. 5 or more save 25%. Tickets only, not
-            lunch.
+            3 or more tickets save 10%. 5 or more save 25%.
           </p>
         )}
         <p className="mt-2 text-h3 text-ignite-ink">
