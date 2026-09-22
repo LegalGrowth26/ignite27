@@ -15,6 +15,7 @@ interface Row {
   title: string;
   description: string;
   speaker_name: string | null;
+  host_profile_id: string | null;
   room: string | null;
   starts_at: string;
   ends_at: string;
@@ -39,7 +40,7 @@ export default async function EditWorkshopPage({
   const { data, error } = await client
     .from("workshops")
     .select(
-      "id, title, description, speaker_name, room, starts_at, ends_at, capacity, published_at",
+      "id, title, description, speaker_name, host_profile_id, room, starts_at, ends_at, capacity, published_at",
     )
     .eq("id", id)
     .maybeSingle();
@@ -52,6 +53,15 @@ export default async function EditWorkshopPage({
   }
   const workshop = data as unknown as Row | null;
   if (!workshop) notFound();
+
+  const { data: hostRows } = await client
+    .from("speaker_profiles")
+    .select("id, display_name")
+    .in("profile_type", ["workshop_host", "both"])
+    .order("display_name", { ascending: true });
+  const hostOptions = ((hostRows ?? []) as Array<{ id: string; display_name: string }>).map(
+    (h) => ({ id: h.id, name: h.display_name }),
+  );
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -71,10 +81,12 @@ export default async function EditWorkshopPage({
         <WorkshopForm
           action={updateWorkshopAction.bind(null, workshop.id)}
           submitLabel="Save workshop"
+          hostOptions={hostOptions}
           defaults={{
             title: workshop.title,
             description: workshop.description,
             speakerName: workshop.speaker_name ?? "",
+            hostProfileId: workshop.host_profile_id ?? "",
             room: workshop.room ?? "",
             startsAt: toLocalInput(workshop.starts_at),
             endsAt: toLocalInput(workshop.ends_at),

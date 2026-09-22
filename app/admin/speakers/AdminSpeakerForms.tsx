@@ -2,6 +2,10 @@
 
 import { useActionState } from "react";
 import {
+  SPEAKER_PROFILE_TYPES,
+  SPEAKER_PROFILE_TYPE_LABELS,
+} from "@/lib/speakers/profile";
+import {
   addSpeakerAction,
   attachSpeakerEmailAction,
   type SpeakerAdminFormState,
@@ -39,6 +43,21 @@ export function AddSpeakerForm() {
           Talk title (optional)
         </label>
         <input id="talkTitle" name="talkTitle" maxLength={200} className={INPUT} />
+        <p className="mt-1 text-small text-ignite-muted">
+          Main-stage only; a host&apos;s workshop title comes from the workshops admin.
+        </p>
+      </div>
+      <div>
+        <label htmlFor="profileType" className={LABEL}>
+          Type
+        </label>
+        <select id="profileType" name="profileType" defaultValue="main_stage" className={INPUT}>
+          {SPEAKER_PROFILE_TYPES.map((t) => (
+            <option key={t} value={t}>
+              {SPEAKER_PROFILE_TYPE_LABELS[t]}
+            </option>
+          ))}
+        </select>
       </div>
       {state.error ? (
         <p className="sm:col-span-3 rounded-xl border border-ignite-red/50 bg-ignite-red/5 p-3 text-small text-ignite-red">

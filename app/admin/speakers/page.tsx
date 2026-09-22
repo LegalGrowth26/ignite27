@@ -1,6 +1,12 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { requireSuperAdmin } from "@/lib/admin/guard";
+import {
+  hostsWorkshops,
+  showsOnMainStage,
+  SPEAKER_PROFILE_TYPE_LABELS,
+  type SpeakerProfileType,
+} from "@/lib/speakers/profile";
 import { AddSpeakerForm, AttachEmailForm } from "./AdminSpeakerForms";
 import { republishSpeakerAction, unpublishSpeakerAction } from "./actions";
 
@@ -14,6 +20,7 @@ interface SpeakerRow {
   slug: string;
   display_name: string;
   talk_title: string;
+  profile_type: SpeakerProfileType;
   user_id: string | null;
   published_at: string | null;
   created_at: string;
@@ -35,15 +42,16 @@ const STATUS_NOTES: Record<string, string> = {
 export default async function AdminSpeakersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; type?: string }>;
 }) {
   const { client } = await requireSuperAdmin();
-  const { status } = await searchParams;
+  const { status, type: typeFilter } = await searchParams;
 
   const { data, error } = await client
     .from("speaker_profiles")
     .select(
-      `id, slug, display_name, talk_title, user_id, published_at, created_at,
+      `id, slug, display_name, talk_title, profile_type, user_id,
+       published_at, created_at,
        users ( email ), speaker_messages ( count )`,
     )
     .order("created_at", { ascending: true });
@@ -66,7 +74,32 @@ export default async function AdminSpeakersPage({
     );
   }
 
-  const rows = (data ?? []) as unknown as SpeakerRow[];
+  const allRows = (data ?? []) as unknown as SpeakerRow[];
+  // 'both' profiles appear under BOTH filters, matching how they
+  // surface publicly.
+  const rows =
+    typeFilter === "main_stage"
+      ? allRows.filter((r) => showsOnMainStage(r.profile_type))
+      : typeFilter === "workshop_host"
+        ? allRows.filter((r) => hostsWorkshops(r.profile_type))
+        : allRows;
+
+  const filterLink = (value: string | null, label: string) => {
+    const active = (value ?? "all") === (typeFilter ?? "all");
+    return (
+      <Link
+        key={label}
+        href={value ? `/admin/speakers?type=${value}` : "/admin/speakers"}
+        className={
+          active
+            ? "rounded-full bg-ignite-red px-4 py-2 text-small font-semibold text-ignite-white"
+            : "rounded-full border border-ignite-line px-4 py-2 text-small font-semibold text-ignite-ink hover:border-ignite-red"
+        }
+      >
+        {label}
+      </Link>
+    );
+  };
 
   return (
     <div>
@@ -83,6 +116,18 @@ export default async function AdminSpeakersPage({
           {STATUS_NOTES[status]}
         </p>
       ) : null}
+
+      <div className="mt-5 flex flex-wrap items-center gap-2">
+        {filterLink(null, `All (${allRows.length})`)}
+        {filterLink(
+          "main_stage",
+          `Main stage (${allRows.filter((r) => showsOnMainStage(r.profile_type)).length})`,
+        )}
+        {filterLink(
+          "workshop_host",
+          `Workshop hosts (${allRows.filter((r) => hostsWorkshops(r.profile_type)).length})`,
+        )}
+      </div>
 
       <div className="mt-6 rounded-2xl border border-ignite-line bg-ignite-white p-5">
         <h2 className="text-h3">Add a speaker</h2>
@@ -107,7 +152,11 @@ export default async function AdminSpeakersPage({
                   <div>
                     <p className="text-h3">{s.display_name}</p>
                     <p className="mt-1 text-small text-ignite-muted">
-                      {s.talk_title || "Talk title TBC"} ·{" "}
+                      {SPEAKER_PROFILE_TYPE_LABELS[s.profile_type]} ·{" "}
+                      {showsOnMainStage(s.profile_type)
+                        ? s.talk_title || "Talk title TBC"
+                        : "Workshop data in workshops admin"}{" "}
+                      ·{" "}
                       {s.published_at ? `Live at /speakers/${s.slug}` : "Unpublished"} ·{" "}
                       {s.user_id
                         ? `Account: ${s.users?.email ?? "linked"}`

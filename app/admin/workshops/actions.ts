@@ -16,6 +16,34 @@ export interface WorkshopFormState {
   error: string | null;
 }
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Host link: empty = none; otherwise it must be a real speaker profile
+// typed workshop_host or both (the dropdown only offers those, but a
+// hand-crafted POST gets the same rule).
+async function resolveHostProfileId(
+  service: ReturnType<typeof createSupabaseServiceClient>,
+  raw: FormDataEntryValue | null,
+): Promise<{ id: string | null } | { error: string }> {
+  const value = String(raw ?? "").trim();
+  if (!value) return { id: null };
+  if (!UUID_PATTERN.test(value)) return { error: "That host selection is not valid." };
+  const { data, error } = await service
+    .from("speaker_profiles")
+    .select("id, profile_type")
+    .eq("id", value)
+    .maybeSingle();
+  if (error || !data) return { error: "That host profile no longer exists." };
+  const type = (data as { profile_type: string }).profile_type;
+  if (type === "main_stage") {
+    return {
+      error:
+        "That profile is main-stage only. Switch them to 'workshop host' or 'both' in /admin/speakers first.",
+    };
+  }
+  return { id: value };
+}
+
 function workshopRowFromForm(formData: FormData) {
   return validateWorkshop({
     title: formData.get("title"),
@@ -38,12 +66,16 @@ export async function createWorkshopAction(
   const v = validated.value;
 
   const service = createSupabaseServiceClient();
+  const host = await resolveHostProfileId(service, formData.get("hostProfileId"));
+  if ("error" in host) return { error: host.error };
+
   const { data, error } = await service
     .from("workshops")
     .insert({
       title: v.title,
       description: v.description,
       speaker_name: v.speakerName,
+      host_profile_id: host.id,
       room: v.room,
       starts_at: v.startsAt.toISOString(),
       ends_at: v.endsAt.toISOString(),
@@ -88,12 +120,16 @@ export async function updateWorkshopAction(
     };
   }
 
+  const host = await resolveHostProfileId(service, formData.get("hostProfileId"));
+  if ("error" in host) return { error: host.error };
+
   const { error } = await service
     .from("workshops")
     .update({
       title: v.title,
       description: v.description,
       speaker_name: v.speakerName,
+      host_profile_id: host.id,
       room: v.room,
       starts_at: v.startsAt.toISOString(),
       ends_at: v.endsAt.toISOString(),

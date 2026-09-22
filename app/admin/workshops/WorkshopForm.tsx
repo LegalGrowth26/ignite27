@@ -12,20 +12,31 @@ export interface WorkshopDefaults {
   title: string;
   description: string;
   speakerName: string;
+  hostProfileId: string; // "" = no linked host
   room: string;
   startsAt: string; // datetime-local value (UK time)
   endsAt: string;
   capacity: string;
 }
 
+export interface HostOption {
+  id: string;
+  name: string;
+}
+
 export function WorkshopForm({
   action,
   defaults,
   submitLabel,
+  hostOptions,
 }: {
   action: (prev: WorkshopFormState, formData: FormData) => Promise<WorkshopFormState>;
   defaults: WorkshopDefaults;
   submitLabel: string;
+  // Speaker profiles typed workshop_host or both. Linking one puts
+  // the host's name and page on the workshop; the free-text field
+  // below stays as the fallback for unlinked hosts.
+  hostOptions: HostOption[];
 }) {
   const [state, formAction, isPending] = useActionState<WorkshopFormState, FormData>(
     action,
@@ -65,8 +76,30 @@ export function WorkshopForm({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
+          <label htmlFor="hostProfileId" className={LABEL}>
+            Host (linked profile)
+          </label>
+          <select
+            id="hostProfileId"
+            name="hostProfileId"
+            defaultValue={defaults.hostProfileId}
+            className={INPUT}
+          >
+            <option value="">No linked host</option>
+            {hostOptions.map((h) => (
+              <option key={h.id} value={h.id}>
+                {h.name}
+              </option>
+            ))}
+          </select>
+          <p className={HELP}>
+            Workshop-host and both-type profiles only. Add hosts in
+            /admin/speakers; the workshop then shows and links their page.
+          </p>
+        </div>
+        <div>
           <label htmlFor="speakerName" className={LABEL}>
-            Speaker (optional)
+            Host name (fallback)
           </label>
           <input
             id="speakerName"
@@ -75,6 +108,7 @@ export function WorkshopForm({
             maxLength={120}
             className={INPUT}
           />
+          <p className={HELP}>Shown only when no linked host is set.</p>
         </div>
         <div>
           <label htmlFor="room" className={LABEL}>

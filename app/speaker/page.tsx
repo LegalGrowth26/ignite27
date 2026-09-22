@@ -7,7 +7,11 @@ import { SectionHeader } from "@/components/SectionHeader";
 import { resolveOwnAppUserId } from "@/lib/account/queries";
 import type { SocialPlatform } from "@/lib/exhibitors/profile";
 import { parseSocialLinks } from "@/lib/exhibitors/profiles";
-import { parseStoredTakeaways } from "@/lib/speakers/profile";
+import {
+  parseStoredTakeaways,
+  showsOnMainStage,
+  type SpeakerProfileType,
+} from "@/lib/speakers/profile";
 import { createSupabaseServerClient } from "@/lib/supabase/server-client";
 import { SpeakerEditorForm, type SpeakerEditorDefaults } from "./SpeakerEditorForm";
 
@@ -32,6 +36,7 @@ interface ProfileRow {
   cta_label: string | null;
   cta_url: string | null;
   enquiries_email: string | null;
+  profile_type: SpeakerProfileType;
   published_at: string | null;
 }
 
@@ -56,7 +61,7 @@ export default async function SpeakerEditorPage({
         .select(
           `id, slug, display_name, photo_path, bio, talk_title,
            talk_description, talk_takeaways, website_url, social_links,
-           cta_label, cta_url, enquiries_email, published_at`,
+           cta_label, cta_url, enquiries_email, profile_type, published_at`,
         )
         .eq("user_id", appUserId)
         .maybeSingle()
@@ -139,7 +144,10 @@ export default async function SpeakerEditorPage({
             )}
           </p>
           <div className="mt-8">
-            <SpeakerEditorForm defaults={defaults} />
+            <SpeakerEditorForm
+              defaults={defaults}
+              showTalkFields={showsOnMainStage(profile.profile_type)}
+            />
           </div>
         </div>
       </Container>
