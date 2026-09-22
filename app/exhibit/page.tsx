@@ -4,6 +4,7 @@ import { Button } from "@/components/Button";
 import { Container } from "@/components/Container";
 import { ExhibitorListing } from "@/components/ExhibitorListing";
 import { HowBookingWorks, type BookingStep } from "@/components/HowBookingWorks";
+import { PartnersStrip } from "@/components/PartnersStrip";
 import { PhotoBand } from "@/components/PhotoBand";
 import { PriceCard } from "@/components/PriceCard";
 import { Section } from "@/components/Section";
@@ -99,6 +100,7 @@ export default async function ExhibitPage() {
       <ExhibitorListing />
       <PhotoBand photos={EXHIBIT_ATMOSPHERE} tone="light" />
       <WhatsIncluded />
+      <PartnersStrip />
       <PartnerPackage />
       <HowBookingWorks heading="How booking works." steps={EXHIBIT_STEPS} />
       <SponsorshipCallout />
@@ -341,11 +343,26 @@ function PartnerPackage() {
           <div className="grid gap-6 md:grid-cols-12 md:items-center">
             <div className="md:col-span-8">
               <p className="text-eyebrow uppercase text-ignite-red">Partner IGNITE! 27</p>
-              <p className="mt-3 text-h2">5 slots only. £1,000 + VAT (£1,200).</p>
+              <p className="mt-3 text-h2">Be part of the fabric of the day.</p>
               <p className="mt-4 text-body text-ignite-ink">
                 Your logo on everything: name badges, the big screen, every email, our
-                socials, plus your own stand. A step up from a standard exhibitor
-                package for businesses who want to be part of the fabric of the day.
+                socials, plus your place on this site. Three ways in, each with category
+                exclusivity:
+              </p>
+              <ul className="mt-4 grid gap-2 text-body text-ignite-ink">
+                <li>
+                  <strong>Headline Partner</strong> · £3,500 + VAT (£4,200)
+                </li>
+                <li>
+                  <strong>Speakers&apos; Den Partner</strong> · £2,500 + VAT (£3,000)
+                </li>
+                <li>
+                  <strong>Partner</strong> · £1,000 + VAT (£1,200)
+                </li>
+              </ul>
+              <p className="mt-4 text-small text-ignite-muted">
+                Partner deals are agreed directly with us and invoiced, not booked
+                online. A stand is booked separately via the normal exhibitor flow.
               </p>
             </div>
             <div className="md:col-span-4 md:justify-self-end">
