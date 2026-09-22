@@ -22,3 +22,40 @@
     @apply bg-ignite-red text-ignite-white;
   }
 }
+
+/* Announcement tickertape (homepage strip under the nav). The track
+   holds two identical lists and slides half its own width, which is
+   exactly one list, so the loop is seamless. Duration comes from the
+   component via --ticker-duration, scaled to the amount of text. */
+@keyframes ticker-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.ticker-track {
+  animation: ticker-scroll var(--ticker-duration, 40s) linear infinite;
+}
+
+/* Readable on demand: pointer hover or keyboard focus inside pauses. */
+.ticker:hover .ticker-track,
+.ticker .ticker-track:focus-within {
+  animation-play-state: paused;
+}
+
+/* Reduced motion: a static strip, manually scrollable, duplicate list
+   dropped so nothing repeats. */
+@media (prefers-reduced-motion: reduce) {
+  .ticker-track {
+    animation: none;
+  }
+  .ticker {
+    overflow-x: auto;
+  }
+  .ticker-group[aria-hidden] {
+    display: none;
+  }
+}
