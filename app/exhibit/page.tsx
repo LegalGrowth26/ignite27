@@ -280,9 +280,8 @@ function WhatsIncluded() {
   );
 }
 
-// Testimonial-shaped results from IGNITE! 26 exhibitors. The £15,000 video
-// figure is pending Tom's confirmation. Remove or update the middle stat
-// before this PR merges if it does not check out.
+// Testimonial-shaped results from IGNITE! 26 exhibitors. All three
+// figures are confirmed (the £15,000 one by Tom, September 2026).
 function ExhibitorResults() {
   const stats: ReadonlyArray<{ figure: string; body: string }> = [
     {
@@ -291,7 +290,7 @@ function ExhibitorResults() {
     },
     {
       figure: "£15,000",
-      body: "Another picked up £15k of video work from conversations on the day. (Figure pending Tom's confirmation.)",
+      body: "Another picked up £15k of video work from conversations on the day.",
     },
     {
       figure: "£9,000",
@@ -312,7 +311,12 @@ function ExhibitorResults() {
               key={s.figure}
               className="rounded-2xl border border-ignite-line bg-ignite-white p-6"
             >
-              <p className="text-display leading-none text-ignite-red">{s.figure}</p>
+              {/* Fluid size tuned to fit a third-width card, not the
+                  viewport: text-display (up to 5.5rem) spilled out of
+                  these boxes at tablet and desktop widths. */}
+              <p className="text-[clamp(1.75rem,4.5vw,3.25rem)] font-bold leading-none tracking-tight text-ignite-red">
+                {s.figure}
+              </p>
               <p className="mt-4 text-body text-ignite-ink">{s.body}</p>
             </li>
           ))}

@@ -10,6 +10,7 @@ const ADMIN_NAV = [
   { href: "/admin/exhibitors", label: "Exhibitors" },
   { href: "/admin/ambassadors", label: "Ambassadors" },
   { href: "/admin/partners", label: "Partners" },
+  { href: "/admin/speakers", label: "Speakers" },
   { href: "/admin/workshops", label: "Workshops" },
   { href: "/admin/announcements", label: "Announcements" },
   { href: "/admin/discounts", label: "Discount codes" },

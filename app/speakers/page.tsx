@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 import { BookingCta } from "@/components/BookingCta";
 import { Container } from "@/components/Container";
@@ -6,6 +7,12 @@ import { Section } from "@/components/Section";
 import { SectionHeader } from "@/components/SectionHeader";
 import { SpeakerCard } from "@/components/SpeakerCard";
 import { SpeakersSignupForm } from "@/components/SpeakersSignupForm";
+import {
+  fetchPublishedSpeakerCards,
+  speakerInitials,
+  type SpeakerCardData,
+} from "@/lib/speakers/queries";
+import { createSupabaseServiceClient } from "@/lib/supabase/service-client";
 
 const SPEAKERS_PHOTOS: ReadonlyArray<{ src: string; alt: string }> = [
   { src: "/images/photos/photo-06.webp", alt: "A speaker on the IGNITE! 26 main stage mid-sentence" },
@@ -13,52 +20,25 @@ const SPEAKERS_PHOTOS: ReadonlyArray<{ src: string; alt: string }> = [
   { src: "/images/photos/photo-17.webp", alt: "Speaker Q and A after a session at IGNITE! 26" },
 ];
 
-// Same three named speakers as the home Speakers section. Kept in sync
-// by hand for now; move to a shared module if a third page ever needs it.
-const NAMED_SPEAKERS: ReadonlyArray<
-  | { name: string; topic: string; media: { variant: "photo"; src: string; alt: string } }
-  | { name: string; topic: string; media: { variant: "initials"; initials: string } }
-> = [
-  {
-    name: "Stephine Robinson",
-    topic: "Practical AI for small businesses",
-    media: {
-      variant: "photo",
-      src: "/images/speakers/stephine-robinson.webp",
-      alt: "Portrait of Stephine Robinson",
-    },
-  },
-  {
-    name: "Nathan Littleton",
-    topic: "Email marketing that wins customers",
-    media: {
-      variant: "photo",
-      src: "/images/speakers/nathan-littleton.webp",
-      alt: "Portrait of Nathan Littleton",
-    },
-  },
-  {
-    name: "Mark Saxby",
-    topic: "Social media that actually works",
-    media: {
-      variant: "photo",
-      // Source is a 200px LinkedIn photo; slightly soft at card width.
-      // Replace with a proper headshot when one arrives.
-      src: "/images/speakers/mark-saxby.webp",
-      alt: "Portrait of Mark Saxby",
-    },
-  },
-];
-
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Speakers · IGNITE! 27",
   description:
-    "Speakers for IGNITE! 27 are being announced. Leave your email and we will tell you each time one is confirmed.",
+    "The IGNITE! 27 speaker line-up. Leave your email and we will tell you each time a new speaker is confirmed.",
 };
 
-export default function SpeakersPage() {
+// Published speaker profiles are the single source for this page, the
+// home cards, and /speakers/<slug>. The hardcoded NAMED_SPEAKERS
+// arrays are gone; speakers now manage their own pages.
+export default async function SpeakersPage() {
+  let speakers: SpeakerCardData[] = [];
+  try {
+    speakers = await fetchPublishedSpeakerCards(createSupabaseServiceClient());
+  } catch (err) {
+    console.error("[speakers] listing failed:", err);
+  }
+
   return (
     <>
       <Section tone="light">
@@ -66,8 +46,12 @@ export default function SpeakersPage() {
           <div className="mx-auto max-w-2xl">
             <SectionHeader
               eyebrow="Speakers"
-              heading="Sneak peek: first speakers announced."
-              lede="Three names confirmed, more national-quality speakers to follow. Drop your email and you will hear as each one lands."
+              heading={
+                speakers.length > 0
+                  ? "The line-up so far."
+                  : "Speakers are being announced."
+              }
+              lede="National-quality speakers, brought to you. Tap any speaker for their session, and drop your email below to hear as each new name lands."
               as="h1"
             />
           </div>
@@ -77,8 +61,26 @@ export default function SpeakersPage() {
       <Section tone="cream">
         <Container>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {NAMED_SPEAKERS.map((s) => (
-              <SpeakerCard key={s.name} name={s.name} topic={s.topic} media={s.media} />
+            {speakers.map((s) => (
+              <Link
+                key={s.slug}
+                href={`/speakers/${s.slug}`}
+                className="block transition-transform hover:-translate-y-0.5"
+              >
+                <SpeakerCard
+                  name={s.displayName}
+                  topic={s.talkTitle || undefined}
+                  media={
+                    s.photoUrl
+                      ? {
+                          variant: "photo",
+                          src: s.photoUrl,
+                          alt: `Portrait of ${s.displayName}`,
+                        }
+                      : { variant: "initials", initials: speakerInitials(s.displayName) }
+                  }
+                />
+              </Link>
             ))}
             <SpeakerCard
               media={{

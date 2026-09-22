@@ -9,6 +9,12 @@ import { Section } from "@/components/Section";
 import { SectionHeader } from "@/components/SectionHeader";
 import { SpeakerCard } from "@/components/SpeakerCard";
 import {
+  fetchPublishedSpeakerCards,
+  speakerInitials,
+  type SpeakerCardData,
+} from "@/lib/speakers/queries";
+import { createSupabaseServiceClient } from "@/lib/supabase/service-client";
+import {
   BookingsNotOpenError,
   formatExVatWithGross,
   getCurrentPricing,
@@ -57,42 +63,9 @@ const VALUE_PROPS: ReadonlyArray<{ title: string; body: string }> = [
   },
 ];
 
-// Named speakers announced ahead of IGNITE! 27. To add a new speaker,
-// drop a webp into public/images/speakers/ and add an entry here.
-const NAMED_SPEAKERS: ReadonlyArray<
-  | { name: string; topic: string; media: { variant: "photo"; src: string; alt: string } }
-  | { name: string; topic: string; media: { variant: "initials"; initials: string } }
-> = [
-  {
-    name: "Stephine Robinson",
-    topic: "Practical AI for small businesses",
-    media: {
-      variant: "photo",
-      src: "/images/speakers/stephine-robinson.webp",
-      alt: "Portrait of Stephine Robinson",
-    },
-  },
-  {
-    name: "Nathan Littleton",
-    topic: "Email marketing that wins customers",
-    media: {
-      variant: "photo",
-      src: "/images/speakers/nathan-littleton.webp",
-      alt: "Portrait of Nathan Littleton",
-    },
-  },
-  {
-    name: "Mark Saxby",
-    topic: "Social media that actually works",
-    media: {
-      variant: "photo",
-      // Source is a 200px LinkedIn photo; slightly soft at card width.
-      // Replace with a proper headshot when one arrives.
-      src: "/images/speakers/mark-saxby.webp",
-      alt: "Portrait of Mark Saxby",
-    },
-  },
-];
+// Speaker cards read published speaker_profiles: one source shared
+// with /speakers and /speakers/<slug>. Speakers manage their own
+// pages; adding one happens in /admin/speakers, not here.
 
 // Eight highlights chosen from the 38-photo library in
 // public/images/photos/. All landscape aspect (1600x1067). The first
@@ -289,18 +262,48 @@ function LastYear() {
   );
 }
 
-function Speakers() {
+async function Speakers() {
+  let speakers: SpeakerCardData[] = [];
+  try {
+    speakers = await fetchPublishedSpeakerCards(createSupabaseServiceClient());
+  } catch (err) {
+    // A speakers failure must never take the home page down.
+    console.error("[home] speakers fetch failed:", err);
+  }
+
   return (
     <Section tone="cream">
       <Container>
         <SectionHeader
           eyebrow="Speakers"
-          heading="Sneak peek: first speakers announced."
-          lede="Three names confirmed. More national-quality speakers, brought to you. Announcements coming."
+          heading={
+            speakers.length > 0
+              ? "The speakers, so far."
+              : "Speakers announced soon."
+          }
+          lede="National-quality speakers, brought to you. Tap a speaker for their session."
         />
         <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {NAMED_SPEAKERS.map((s) => (
-            <SpeakerCard key={s.name} name={s.name} topic={s.topic} media={s.media} />
+          {speakers.map((s) => (
+            <Link
+              key={s.slug}
+              href={`/speakers/${s.slug}`}
+              className="block transition-transform hover:-translate-y-0.5"
+            >
+              <SpeakerCard
+                name={s.displayName}
+                topic={s.talkTitle || undefined}
+                media={
+                  s.photoUrl
+                    ? {
+                        variant: "photo",
+                        src: s.photoUrl,
+                        alt: `Portrait of ${s.displayName}`,
+                      }
+                    : { variant: "initials", initials: speakerInitials(s.displayName) }
+                }
+              />
+            </Link>
           ))}
           <SpeakerCard
             media={{
