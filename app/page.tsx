@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Button } from "@/components/Button";
 import { Container } from "@/components/Container";
 import { LatestFromIgnite } from "@/components/LatestFromIgnite";
+import { PartnersStrip } from "@/components/PartnersStrip";
 import { LaunchCountdown } from "@/components/LaunchCountdown";
 import { Section } from "@/components/Section";
 import { SectionHeader } from "@/components/SectionHeader";
@@ -129,11 +130,11 @@ export default function HomePage() {
       <Hero />
       <WhatIsIgnite />
       <LatestFromIgnite />
+      <PartnersStrip emptyFallback="callout" />
       <ValueProps />
       <LastYear />
       <Speakers />
       <AgendaTeaser />
-      <PartnersStrip />
       <PricingPreview preview={preview} />
       <ClosingCta />
     </>
@@ -341,25 +342,6 @@ function AgendaTeaser() {
 // logo-less sales prompt pointing at the /exhibit partner package.
 // When partners confirm, reintroduce a logo grid here; the padded
 // logo assets from 26 remain in public/images/partners/ unused.
-function PartnersStrip() {
-  return (
-    <Section tone="cream">
-      <Container>
-        <SectionHeader
-          eyebrow="Partners"
-          heading="Partner IGNITE! 27."
-          lede="Five partner slots for 27. Your logo on everything, plus your own stand. Partner line-up announced once confirmed."
-        />
-        <div className="mt-8">
-          <Button href="/exhibit#partner" variant="secondary" size="md">
-            Become a partner
-          </Button>
-        </div>
-      </Container>
-    </Section>
-  );
-}
-
 function PricingPreview({ preview }: { preview: PricingPreview }) {
   return (
     <Section tone="light">

@@ -199,10 +199,37 @@ out" and the server refuses further exhibitor checkouts.
 route to tom@lincolnshiremarketing.co.uk and paul@businessunfinished.co.uk.
 No checkout flow for sponsorship.
 
-### Partners
+### Partners (reworked September 2026)
 
-Enquiry-led only. **Do not display partner pricing publicly.**
-Enquiries route as above.
+Partner deals are sold by Tom/Paul and invoiced OFFLINE; there is no
+checkout flow. Three tiers, each with category exclusivity, and the
+tier prices ARE displayed publicly on /exhibit (September 2026
+decision, superseding the old "do not display partner pricing" rule):
+
+| Tier                  | Standard price (ex-VAT) |
+|-----------------------|-------------------------|
+| Headline Partner      | £3,500                  |
+| Speakers' Den Partner | £2,500                  |
+| Partner               | £1,000                  |
+
+- Recorded in /admin/partners: company, contact, tier,
+  **agreed_price_pence** (defaults from the tier, overridable per
+  deal), category (fixed exclusivity list + "other"), status
+  (agreed / paid / ended), notes, website, logo.
+- **Category exclusivity WARNS, never blocks**: adding a partner into
+  an occupied category names the clash and needs an explicit
+  "add anyway" confirmation. "other" is exempt.
+- **Public strip** (home + /exhibit): agreed AND paid partners while
+  admin-visible; ended never. Headline Partners get their own row
+  with bigger tiles; tiles link straight to the partner's website
+  (followable). No partner pages in v1.
+- The partners table has NO anon read (contact details, price, notes
+  live on the row); the strip reads via the service client selecting
+  public-safe columns only. All writes are audit-logged admin
+  actions; no deletes ("ended" keeps the record).
+- **Phase 2 (noted, not built):** partner self-editing, dashboards,
+  stand linkage. A partner's stand still comes via the normal
+  exhibitor flow; ambassador access via /admin -> Ambassadors.
 
 ### Discount codes
 
