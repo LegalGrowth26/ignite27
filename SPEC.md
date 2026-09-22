@@ -434,19 +434,34 @@ For each booking, the system stores:
 
 ---
 
-## Workshop booking (phase 2)
+## Workshop booking (built September 2026)
 
-- Each workshop has 20 places.
-- Booking uses **phased priority access**, not displacement.
-- Tier access opens in stages (exact dates set when agenda is finalised):
-  - Tier 1 (VIPs and partners): earliest access window.
-  - Tier 2 (exhibitors): opens after Tier 1.
-  - Tier 3 (regular delegates): opens after Tier 2.
-- Within each tier window, booking is first come, first served.
-- Once a place is held, it cannot be displaced.
-- A user cannot book two workshops that clash on time.
-- When a workshop is full, the UI shows "Fully booked" and the booking
-  CTA is disabled.
+- Around 8 workshops, managed from /admin/workshops (draft/published;
+  capacity set per workshop, 1 to 1000). Published workshops appear on
+  /workshops with detail pages.
+- Workshops are FREE for ticket holders. Anyone holding a completed
+  booking (paid live or comp, active) can book, for themselves only in
+  v1 (a contact booking for colleagues is a noted follow-up).
+- **Two-tier priority access** (approved September 2026, replacing the
+  original three-tier idea):
+  - VIP ticket holders: from 1 January 2027, 00:00 UK.
+  - Everyone else (delegates, comp guests, exhibitor attendees): from
+    4 January 2027, 00:00 UK.
+- Within each window, first come, first served. A held place cannot be
+  displaced.
+- A person cannot book two workshops that overlap in time (back-to-back
+  is fine). No other per-person limit.
+- Capacity, the window, the ticket check, and the clash rule are all
+  enforced by SECURITY DEFINER database functions (book_workshop /
+  cancel_workshop_booking), with the capacity check under a row lock so
+  races cannot oversell.
+- When a workshop is full, the UI shows "Full" and there is no booking
+  CTA.
+- Un-booking is self-service until the day before the event
+  (closes 21 January 2027, 00:00 UK) and frees the place immediately.
+- Workshop announcements go through the scheduled email system; the
+  'everyone_except_vips' audience exists so the "open to everyone"
+  email does not double-mail VIPs.
 
 ---
 

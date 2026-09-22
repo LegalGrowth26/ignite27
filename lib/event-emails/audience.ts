@@ -19,13 +19,15 @@ export type ScheduledEmailAudience =
   | "all_attendees"
   | "delegates"
   | "vips"
-  | "exhibitors";
+  | "exhibitors"
+  | "everyone_except_vips";
 
 export const SCHEDULED_EMAIL_AUDIENCES: readonly ScheduledEmailAudience[] = [
   "all_attendees",
   "delegates",
   "vips",
   "exhibitors",
+  "everyone_except_vips",
 ];
 
 export const AUDIENCE_LABELS: Record<ScheduledEmailAudience, string> = {
@@ -33,6 +35,7 @@ export const AUDIENCE_LABELS: Record<ScheduledEmailAudience, string> = {
   delegates: "Delegates",
   vips: "VIPs",
   exhibitors: "Exhibitors",
+  everyone_except_vips: "Everyone except VIPs",
 };
 
 export interface AttendeeSourceRow {
@@ -62,6 +65,12 @@ function matchesAudience(row: AttendeeSourceRow, audience: ScheduledEmailAudienc
       return row.booking_type === "delegate" && row.ticket_type === "vip";
     case "exhibitors":
       return row.booking_type === "exhibitor";
+    // For announcements VIPs already had (e.g. "workshop booking now
+    // open to everyone" after their early window). Excludes VIP rows;
+    // note someone who is BOTH a VIP and a named exhibitor attendee
+    // still receives it via their exhibitor row.
+    case "everyone_except_vips":
+      return !(row.booking_type === "delegate" && row.ticket_type === "vip");
   }
 }
 

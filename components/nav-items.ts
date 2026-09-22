@@ -7,6 +7,7 @@ export const MAIN_NAV: readonly NavItem[] = [
   { href: "/attend", label: "Attend" },
   { href: "/exhibit", label: "Exhibit" },
   { href: "/agenda", label: "Agenda" },
+  { href: "/workshops", label: "Workshops" },
   { href: "/speakers", label: "Speakers" },
   { href: "/venue", label: "Venue" },
   { href: "/contact", label: "Contact" },
