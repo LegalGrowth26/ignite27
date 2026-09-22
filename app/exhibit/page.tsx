@@ -349,20 +349,27 @@ function PartnerPackage() {
                 socials, plus your place on this site. Three ways in, each with category
                 exclusivity:
               </p>
+              {/* Pricing is deliberately NOT shown: partner deals are
+                  enquiry-led (Sept 2026 decision, reverting the brief
+                  tiered-prices display). Do not add £ figures here. */}
               <ul className="mt-4 grid gap-2 text-body text-ignite-ink">
                 <li>
-                  <strong>Headline Partner</strong> · £3,500 + VAT (£4,200)
+                  <strong>Headline Partner</strong> · the whole day carries your name,
+                  front and centre everywhere.
                 </li>
                 <li>
-                  <strong>Speakers&apos; Den Partner</strong> · £2,500 + VAT (£3,000)
+                  <strong>Speakers&apos; Den Partner</strong> · your brand on one of the
+                  day&apos;s biggest draws.
                 </li>
                 <li>
-                  <strong>Partner</strong> · £1,000 + VAT (£1,200)
+                  <strong>Partner</strong> · in the fabric of the day, with exclusivity
+                  in your category.
                 </li>
               </ul>
               <p className="mt-4 text-small text-ignite-muted">
                 Partner deals are agreed directly with us and invoiced, not booked
-                online. A stand is booked separately via the normal exhibitor flow.
+                online. Get in touch and we will talk numbers. A stand is booked
+                separately via the normal exhibitor flow.
               </p>
             </div>
             <div className="md:col-span-4 md:justify-self-end">
