@@ -222,8 +222,7 @@ function PricingSection({ pricing }: { pricing: AttendPricing }) {
           </p>
           <p className="mt-1 text-body text-ignite-muted">
             3 or more tickets save 10%, 5 or more save 25%. Regular and VIP
-            both count, and you can leave names as TBC for now. Discounts
-            apply to tickets, never the £15 lunch.
+            both count, and you can leave names as TBC for now.
           </p>
           <p className="mt-3">
             <Link

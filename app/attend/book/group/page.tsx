@@ -70,7 +70,7 @@ export default async function GroupBookingPage({
             }
             lede={
               state.status === "live"
-                ? "2 to 10 tickets in one payment. 3 or more save 10% on tickets, 5 or more save 25%. Regular and VIP both count, lunch is never discounted, and you can leave names as TBC for now."
+                ? "2 to 10 tickets in one payment. 3 or more save 10% on tickets, 5 or more save 25%. Regular and VIP both count, and you can leave names as TBC for now."
                 : undefined
             }
           />
