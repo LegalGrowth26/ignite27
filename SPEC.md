@@ -73,7 +73,8 @@ phase is out of scope for that phase.
 ### Phase 2 — ship by Monday 30 November 2026
 
 - Speakers page populated, individual speaker profile pages
-  (admin-managed, not self-service).
+  (SELF-SERVICE as of September 2026; see "Speaker profiles" below,
+  superseding the original admin-managed plan).
 - Agenda page populated, agenda planner in user account area.
 - Workshop booking with phased priority access (see Workshops section).
 - Referral system: unique referral links per booker, tracking,
@@ -104,7 +105,8 @@ the venue (or replicating venue WiFi conditions) in January 2027 before
 
 - Ignite Disruptive Business Awards (architecture should not preclude
   future expansion but no features are built for it in 27).
-- Speaker self-service login. Speaker pages are admin-managed for 27.
+- ~~Speaker self-service login~~ (brought INTO scope September 2026;
+  see "Speaker profiles" below).
 - Visual exhibitor floor plan (text-field stand allocation only).
 - Automated refund processing (refunds are manual via Stripe dashboard).
 - Reward automation for referrals (organisers decide rewards manually).
