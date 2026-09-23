@@ -30,6 +30,25 @@ export interface CreateSpeakerResult {
   slug: string;
 }
 
+// Pure row builder, unit-tested: a draft invitee carries an EXPLICIT
+// published_at null (overriding the column default of now()); the
+// normal add omits the key so the default publishes immediately.
+// Requires published_at to be nullable (migration 20260513).
+export function speakerProfileInsertRow(
+  input: CreateSpeakerInput,
+  slug: string,
+): Record<string, unknown> {
+  return {
+    slug,
+    display_name: input.displayName.trim().slice(0, 120),
+    talk_title: (input.talkTitle ?? "").trim().slice(0, 200),
+    bio: (input.bio ?? "").slice(0, 2000),
+    photo_path: input.photoPath ?? null,
+    profile_type: input.profileType ?? "main_stage",
+    ...(input.startUnpublished ? { published_at: null } : {}),
+  };
+}
+
 export async function ensureSpeakerProfile(
   service: SupabaseClient,
   input: CreateSpeakerInput,
@@ -50,15 +69,7 @@ export async function ensureSpeakerProfile(
 
   const { data, error } = await service
     .from("speaker_profiles")
-    .insert({
-      slug,
-      display_name: name.slice(0, 120),
-      talk_title: (input.talkTitle ?? "").trim().slice(0, 200),
-      bio: (input.bio ?? "").slice(0, 2000),
-      photo_path: input.photoPath ?? null,
-      profile_type: input.profileType ?? "main_stage",
-      ...(input.startUnpublished ? { published_at: null } : {}),
-    })
+    .insert(speakerProfileInsertRow(input, slug))
     .select("id")
     .single();
   if (error || !data) {
