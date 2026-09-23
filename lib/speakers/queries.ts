@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { SocialLink } from "@/lib/exhibitors/profile";
 import { parseSocialLinks } from "@/lib/exhibitors/profiles";
 import { env } from "@/lib/env";
-import { parseStoredTakeaways } from "./profile";
+import { parseStoredTakeaways, type SpeakerProfileType } from "./profile";
 
 // Reads for the speaker pages. speaker_profiles is the SINGLE source
 // for /speakers, /speakers/<slug>, and the home speaker cards.
@@ -24,6 +24,7 @@ export interface SpeakerProfileRow {
   social_links: unknown;
   cta_label: string | null;
   cta_url: string | null;
+  profile_type: SpeakerProfileType;
   published_at: string | null;
 }
 
@@ -36,6 +37,7 @@ export interface SpeakerCardData {
 
 export interface SpeakerPageData extends SpeakerCardData {
   id: string;
+  profileType: SpeakerProfileType;
   bio: string;
   talkDescription: string;
   talkTakeaways: string[];
@@ -63,6 +65,7 @@ export function publicPhotoUrl(photoPath: string): string {
 export function toSpeakerPage(row: SpeakerProfileRow): SpeakerPageData {
   return {
     id: row.id,
+    profileType: row.profile_type,
     slug: row.slug,
     displayName: row.display_name,
     talkTitle: row.talk_title,
@@ -78,8 +81,11 @@ export function toSpeakerPage(row: SpeakerProfileRow): SpeakerPageData {
 
 const PUBLIC_COLUMNS =
   "id, slug, display_name, photo_path, bio, talk_title, talk_description, " +
-  "talk_takeaways, website_url, social_links, cta_label, cta_url, published_at";
+  "talk_takeaways, website_url, social_links, cta_label, cta_url, " +
+  "profile_type, published_at";
 
+// The /speakers index and the home cards are MAIN STAGE surfaces:
+// main_stage + both only. Workshop hosts surface via /workshops.
 export async function fetchPublishedSpeakerCards(
   client: SupabaseClient,
 ): Promise<SpeakerCardData[]> {
@@ -87,6 +93,7 @@ export async function fetchPublishedSpeakerCards(
     .from("speaker_profiles")
     .select("slug, display_name, talk_title, photo_path")
     .not("published_at", "is", null)
+    .in("profile_type", ["main_stage", "both"])
     .order("created_at", { ascending: true });
   if (error) throw new Error(`speaker cards query failed: ${error.message}`);
   return (
@@ -114,4 +121,30 @@ export async function fetchPublishedSpeakerBySlug(
   if (error) throw new Error(`speaker query failed: ${error.message}`);
   if (!data) return null;
   return toSpeakerPage(data as unknown as SpeakerProfileRow);
+}
+
+// A host's published workshops, for the "their workshop(s)" block on
+// the profile page. Deliberately no live spaces-left figure here
+// (approved): title, time, room, and a link to the workshop page,
+// where booking rules and capacity live.
+export interface HostWorkshopRow {
+  id: string;
+  title: string;
+  starts_at: string;
+  ends_at: string;
+  room: string | null;
+}
+
+export async function fetchHostWorkshops(
+  client: SupabaseClient,
+  profileId: string,
+): Promise<HostWorkshopRow[]> {
+  const { data, error } = await client
+    .from("workshops")
+    .select("id, title, starts_at, ends_at, room")
+    .eq("host_profile_id", profileId)
+    .not("published_at", "is", null)
+    .order("starts_at", { ascending: true });
+  if (error) throw new Error(`host workshops query failed: ${error.message}`);
+  return (data ?? []) as unknown as HostWorkshopRow[];
 }

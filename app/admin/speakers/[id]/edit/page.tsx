@@ -4,7 +4,10 @@ import { notFound } from "next/navigation";
 import { requireSuperAdmin } from "@/lib/admin/guard";
 import type { SocialPlatform } from "@/lib/exhibitors/profile";
 import { parseSocialLinks } from "@/lib/exhibitors/profiles";
-import { parseStoredTakeaways } from "@/lib/speakers/profile";
+import {
+  parseStoredTakeaways,
+  type SpeakerProfileType,
+} from "@/lib/speakers/profile";
 import { AdminSpeakerEditForm, type AdminSpeakerDefaults } from "./AdminSpeakerEditForm";
 
 export const metadata: Metadata = {
@@ -25,6 +28,7 @@ interface Row {
   cta_label: string | null;
   cta_url: string | null;
   enquiries_email: string | null;
+  profile_type: SpeakerProfileType;
   published_at: string | null;
 }
 
@@ -41,7 +45,7 @@ export default async function AdminEditSpeakerPage({
     .select(
       `id, slug, display_name, bio, talk_title, talk_description,
        talk_takeaways, website_url, social_links, cta_label, cta_url,
-       enquiries_email, published_at`,
+       enquiries_email, profile_type, published_at`,
     )
     .eq("id", id)
     .maybeSingle();
@@ -62,6 +66,7 @@ export default async function AdminEditSpeakerPage({
 
   const defaults: AdminSpeakerDefaults = {
     slug: profile.slug,
+    profileType: profile.profile_type,
     displayName: profile.display_name,
     bio: profile.bio,
     talkTitle: profile.talk_title,

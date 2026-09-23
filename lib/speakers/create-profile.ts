@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ensureAuthUser, upsertAppUser } from "@/lib/bookings/create";
 import { pickAvailableSlug, slugifyCompany } from "@/lib/exhibitors/profile";
+import type { SpeakerProfileType } from "./profile";
 
 // Speaker creation, used by the admin add-speaker action and the
 // one-off seed backfill. Two halves that compose:
@@ -17,6 +18,11 @@ export interface CreateSpeakerInput {
   talkTitle: string;
   photoPath?: string | null;
   bio?: string;
+  // main_stage (default) | workshop_host | both.
+  profileType?: SpeakerProfileType;
+  // Draft invitees (host invite list): page exists but stays
+  // unpublished until the person is actually invited.
+  startUnpublished?: boolean;
 }
 
 export interface CreateSpeakerResult {
@@ -50,6 +56,8 @@ export async function ensureSpeakerProfile(
       talk_title: (input.talkTitle ?? "").trim().slice(0, 200),
       bio: (input.bio ?? "").slice(0, 2000),
       photo_path: input.photoPath ?? null,
+      profile_type: input.profileType ?? "main_stage",
+      ...(input.startUnpublished ? { published_at: null } : {}),
     })
     .select("id")
     .single();

@@ -21,6 +21,7 @@ import {
   exhibitorStandsRemaining,
   formatExVatWithGross,
   getCurrentPricing,
+  publicStandAvailabilityNote,
   type CurrentPricing,
 } from "@/lib/pricing";
 import { countCompletedExhibitorBookings } from "@/lib/bookings/exhibitor-count";
@@ -59,8 +60,6 @@ const EXHIBITOR_INCLUDES: readonly string[] = [
   "2 attendee places",
   "2 lunches",
 ];
-
-const EXHIBITOR_SPACES_TOTAL = EXHIBITOR_STAND_CAP;
 
 const EXHIBIT_STEPS: readonly BookingStep[] = [
   {
@@ -150,9 +149,12 @@ function PricingSection({
     ? "Bookings open 09:00, Saturday 1 August 2026. Below is the launch preview price."
     : "Each exhibitor booking includes two attendee places and two lunches.";
 
+  // Public copy only: the exact remaining count is admin-only, with
+  // the real number surfacing when genuine scarcity kicks in (10 or
+  // fewer, LOW_STANDS_PUBLIC_THRESHOLD).
   const extraNote = soldOut
     ? "All stands are taken. Email us to join the waiting list."
-    : `${standsRemaining} of ${EXHIBITOR_SPACES_TOTAL} spaces remaining.`;
+    : publicStandAvailabilityNote(standsRemaining);
 
   const priceLabel = isPreOpen
     ? formatExVatWithGross(LAUNCH_EXHIBITOR_EX_VAT_PENCE, LAUNCH_EXHIBITOR_INC_VAT_PENCE)

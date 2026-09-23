@@ -119,3 +119,15 @@ describe("validateContactMessage", () => {
     expect(validateContactMessage({ ...message, message: "x".repeat(2001) }).ok).toBe(false);
   });
 });
+
+describe("profile types", () => {
+  it("main stage: main_stage and both show on /speakers and edit the talk block", async () => {
+    const { showsOnMainStage, hostsWorkshops } = await import("./profile");
+    expect(showsOnMainStage("main_stage")).toBe(true);
+    expect(showsOnMainStage("both")).toBe(true);
+    expect(showsOnMainStage("workshop_host")).toBe(false);
+    expect(hostsWorkshops("workshop_host")).toBe(true);
+    expect(hostsWorkshops("both")).toBe(true);
+    expect(hostsWorkshops("main_stage")).toBe(false);
+  });
+});

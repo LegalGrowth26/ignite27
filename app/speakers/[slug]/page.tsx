@@ -5,7 +5,12 @@ import { notFound } from "next/navigation";
 import { Container } from "@/components/Container";
 import { Section } from "@/components/Section";
 import { SOCIAL_PLATFORM_LABELS } from "@/lib/exhibitors/profile";
-import { fetchPublishedSpeakerBySlug } from "@/lib/speakers/queries";
+import { hostsWorkshops, showsOnMainStage } from "@/lib/speakers/profile";
+import {
+  fetchHostWorkshops,
+  fetchPublishedSpeakerBySlug,
+  type HostWorkshopRow,
+} from "@/lib/speakers/queries";
 import { createSupabaseServiceClient } from "@/lib/supabase/service-client";
 import { sendSpeakerMessageAction } from "./actions";
 
@@ -34,13 +39,73 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params;
   const speaker = await loadSpeaker(slug);
   if (!speaker) return { title: "Speaker not found · IGNITE! 27" };
+  const verb = showsOnMainStage(speaker.profileType)
+    ? "is speaking at"
+    : "is hosting a workshop at";
   return {
     title: `${speaker.displayName} at IGNITE! 27`,
     description:
-      speaker.talkTitle
-        ? `${speaker.displayName} is speaking at IGNITE! 27: ${speaker.talkTitle}. Thursday 21 January 2027 at Kelham Hall, Newark.`
-        : `${speaker.displayName} is speaking at IGNITE! 27 on Thursday 21 January 2027 at Kelham Hall, Newark.`,
+      showsOnMainStage(speaker.profileType) && speaker.talkTitle
+        ? `${speaker.displayName} ${verb} IGNITE! 27: ${speaker.talkTitle}. Thursday 21 January 2027 at Kelham Hall, Newark.`
+        : `${speaker.displayName} ${verb} IGNITE! 27 on Thursday 21 January 2027 at Kelham Hall, Newark.`,
   };
+}
+
+const LONDON = "Europe/London";
+
+function ukTimeRange(startsAt: string, endsAt: string): string {
+  const fmt = new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: LONDON,
+  });
+  return `${fmt.format(new Date(startsAt))} to ${fmt.format(new Date(endsAt))}`;
+}
+
+function HostWorkshops({
+  workshops,
+  firstName,
+}: {
+  workshops: HostWorkshopRow[];
+  firstName: string;
+}) {
+  if (workshops.length === 0) {
+    return (
+      <div>
+        <h2 className="text-h2">{firstName}&apos;s workshop.</h2>
+        <p className="mt-4 text-body text-ignite-muted">
+          Workshop details are being finalised and will appear here.
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div>
+      <h2 className="text-h2">
+        {firstName}&apos;s workshop{workshops.length > 1 ? "s" : ""}.
+      </h2>
+      <ul className="mt-6 grid gap-4">
+        {workshops.map((w) => (
+          <li key={w.id} className="rounded-2xl border border-ignite-line bg-ignite-white p-5">
+            <p className="text-small font-semibold text-ignite-red">
+              {ukTimeRange(w.starts_at, w.ends_at)}
+              {w.room ? ` · ${w.room}` : ""}
+            </p>
+            <p className="mt-2 text-h3">{w.title}</p>
+            <p className="mt-3">
+              <Link
+                href={`/workshops/${w.id}`}
+                className="font-semibold text-ignite-red underline underline-offset-4"
+              >
+                Details and booking
+              </Link>
+            </p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
 }
 
 export default async function SpeakerPage({ params, searchParams }: PageProps) {
@@ -48,6 +113,21 @@ export default async function SpeakerPage({ params, searchParams }: PageProps) {
   const { contact, contact_error: contactError } = await searchParams;
   const speaker = await loadSpeaker(slug);
   if (!speaker) notFound();
+
+  const onMainStage = showsOnMainStage(speaker.profileType);
+  const isHost = hostsWorkshops(speaker.profileType);
+
+  let hostWorkshopRows: HostWorkshopRow[] = [];
+  if (isHost) {
+    try {
+      hostWorkshopRows = await fetchHostWorkshops(
+        createSupabaseServiceClient(),
+        speaker.id,
+      );
+    } catch (err) {
+      console.error("[speaker-page] host workshops fetch failed:", err);
+    }
+  }
 
   const bioParagraphs = speaker.bio
     .split(/\n+/)
@@ -70,7 +150,9 @@ export default async function SpeakerPage({ params, searchParams }: PageProps) {
           }}
         />
         <Container className="relative py-16 sm:py-20">
-          <p className="text-eyebrow uppercase text-ignite-red">Speaking at IGNITE! 27</p>
+          <p className="text-eyebrow uppercase text-ignite-red">
+            {onMainStage ? "Speaking at IGNITE! 27" : "Hosting a workshop at IGNITE! 27"}
+          </p>
           <div className="mt-5 flex flex-wrap items-center gap-6">
             {speaker.photoUrl ? (
               <img
@@ -81,8 +163,13 @@ export default async function SpeakerPage({ params, searchParams }: PageProps) {
             ) : null}
             <div>
               <h1 className="text-h1">{speaker.displayName}</h1>
-              {speaker.talkTitle ? (
+              {onMainStage && speaker.talkTitle ? (
                 <p className="mt-2 max-w-2xl text-lead text-white/80">{speaker.talkTitle}</p>
+              ) : null}
+              {!onMainStage && hostWorkshopRows[0] ? (
+                <p className="mt-2 max-w-2xl text-lead text-white/80">
+                  {hostWorkshopRows[0].title}
+                </p>
               ) : null}
             </div>
           </div>
@@ -93,8 +180,16 @@ export default async function SpeakerPage({ params, searchParams }: PageProps) {
         <Container>
           <div className="grid gap-10 md:grid-cols-12">
             <div className="md:col-span-7">
-              {talkParagraphs.length > 0 || speaker.talkTakeaways.length > 0 ? (
-                <div>
+              {isHost ? (
+                <HostWorkshops
+                  workshops={hostWorkshopRows}
+                  firstName={speaker.displayName.split(" ")[0] ?? speaker.displayName}
+                />
+              ) : null}
+
+              {onMainStage &&
+              (talkParagraphs.length > 0 || speaker.talkTakeaways.length > 0) ? (
+                <div className={isHost ? "mt-10" : ""}>
                   <h2 className="text-h2">The session.</h2>
                   {talkParagraphs.map((p, i) => (
                     <p key={i} className="mt-4 text-body text-ignite-ink">
@@ -130,7 +225,8 @@ export default async function SpeakerPage({ params, searchParams }: PageProps) {
                 </div>
               ) : null}
 
-              {talkParagraphs.length === 0 &&
+              {!isHost &&
+              talkParagraphs.length === 0 &&
               bioParagraphs.length === 0 &&
               speaker.talkTakeaways.length === 0 ? (
                 <p className="text-body text-ignite-muted">

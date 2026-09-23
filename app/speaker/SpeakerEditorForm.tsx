@@ -28,7 +28,15 @@ export interface SpeakerEditorDefaults {
   enquiriesEmail: string;
 }
 
-export function SpeakerEditorForm({ defaults }: { defaults: SpeakerEditorDefaults }) {
+export function SpeakerEditorForm({
+  defaults,
+  showTalkFields,
+}: {
+  defaults: SpeakerEditorDefaults;
+  // Workshop hosts do not edit the talk block: their session data
+  // lives in the workshops admin (the action enforces this too).
+  showTalkFields: boolean;
+}) {
   const [state, formAction, isPending] = useActionState<SpeakerEditorState, FormData>(
     saveSpeakerProfileAction,
     { error: null },
@@ -79,6 +87,15 @@ export function SpeakerEditorForm({ defaults }: { defaults: SpeakerEditorDefault
         <p className={HELP}>Blank lines start a new paragraph.</p>
       </div>
 
+      {!showTalkFields ? (
+        <p className="rounded-xl border border-ignite-line bg-ignite-cream p-3 text-small text-ignite-muted">
+          Your workshop&apos;s title, time, and description are managed by the
+          IGNITE! team and shown on your page automatically. Spot something
+          wrong? Reply to your invite email.
+        </p>
+      ) : null}
+
+      {showTalkFields ? (
       <fieldset className="rounded-2xl border border-ignite-line p-4">
         <legend className="px-2 text-body font-semibold text-ignite-ink">Your session</legend>
         <div className="grid gap-3">
@@ -121,6 +138,7 @@ export function SpeakerEditorForm({ defaults }: { defaults: SpeakerEditorDefault
           </div>
         </div>
       </fieldset>
+      ) : null}
 
       <div>
         <label htmlFor="websiteUrl" className={LABEL}>

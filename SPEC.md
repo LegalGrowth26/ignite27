@@ -189,6 +189,14 @@ PAID exhibitor bookings count toward the cap; abandoned Stripe checkouts
 do not. When the cap is reached, the exhibitor booking UI shows "sold
 out" and the server refuses further exhibitor checkouts.
 
+**Public availability display (September 2026):** the exact
+remaining-stands count is ADMIN-ONLY. Public pages show
+urgency-neutral copy ("Stands are selling. Reserve yours.") until
+remaining stands drop to `LOW_STANDS_PUBLIC_THRESHOLD` (config
+constant, **10**) or fewer, when the true "Only X stands left" is
+shown: real scarcity, shown only when true. The sold-out state is
+unchanged.
+
 ### Sponsorship (ex-VAT, not shown publicly)
 
 | Tier          | Price (ex-VAT) | Spots |
@@ -460,6 +468,35 @@ creates the account and sends the invite then.
 - **Admin:** view/edit any page (slug included), unpublish/republish
   (public photo copy pulled/restored), attach-email + invite for
   account-less pages, per-speaker message log.
+- **Profile types (added September 2026):** profile_type is
+  main_stage | workshop_host | both ('both' = one profile, both
+  places). /speakers and the home cards show main_stage + both only
+  ("On the main stage"). Workshop hosts surface via /workshops:
+  workshops.host_profile_id links a workshop to its host's profile
+  (free-text speaker_name remains the fallback for unlinked hosts,
+  and a linked but UNPUBLISHED profile falls back too, never a dead
+  link); the host's page swaps the talk block for their workshop(s)
+  (title, time, room, booking link; no live spaces-left figure).
+  One canonical URL for everyone: /speakers/<slug>. Hosts do not
+  edit talk fields (their session data lives in the workshops
+  admin), enforced server-side in both editors; profile_type is
+  admin-only, like the slug. The three seeded speakers defaulted to
+  main_stage.
+- **Host invites (added September 2026):** workshop hosts are invited
+  from the WORKSHOPS admin, not the speakers section. Draft invitees
+  (name + internal focus note) sit unpublished and account-less until
+  an email is attached; attaching it sends the full invite in one go:
+  account, page published, ambassador provisioning with the confirmed
+  host defaults (comp allowance 2, personal 20% discount code created
+  in Stripe, everything except lunch, no cap, no expiry), and ONE
+  combined welcome email (page + editor + share link + comps + code).
+  An existing ambassador keeps their own numbers untouched. The seed
+  invite list (Dan Ince, Scott Linfoot, Mike Wistow, Chris England,
+  Elsie Green, Aaron Hutchinson) loads via a run-once admin route.
+- MAIN-STAGE speakers are NOT ambassadors by this feature; that stays
+  a separate add via /admin -> Ambassadors. Workshop hosts ARE
+  provisioned as ambassadors by the host invite above (September 2026
+  decision).
 - Speakers are NOT ambassadors by this feature; that stays a separate
   add via /admin -> Ambassadors.
 - One-off backfill seeds the three announced speakers from the old

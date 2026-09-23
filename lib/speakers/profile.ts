@@ -174,3 +174,32 @@ export function parseStoredTakeaways(raw: unknown): string[] {
     .filter((t) => t.length > 0)
     .slice(0, MAX_TAKEAWAYS);
 }
+
+// -----------------------------------------------------------------------------
+// Profile types (September 2026): main-stage speakers vs workshop
+// hosts, with 'both' for people doing the two. One profile, one URL;
+// presentation differs.
+// -----------------------------------------------------------------------------
+
+export const SPEAKER_PROFILE_TYPES = [
+  "main_stage",
+  "workshop_host",
+  "both",
+] as const;
+export type SpeakerProfileType = (typeof SPEAKER_PROFILE_TYPES)[number];
+
+export const SPEAKER_PROFILE_TYPE_LABELS: Record<SpeakerProfileType, string> = {
+  main_stage: "Main stage",
+  workshop_host: "Workshop host",
+  both: "Main stage + workshop host",
+};
+
+// Shows on /speakers, the home cards, and gets the talk block.
+export function showsOnMainStage(type: SpeakerProfileType): boolean {
+  return type !== "workshop_host";
+}
+
+// Gets the "their workshop(s)" block and the workshops-admin host link.
+export function hostsWorkshops(type: SpeakerProfileType): boolean {
+  return type !== "main_stage";
+}

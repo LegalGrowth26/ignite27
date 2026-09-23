@@ -90,7 +90,17 @@ export default async function WorkshopDetailPage({ params, searchParams }: PageP
             {workshop.room ? ` · ${workshop.room}` : ""}
           </p>
           <h1 className="mt-3 text-h1">{workshop.title}</h1>
-          {workshop.speaker_name ? (
+          {workshop.host ? (
+            <p className="mt-3 text-lead text-ignite-muted">
+              with{" "}
+              <Link
+                href={`/speakers/${workshop.host.slug}`}
+                className="underline underline-offset-4 hover:text-ignite-red"
+              >
+                {workshop.host.displayName}
+              </Link>
+            </p>
+          ) : workshop.speaker_name ? (
             <p className="mt-3 text-lead text-ignite-muted">with {workshop.speaker_name}</p>
           ) : null}
 
@@ -107,6 +117,21 @@ export default async function WorkshopDetailPage({ params, searchParams }: PageP
               </p>
             )}
           </div>
+
+          {workshop.host ? (
+            <div className="mt-8 rounded-2xl border border-ignite-line bg-ignite-cream p-6">
+              <p className="text-eyebrow uppercase text-ignite-red">Your host</p>
+              <p className="mt-2 text-h3">{workshop.host.displayName}</p>
+              <p className="mt-2">
+                <Link
+                  href={`/speakers/${workshop.host.slug}`}
+                  className="font-semibold text-ignite-red underline underline-offset-4"
+                >
+                  More about {workshop.host.displayName.split(" ")[0]}
+                </Link>
+              </p>
+            </div>
+          ) : null}
 
           <div className="mt-8 rounded-2xl border border-ignite-line bg-ignite-white p-6">
             <p className="text-body font-semibold text-ignite-ink">

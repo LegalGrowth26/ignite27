@@ -48,10 +48,10 @@ export default async function SpeakersPage() {
               eyebrow="Speakers"
               heading={
                 speakers.length > 0
-                  ? "The line-up so far."
+                  ? "On the main stage."
                   : "Speakers are being announced."
               }
-              lede="National-quality speakers, brought to you. Tap any speaker for their session, and drop your email below to hear as each new name lands."
+              lede="National-quality speakers, brought to you. Tap any speaker for their session, and drop your email below to hear as each new name lands. Workshop hosts live on the workshops page."
               as="h1"
             />
           </div>

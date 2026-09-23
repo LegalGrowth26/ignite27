@@ -70,3 +70,17 @@ describe("timesOverlap", () => {
     expect(timesOverlap(at(9), at(10), at(14), at(15))).toBe(false);
   });
 });
+
+describe("resolveWorkshopHost", () => {
+  it("links only PUBLISHED host profiles; unpublished or missing fall back", async () => {
+    const { resolveWorkshopHost } = await import("./queries");
+    expect(
+      resolveWorkshopHost({ slug: "jane", display_name: "Jane Doe", published_at: "2026-09-01" }),
+    ).toEqual({ slug: "jane", displayName: "Jane Doe" });
+    expect(
+      resolveWorkshopHost({ slug: "jane", display_name: "Jane Doe", published_at: null }),
+    ).toBeNull();
+    expect(resolveWorkshopHost(null)).toBeNull();
+    expect(resolveWorkshopHost(undefined)).toBeNull();
+  });
+});

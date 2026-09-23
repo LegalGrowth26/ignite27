@@ -134,7 +134,17 @@ export default async function WorkshopsPage({
                             {w.title}
                           </Link>
                         </h2>
-                        {w.speaker_name ? (
+                        {w.host ? (
+                          <p className="mt-1 text-body text-ignite-muted">
+                            with{" "}
+                            <Link
+                              href={`/speakers/${w.host.slug}`}
+                              className="underline underline-offset-4 hover:text-ignite-red"
+                            >
+                              {w.host.displayName}
+                            </Link>
+                          </p>
+                        ) : w.speaker_name ? (
                           <p className="mt-1 text-body text-ignite-muted">
                             with {w.speaker_name}
                           </p>

@@ -1,12 +1,18 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import {
   SOCIAL_PLATFORMS,
   SOCIAL_PLATFORM_LABELS,
   type SocialPlatform,
 } from "@/lib/exhibitors/profile";
 import type { EchoedValues } from "@/lib/admin/form-echo";
+import {
+  showsOnMainStage,
+  SPEAKER_PROFILE_TYPES,
+  SPEAKER_PROFILE_TYPE_LABELS,
+  type SpeakerProfileType,
+} from "@/lib/speakers/profile";
 import { adminSaveSpeakerAction, type SpeakerAdminFormState } from "../../actions";
 
 const INPUT =
@@ -16,6 +22,7 @@ const HELP = "mt-1 text-small text-ignite-muted";
 
 export interface AdminSpeakerDefaults {
   slug: string;
+  profileType: SpeakerProfileType;
   displayName: string;
   bio: string;
   talkTitle: string;
@@ -44,6 +51,12 @@ export function AdminSpeakerEditForm({
   const echoed: EchoedValues | null = state.values;
   const v = (key: keyof AdminSpeakerDefaults) =>
     (echoed?.[key] as string | undefined) ?? String(defaults[key] ?? "");
+  // Talk fields follow the SELECTED type live, so switching someone to
+  // workshop host hides them immediately (the action enforces the same
+  // rule server-side).
+  const [profileType, setProfileType] = useState<SpeakerProfileType>(
+    defaults.profileType,
+  );
 
   return (
     <form action={formAction} className="flex flex-col gap-6">
@@ -62,6 +75,30 @@ export function AdminSpeakerEditForm({
         <p className={HELP}>
           The page URL: /speakers/&lt;slug&gt;. Changing it breaks links already
           shared to the old URL.
+        </p>
+      </div>
+
+      <div>
+        <label htmlFor="profileType" className={LABEL}>
+          Type (admin only)
+        </label>
+        <select
+          id="profileType"
+          name="profileType"
+          value={profileType}
+          onChange={(e) => setProfileType(e.target.value as SpeakerProfileType)}
+          className={INPUT}
+        >
+          {SPEAKER_PROFILE_TYPES.map((t) => (
+            <option key={t} value={t}>
+              {SPEAKER_PROFILE_TYPE_LABELS[t]}
+            </option>
+          ))}
+        </select>
+        <p className={HELP}>
+          Main stage shows on /speakers with the talk block; workshop hosts
+          surface via their workshop pages instead. &quot;Both&quot; does both with
+          one profile.
         </p>
       </div>
 
@@ -93,6 +130,7 @@ export function AdminSpeakerEditForm({
         />
       </div>
 
+      {showsOnMainStage(profileType) ? (
       <div className="grid gap-3">
         <div>
           <label htmlFor="talkTitle" className={LABEL}>
@@ -132,6 +170,12 @@ export function AdminSpeakerEditForm({
           />
         </div>
       </div>
+      ) : (
+        <p className="rounded-xl border border-ignite-line bg-ignite-cream p-3 text-small text-ignite-muted">
+          Workshop hosts&apos; session data lives in the workshops admin; link
+          this profile from the workshop&apos;s Host field there.
+        </p>
+      )}
 
       <div>
         <label htmlFor="websiteUrl" className={LABEL}>
