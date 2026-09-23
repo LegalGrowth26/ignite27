@@ -46,7 +46,6 @@ export function AddSpeakerForm() {
           Talk title (optional)
         </label>
         <input id="talkTitle" name="talkTitle" maxLength={200} defaultValue={echoed?.talkTitle ?? ""} className={INPUT} />
-        <input id="talkTitle" name="talkTitle" maxLength={200} className={INPUT} />
         <p className="mt-1 text-small text-ignite-muted">
           Main-stage only; a host&apos;s workshop title comes from the workshops admin.
         </p>
