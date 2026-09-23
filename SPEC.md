@@ -189,6 +189,14 @@ PAID exhibitor bookings count toward the cap; abandoned Stripe checkouts
 do not. When the cap is reached, the exhibitor booking UI shows "sold
 out" and the server refuses further exhibitor checkouts.
 
+**Public availability display (September 2026):** the exact
+remaining-stands count is ADMIN-ONLY. Public pages show
+urgency-neutral copy ("Stands are selling. Reserve yours.") until
+remaining stands drop to `LOW_STANDS_PUBLIC_THRESHOLD` (config
+constant, **10**) or fewer, when the true "Only X stands left" is
+shown: real scarcity, shown only when true. The sold-out state is
+unchanged.
+
 ### Sponsorship (ex-VAT, not shown publicly)
 
 | Tier          | Price (ex-VAT) | Spots |

@@ -43,3 +43,24 @@ describe("isExhibitorAvailable", () => {
     expect(isExhibitorAvailable(EXHIBITOR_STAND_CAP + 1)).toBe(false);
   });
 });
+
+describe("publicStandAvailabilityNote", () => {
+  it("stays urgency-neutral above the threshold: no numbers leak", async () => {
+    const { publicStandAvailabilityNote } = await import("./exhibitor");
+    expect(publicStandAvailabilityNote(50)).toBe("Stands are selling. Reserve yours.");
+    expect(publicStandAvailabilityNote(11)).toBe("Stands are selling. Reserve yours.");
+    expect(publicStandAvailabilityNote(11)).not.toMatch(/\d/);
+  });
+
+  it("shows the real number only at the threshold or below", async () => {
+    const { publicStandAvailabilityNote } = await import("./exhibitor");
+    expect(publicStandAvailabilityNote(10)).toBe("Only 10 stands left.");
+    expect(publicStandAvailabilityNote(2)).toBe("Only 2 stands left.");
+    expect(publicStandAvailabilityNote(1)).toBe("Only 1 stand left.");
+  });
+
+  it("handles the sold-out edge without going negative", async () => {
+    const { publicStandAvailabilityNote } = await import("./exhibitor");
+    expect(publicStandAvailabilityNote(0)).toBe("All stands are taken.");
+  });
+});
