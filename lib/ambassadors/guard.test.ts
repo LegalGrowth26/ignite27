@@ -11,6 +11,7 @@ const activeAmbassador: AmbassadorRow = {
   comp_allowance: 5,
   discount_percent: null,
   promo_code: null,
+  comp_claim_token: "6f9619ff-8b86-d011-b42d-00c04fc964ff",
   link_clicks: 12,
   deactivated_at: null,
 };

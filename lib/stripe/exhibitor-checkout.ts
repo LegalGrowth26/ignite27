@@ -1,5 +1,9 @@
 import type Stripe from "stripe";
 import { REF_METADATA_KEY } from "@/lib/ambassadors/attribution";
+import {
+  resolveAutoApplyPromotionCodeId,
+  sessionDiscountParams,
+} from "@/lib/ambassadors/auto-discount";
 import { generateBookingReference } from "@/lib/bookings/reference";
 import {
   exhibitorIntentToMetadata,
@@ -141,7 +145,11 @@ export async function createExhibitorCheckoutSession(
     automatic_tax: { enabled: true },
     success_url: successUrl,
     cancel_url: cancelUrl,
-    allow_promotion_codes: true,
+    // Same share-link auto-apply as the delegate checkout: pre-apply
+    // the referring ambassador's code, or keep the typed-code field.
+    ...sessionDiscountParams(
+      await resolveAutoApplyPromotionCodeId(stripe, input.refSlug),
+    ),
     expires_at: Math.floor(realNow.getTime() / 1000) + 30 * 60,
   };
   const session = await stripe.checkout.sessions.create(params);

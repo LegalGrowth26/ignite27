@@ -11,6 +11,7 @@ export interface AmbassadorRow {
   comp_allowance: number;
   discount_percent: number | null;
   promo_code: string | null;
+  comp_claim_token: string | null;
   link_clicks: number;
   deactivated_at: string | null;
 }
@@ -70,7 +71,7 @@ export async function resolveAmbassadorContext(
   const { data: ambassador, error: ambErr } = await client
     .from("ambassadors")
     .select(
-      "id, slug, display_name, company, ambassador_type, comp_allowance, discount_percent, promo_code, link_clicks, deactivated_at",
+      "id, slug, display_name, company, ambassador_type, comp_allowance, discount_percent, promo_code, comp_claim_token, link_clicks, deactivated_at",
     )
     .eq("user_id", appUserId)
     .maybeSingle();

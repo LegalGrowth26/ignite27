@@ -5,6 +5,7 @@ import { SectionHeader } from "@/components/SectionHeader";
 import { ShareLinkCard } from "@/components/ShareLinkCard";
 import { requireAmbassador } from "@/lib/ambassadors/guard";
 import { ambassadorShareUrl } from "@/lib/ambassadors/attribution";
+import { claimUrl } from "@/lib/ambassadors/claim";
 import { env } from "@/lib/env";
 import { GiveTicketForm } from "./GiveTicketForm";
 
@@ -18,6 +19,7 @@ export const metadata: Metadata = {
 interface CompRow {
   recipient_name: string;
   recipient_email: string;
+  source: string;
   created_at: string;
 }
 
@@ -45,7 +47,7 @@ export default async function AmbassadorPage() {
 
   const { data: compData } = await client
     .from("ambassador_comps")
-    .select("recipient_name, recipient_email, created_at")
+    .select("recipient_name, recipient_email, source, created_at")
     .eq("ambassador_id", ambassador.id)
     .order("created_at", { ascending: false });
   const comps = (compData ?? []) as CompRow[];
@@ -65,12 +67,37 @@ export default async function AmbassadorPage() {
           <div className="mt-10 rounded-2xl border-2 border-ignite-red bg-ignite-red/5 p-6">
             <h2 className="text-h3">Your share link</h2>
             <p className="mt-2 text-small text-ignite-muted">
-              Anyone who books after following this link counts as yours.
+              {ambassador.promo_code && ambassador.discount_percent ? (
+                <>
+                  Share this: your {ambassador.discount_percent}% discount
+                  applies automatically at checkout and every booking counts
+                  to you.
+                </>
+              ) : (
+                <>Anyone who books after following this link counts as yours.</>
+              )}
             </p>
             <div className="mt-4">
               <ShareLinkCard shareUrl={shareUrl} />
             </div>
           </div>
+
+          {compsRemaining > 0 && ambassador.comp_claim_token ? (
+            <div className="mt-6 rounded-2xl border-2 border-ignite-red bg-ignite-red/5 p-6">
+              <h2 className="text-h3">Your guest ticket link</h2>
+              <p className="mt-2 text-small text-ignite-muted">
+                Anyone with this link can claim one of your {compsRemaining}{" "}
+                free guest ticket{compsRemaining === 1 ? "" : "s"} and book
+                themselves in. It stops working the moment they are all
+                claimed.
+              </p>
+              <div className="mt-4">
+                <ShareLinkCard
+                  shareUrl={claimUrl(env.siteUrl(), ambassador.comp_claim_token)}
+                />
+              </div>
+            </div>
+          ) : null}
 
           <dl className="mt-6 grid gap-4 sm:grid-cols-3">
             <div className="rounded-2xl border border-ignite-line bg-ignite-white p-5">
@@ -97,7 +124,9 @@ export default async function AmbassadorPage() {
                   <>
                     Share code{" "}
                     <span className="font-mono font-semibold">{ambassador.promo_code}</span>{" "}
-                    for {ambassador.discount_percent}% off.
+                    for {ambassador.discount_percent}% off. It is also built
+                    into your share link: anyone booking through it gets the
+                    discount applied automatically.
                   </>
                 ) : (
                   <>
@@ -127,7 +156,10 @@ export default async function AmbassadorPage() {
                 {comps.map((c) => (
                   <li key={`${c.recipient_email}-${c.created_at}`} className="flex flex-wrap justify-between gap-2 py-2 text-small">
                     <span className="font-semibold text-ignite-ink">{c.recipient_name}</span>
-                    <span className="text-ignite-muted">{c.recipient_email}</span>
+                    <span className="text-ignite-muted">
+                      {c.recipient_email}
+                      {c.source === "claim_link" ? " · claimed via your link" : " · sent by you"}
+                    </span>
                   </li>
                 ))}
               </ul>

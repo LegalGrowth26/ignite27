@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compTicketsLine, discountLines, formatUkDate } from "./welcome";
+import { claimLinkLine, compTicketsLine, discountLines, formatUkDate } from "./welcome";
 
 describe("compTicketsLine", () => {
   it("omits the block entirely at zero allowance", () => {
@@ -25,7 +25,7 @@ describe("discountLines", () => {
     expect(
       discountLines({ ...base, limits: { maxRedemptions: 50, expiresAt: null } }),
     ).toEqual([
-      "Your discount code is STEPHINE20. It takes 20% off for anyone who uses it at checkout.",
+      "Your discount code is STEPHINE20. It takes 20% off for anyone who uses it at checkout, and anyone who books through your share link gets it applied automatically, no code to type.",
       "It can be used up to 50 times.",
     ]);
     expect(
@@ -48,6 +48,13 @@ describe("discountLines", () => {
     ).toBe("There is no limit on how many people can use it.");
     // Unknown limits (lookup failed): claim nothing.
     expect(discountLines({ ...base, limits: null })).toHaveLength(1);
+  });
+});
+
+describe("claimLinkLine", () => {
+  it("omits the line at zero allowance and shows it otherwise", () => {
+    expect(claimLinkLine(0)).toBeNull();
+    expect(claimLinkLine(2)).toContain("guest ticket link");
   });
 });
 
