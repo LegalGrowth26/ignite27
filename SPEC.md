@@ -211,32 +211,41 @@ No checkout flow for sponsorship.
 
 ### Partners (reworked September 2026)
 
-Partner deals are sold by Tom/Paul and invoiced OFFLINE; there is no
-checkout flow. Three tiers, each with category exclusivity, and the
-tier prices ARE displayed publicly on /exhibit (September 2026
-decision, superseding the old "do not display partner pricing" rule):
+Partner deals are SOLD by Tom/Paul (no self-serve checkout); tier
+pricing is enquiry-led publicly (tier names + benefits only, no £
+figures anywhere public). Standard internal prices: Headline £3,500,
+Speakers' Den £2,500, Partner £1,000, each overridable per deal via
+**agreed_price_pence**. Category exclusivity was REMOVED (September
+2026): the column remains in the database but nothing collects,
+checks, or displays it.
 
-| Tier                  | Standard price (ex-VAT) |
-|-----------------------|-------------------------|
-| Headline Partner      | £3,500                  |
-| Speakers' Den Partner | £2,500                  |
-| Partner               | £1,000                  |
-
-- Recorded in /admin/partners: company, contact, tier,
-  **agreed_price_pence** (defaults from the tier, overridable per
-  deal), category (fixed exclusivity list + "other"), status
-  (agreed / paid / ended), notes, website, logo.
-- **Category exclusivity WARNS, never blocks**: adding a partner into
-  an occupied category names the clash and needs an explicit
-  "add anyway" confirmation. "other" is exempt.
-- **Public strip** (home + /exhibit): agreed AND paid partners while
-  admin-visible; ended never. Headline Partners get their own row
-  with bigger tiles; tiles link straight to the partner's website
-  (followable). No partner pages in v1.
-- The partners table has NO anon read (contact details, price, notes
-  live on the row); the strip reads via the service client selecting
-  public-safe columns only. All writes are audit-logged admin
-  actions; no deletes ("ended" keeps the record).
+- Recorded in /admin/partners: company, contact, tier, agreed price,
+  notes, website, logo.
+- **Payment collection (September 2026):** admin sends payment
+  requests from the partner record. Each request snapshots its own
+  ex-VAT amount (default: the remaining balance), gets a stable
+  /pay/<token> page that mints a fresh Stripe Checkout Session per
+  click (ex-VAT + automatic tax, ignite27_partner product), and is
+  emailed as £X + VAT with the inc-VAT total from Tom's address.
+  Links live 30 days; a resend re-uses the token and restarts the
+  clock. PART-PAYMENTS are first-class: several requests per partner,
+  each tracked independently (sent / paid / expired / cancelled).
+- **Status derives from the money**: unpaid / part-paid (£X of £Y) /
+  paid in full (overpayment allowed, true figure shown), computed
+  from paid requests against the agreed price, flipped by the Stripe
+  webhook, never by hand. "End partnership" is the only manual
+  lifecycle action; ending cancels all live payment links. On
+  payment: Stripe's receipt plus our confirmation email (with the
+  remaining balance when part-paid). Double payment of one request
+  is logged loudly for a manual refund.
+- **Public strip** (home + /exhibit): visible and not-ended partners.
+  Headline Partners get their own row with bigger tiles; tiles link
+  straight to the partner's website (followable). No partner pages
+  in v1.
+- The partners tables have NO anon read (contact details, prices,
+  tokens live on the rows); the strip and /pay page read via the
+  service client. All writes are audit-logged admin actions; no
+  deletes ("ended" keeps the record).
 - **Phase 2 (noted, not built):** partner self-editing, dashboards,
   stand linkage. A partner's stand still comes via the normal
   exhibitor flow; ambassador access via /admin -> Ambassadors.

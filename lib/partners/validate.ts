@@ -25,6 +25,10 @@ export const PARTNER_TIER_ORDER: readonly PartnerTier[] = [
   "partner",
 ];
 
+// Lifecycle: the enum column keeps its three values, but since the
+// payment-links work (September 2026) the app never writes 'agreed'
+// or 'paid': payment position derives from the money ledger
+// (lib/partners/payments.ts) and 'ended' is the only manual action.
 export const PARTNER_STATUSES = ["agreed", "paid", "ended"] as const;
 export type PartnerStatus = (typeof PARTNER_STATUSES)[number];
 
@@ -34,7 +38,6 @@ export interface PartnerInput {
   contactEmail: string;
   tier: PartnerTier;
   agreedPricePence: number;
-  status: PartnerStatus;
   notes: string;
   websiteUrl: string | null;
 }
@@ -62,7 +65,6 @@ export function validatePartner(input: {
   contactEmail?: unknown;
   tier?: unknown;
   agreedPricePounds?: unknown; // form field in whole pounds; "" = tier default
-  status?: unknown;
   notes?: unknown;
   websiteUrl?: unknown;
 }): PartnerValidation {
@@ -96,11 +98,6 @@ export function validatePartner(input: {
     agreedPricePence = Math.round(pounds * 100);
   }
 
-  const status = str(input.status) as PartnerStatus;
-  if (!PARTNER_STATUSES.includes(status)) {
-    return { ok: false, error: "Pick a status." };
-  }
-
   const notes = str(input.notes);
   if (notes.length > 2000) {
     return { ok: false, error: "Notes are too long (max 2000 characters)." };
@@ -119,7 +116,6 @@ export function validatePartner(input: {
       contactEmail,
       tier,
       agreedPricePence,
-      status,
       notes,
       websiteUrl: websiteUrl || null,
     },
@@ -141,7 +137,9 @@ export function buildPartnersStrip(
   rows: readonly StripSourceRow[],
 ): StripSourceRow[] {
   return rows
-    .filter((r) => r.visible && (r.status === "agreed" || r.status === "paid"))
+    // Visible and not ended: agreed and paid partners always showed the
+    // same way, so deriving payment state changes nothing here.
+    .filter((r) => r.visible && r.status !== "ended")
     .sort((a, b) => {
       const byTier =
         PARTNER_TIER_ORDER.indexOf(a.tier) - PARTNER_TIER_ORDER.indexOf(b.tier);

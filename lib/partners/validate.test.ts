@@ -11,7 +11,6 @@ const valid = {
   contactEmail: "jane@chattertons.example.com",
   tier: "headline",
   agreedPricePounds: "",
-  status: "agreed",
   notes: "",
   websiteUrl: "https://chattertons.example.com",
 };
@@ -31,9 +30,8 @@ describe("validatePartner", () => {
     expect(result.value.agreedPricePence).toBe(250000);
   });
 
-  it("rejects unknown tiers, statuses, and bad URLs", () => {
+  it("rejects unknown tiers and bad URLs", () => {
     expect(validatePartner({ ...valid, tier: "platinum" }).ok).toBe(false);
-    expect(validatePartner({ ...valid, status: "maybe" }).ok).toBe(false);
     expect(validatePartner({ ...valid, websiteUrl: "javascript:alert(1)" }).ok).toBe(false);
     expect(validatePartner({ ...valid, agreedPricePounds: "lots" }).ok).toBe(false);
   });

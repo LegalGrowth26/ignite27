@@ -12,6 +12,7 @@ import {
   ExhibitorMetadataParseError,
 } from "@/lib/bookings/exhibitor-intent";
 import { env } from "@/lib/env";
+import { sendPartnerPaymentConfirmationEmail } from "@/lib/partners/send-payment";
 import { crmTagsForBooking, pushContactToCrmSafe } from "@/lib/crm/ghl";
 import { ensureExhibitorProfileSafe } from "@/lib/exhibitors/create-profile";
 import { REF_METADATA_KEY } from "@/lib/ambassadors/attribution";
@@ -97,6 +98,10 @@ async function handleCheckoutSessionCompleted(event: Stripe.Event): Promise<void
   }
 
   const metadata = eventSession.metadata ?? {};
+  if (metadata.booking_type === "partner_payment") {
+    await handlePartnerPaymentCompleted(eventSession, event);
+    return;
+  }
   if (metadata.booking_type === "exhibitor") {
     await handleExhibitorSessionCompleted(eventSession, event);
     return;
@@ -216,6 +221,157 @@ async function handleCheckoutSessionCompleted(event: Stripe.Event): Promise<void
     result.bookingId,
     result.confirmationEmailSentAt,
   );
+}
+
+// Partner payment: no booking is created. The request row flips to
+// paid with the Stripe references, the partner's derived state
+// (unpaid / part-paid / paid in full) follows from the ledger, and
+// our confirmation email goes out with the 3-branch idempotency the
+// booking paths use. A SECOND session paying an already-paid request
+// is real double-charged money: it is logged loudly for a manual
+// refund and nothing else changes.
+async function handlePartnerPaymentCompleted(
+  eventSession: Stripe.Checkout.Session,
+  event: Stripe.Event,
+): Promise<void> {
+  const metadata = eventSession.metadata ?? {};
+  const requestId = metadata.partner_payment_request_id;
+  if (!requestId) {
+    throw new MetadataParseError("partner payment session missing request id");
+  }
+
+  const supabase = createSupabaseServiceClient();
+  const { data, error } = await supabase
+    .from("partner_payment_requests")
+    .select(
+      `id, partner_id, amount_ex_vat_pence, status, expires_at, sent_at, paid_at,
+       stripe_checkout_session_id, confirmation_email_sent_at,
+       partners ( id, company_name, contact_name, contact_email, tier, agreed_price_pence )`,
+    )
+    .eq("id", requestId)
+    .maybeSingle();
+  if (error) throw new Error(`partner payment request lookup failed: ${error.message}`);
+  if (!data) {
+    // Unknown id can never succeed on retry; 200 via MetadataParseError.
+    throw new MetadataParseError(`partner payment request not found: ${requestId}`);
+  }
+  type RequestRow = {
+    id: string;
+    partner_id: string;
+    amount_ex_vat_pence: number;
+    status: string;
+    expires_at: string;
+    sent_at: string | null;
+    paid_at: string | null;
+    stripe_checkout_session_id: string | null;
+    confirmation_email_sent_at: string | null;
+    partners: {
+      id: string;
+      company_name: string;
+      contact_name: string;
+      contact_email: string;
+      tier: "headline" | "speakers_den" | "partner";
+      agreed_price_pence: number;
+    } | null;
+  };
+  const request = data as unknown as RequestRow;
+  if (!request.partners) {
+    throw new MetadataParseError(`partner missing for payment request ${requestId}`);
+  }
+
+  const vatAmountPence = eventSession.total_details?.amount_tax ?? 0;
+  const grossPaidPence = eventSession.amount_total ?? 0;
+
+  if (request.status === "paid") {
+    if (request.stripe_checkout_session_id !== eventSession.id) {
+      // Two sessions both paid (e.g. two tabs racing). Money was taken
+      // twice; make it loud for a manual refund in the dashboard.
+      console.error(
+        "[stripe-webhook] PARTNER DOUBLE PAYMENT:",
+        JSON.stringify({
+          request_id: request.id,
+          partner_id: request.partner_id,
+          first_session: request.stripe_checkout_session_id,
+          second_session: eventSession.id,
+          gross_paid_pence: grossPaidPence,
+        }),
+      );
+      return;
+    }
+    // Same session redelivered: retry the confirmation email if it
+    // never dispatched, otherwise a clean no-op.
+    if (request.confirmation_email_sent_at === null) {
+      try {
+        await sendPartnerPaymentConfirmationEmail({
+          service: supabase,
+          requestId: request.id,
+          partner: request.partners,
+          grossPaidPence,
+          vatAmountPence,
+        });
+      } catch (err) {
+        console.error(
+          "[stripe-webhook] partner confirmation retry failed (continuing)",
+          request.id,
+          err,
+        );
+      }
+    }
+    return;
+  }
+
+  const stripePaymentIntentId =
+    typeof eventSession.payment_intent === "string"
+      ? eventSession.payment_intent
+      : eventSession.payment_intent?.id ?? null;
+
+  // Flip only from a non-paid state; the filter makes redelivery races
+  // collapse to a single winner.
+  const { data: updated, error: updateErr } = await supabase
+    .from("partner_payment_requests")
+    .update({
+      status: "paid",
+      paid_at: new Date((event.created ?? Math.floor(Date.now() / 1000)) * 1000).toISOString(),
+      stripe_checkout_session_id: eventSession.id,
+      stripe_payment_intent_id: stripePaymentIntentId,
+      vat_amount_pence: vatAmountPence,
+      gross_paid_pence: grossPaidPence,
+    })
+    .eq("id", request.id)
+    .neq("status", "paid")
+    .select("id");
+  if (updateErr) throw new Error(`partner payment update failed: ${updateErr.message}`);
+  if (!updated || (updated as unknown[]).length === 0) {
+    console.info("[stripe-webhook] partner payment already recorded", request.id);
+    return;
+  }
+
+  console.info(
+    "[stripe-webhook] partner payment received",
+    JSON.stringify({
+      request_id: request.id,
+      partner_id: request.partner_id,
+      gross_paid_pence: grossPaidPence,
+    }),
+  );
+
+  try {
+    await sendPartnerPaymentConfirmationEmail({
+      service: supabase,
+      requestId: request.id,
+      partner: request.partners,
+      grossPaidPence,
+      vatAmountPence,
+    });
+  } catch (err) {
+    // Same policy as bookings: log, return 200; Stripe's retries
+    // re-enter the confirmation branch above until it dispatches.
+    console.error(
+      "[stripe-webhook] partner confirmation email failed (continuing)",
+      request.id,
+      err,
+    );
+  }
 }
 
 // Group delegate bookings: metadata carries only the intent id (the

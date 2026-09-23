@@ -85,11 +85,25 @@ describe("ensureStripeProduct", () => {
 });
 
 describe("ensureStripeProducts", () => {
-  it("provisions all four products by default", async () => {
+  it("provisions the four BOOKING products by default (partner is on demand)", async () => {
     const { stripe, create } = stubStripe({});
     await ensureStripeProducts(stripe);
     const createdIds = create.mock.calls.map((c) => (c[0] as { id: string }).id).sort();
-    expect(createdIds).toEqual(Object.values(STRIPE_PRODUCT_IDS).sort());
+    expect(createdIds).toEqual(
+      [
+        STRIPE_PRODUCT_IDS.delegate,
+        STRIPE_PRODUCT_IDS.vip,
+        STRIPE_PRODUCT_IDS.exhibitor,
+        STRIPE_PRODUCT_IDS.lunch,
+      ].sort(),
+    );
+    expect(createdIds).not.toContain(STRIPE_PRODUCT_IDS.partner);
+  });
+
+  it("provisions the partner product when asked", async () => {
+    const { stripe, create } = stubStripe({});
+    await ensureStripeProducts(stripe, ["partner"]);
+    expect((create.mock.calls[0]![0] as { id: string }).id).toBe("ignite27_partner");
   });
 
   it("provisions only the requested subset", async () => {
