@@ -16,13 +16,19 @@ import type Stripe from "stripe";
 // (or first restricted-code creation) in a fresh mode self-provisions;
 // nothing is hardcoded from a dashboard and nothing lives in env vars.
 
-export type StripeProductKey = "delegate" | "vip" | "exhibitor" | "lunch";
+export type StripeProductKey =
+  | "delegate"
+  | "vip"
+  | "exhibitor"
+  | "lunch"
+  | "partner";
 
 export const STRIPE_PRODUCT_IDS: Record<StripeProductKey, string> = {
   delegate: "ignite27_delegate",
   vip: "ignite27_vip",
   exhibitor: "ignite27_exhibitor",
   lunch: "ignite27_lunch",
+  partner: "ignite27_partner",
 };
 
 // Names and descriptions appear on Stripe receipts; the strings are the
@@ -46,6 +52,10 @@ const PRODUCT_DEFINITIONS: Record<
   lunch: {
     name: "Lunch at IGNITE! 27",
     description: "Hot lunch on the day, dietary options catered for.",
+  },
+  partner: {
+    name: "IGNITE! 27 partnership",
+    description: "Partnership package for IGNITE! 27, agreed with the team.",
   },
 };
 

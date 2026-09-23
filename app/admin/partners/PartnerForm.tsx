@@ -1,11 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import {
-  PARTNER_STATUSES,
-  PARTNER_TIERS,
-  PARTNER_TIER_META,
-} from "@/lib/partners/validate";
+import { PARTNER_TIERS, PARTNER_TIER_META } from "@/lib/partners/validate";
 import type { EchoedValues } from "@/lib/admin/form-echo";
 import { savePartnerAction, type PartnerFormState } from "./actions";
 
@@ -14,19 +10,12 @@ const INPUT =
 const LABEL = "block text-small font-medium text-ignite-ink";
 const HELP = "mt-1 text-small text-ignite-muted";
 
-const STATUS_LABELS: Record<string, string> = {
-  agreed: "Agreed (invoiced, awaiting payment)",
-  paid: "Paid",
-  ended: "Ended (off the site)",
-};
-
 export interface PartnerDefaults {
   companyName: string;
   contactName: string;
   contactEmail: string;
   tier: string;
   agreedPricePounds: string; // "" = standard tier price
-  status: string;
   notes: string;
   websiteUrl: string;
   hasLogo: boolean;
@@ -136,18 +125,6 @@ export function PartnerForm({
             className={INPUT}
           />
           <p className={HELP}>Blank = the tier&apos;s standard price. Real deals vary.</p>
-        </div>
-        <div>
-          <label htmlFor="status" className={LABEL}>
-            Status <span className="text-ignite-red">*</span>
-          </label>
-          <select id="status" name="status" defaultValue={v("status")} className={INPUT}>
-            {PARTNER_STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {STATUS_LABELS[s]}
-              </option>
-            ))}
-          </select>
         </div>
       </div>
 

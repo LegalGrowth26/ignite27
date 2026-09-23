@@ -2,6 +2,11 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { requireSuperAdmin } from "@/lib/admin/guard";
 import {
+  derivePaymentState,
+  paymentStateLabel,
+  type PaymentRequestRow,
+} from "@/lib/partners/payments";
+import {
   PARTNER_TIER_META,
   type PartnerTier,
 } from "@/lib/partners/validate";
@@ -44,6 +49,21 @@ export default async function AdminPartnersPage({
     )
     .order("created_at", { ascending: true });
 
+  // Payment ledger for the derived state chip (unpaid / part-paid /
+  // paid in full). One query for all partners; grouped in memory.
+  const { data: paymentData, error: paymentsErr } = await client
+    .from("partner_payment_requests")
+    .select("partner_id, id, amount_ex_vat_pence, status, expires_at, sent_at, paid_at");
+  if (paymentsErr) {
+    console.error("[admin/partners] payments query failed:", paymentsErr.message);
+  }
+  const paymentsByPartner = new Map<string, PaymentRequestRow[]>();
+  for (const raw of (paymentData ?? []) as Array<PaymentRequestRow & { partner_id: string }>) {
+    const list = paymentsByPartner.get(raw.partner_id) ?? [];
+    list.push(raw);
+    paymentsByPartner.set(raw.partner_id, list);
+  }
+
   if (error) {
     return (
       <div>
@@ -75,12 +95,21 @@ export default async function AdminPartnersPage({
       </div>
 
       <p className="mt-3 max-w-3xl text-small text-ignite-muted">
-        Deals sold by you and invoiced offline; no checkout anywhere. Agreed
-        AND paid partners show on the public strip (home + /exhibit) while
-        visible; Hide pulls one down without ending the deal, End keeps the
-        record and removes them for good. Everything is audit-logged.
+        Deals sold by you; collection via payment links from each partner's
+        record. Payment status follows the money (unpaid, part-paid, paid in
+        full), webhook-driven, never flipped by hand. Partners show on the
+        public strip (home + /exhibit) while visible and not ended; Hide
+        pulls one down without ending the deal, End keeps the record,
+        removes them for good, and cancels any live payment links.
+        Everything is audit-logged.
       </p>
 
+      {paymentsErr ? (
+        <p className="mt-4 rounded-xl border-2 border-ignite-red bg-ignite-red/5 p-3 text-small text-ignite-red">
+          Payment ledger unavailable ({paymentsErr.message}). If this mentions
+          a missing table, the 20260515 migration has not been applied here.
+        </p>
+      ) : null}
       {status === "added" ? (
         <p className="mt-4 rounded-xl border border-ignite-line bg-ignite-white p-3 text-small">
           Partner added. They are on the public strip now (if visible and not ended).
@@ -106,7 +135,15 @@ export default async function AdminPartnersPage({
                   <p className="text-h3">{p.company_name}</p>
                   <p className="mt-1 text-small text-ignite-muted">
                     {PARTNER_TIER_META[p.tier].label} ·{" "}
-                    {formatPoundsFromPence(p.agreed_price_pence)} ex VAT · {p.status}
+                    {formatPoundsFromPence(p.agreed_price_pence)} ex VAT ·{" "}
+                    {p.status === "ended"
+                      ? "ended"
+                      : paymentStateLabel(
+                          derivePaymentState(
+                            p.agreed_price_pence,
+                            paymentsByPartner.get(p.id) ?? [],
+                          ),
+                        )}
                     {p.status !== "ended" ? (p.visible ? " · on the strip" : " · hidden") : ""}
                   </p>
                   <p className="mt-1 text-small text-ignite-muted">
