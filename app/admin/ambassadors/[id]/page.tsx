@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { requireSuperAdmin } from "@/lib/admin/guard";
 import { ambassadorShareUrl } from "@/lib/ambassadors/attribution";
+import { claimUrl } from "@/lib/ambassadors/claim";
 import { env } from "@/lib/env";
 
 export const metadata: Metadata = {
@@ -19,6 +20,7 @@ interface AmbassadorDetailRow {
   comp_allowance: number;
   discount_percent: number | null;
   promo_code: string | null;
+  comp_claim_token: string | null;
   link_clicks: number;
   deactivated_at: string | null;
 }
@@ -44,7 +46,7 @@ export default async function AdminAmbassadorViewPage({
   const { data, error } = await client
     .from("ambassadors")
     .select(
-      "id, slug, display_name, company, ambassador_type, comp_allowance, discount_percent, promo_code, link_clicks, deactivated_at",
+      "id, slug, display_name, company, ambassador_type, comp_allowance, discount_percent, promo_code, comp_claim_token, link_clicks, deactivated_at",
     )
     .eq("id", id)
     .maybeSingle();
@@ -100,8 +102,16 @@ export default async function AdminAmbassadorViewPage({
       </p>
 
       <div className="mt-8 rounded-2xl border border-ignite-line bg-ignite-white p-6">
-        <p className="text-eyebrow uppercase text-ignite-muted">Share link</p>
+        <p className="text-eyebrow uppercase text-ignite-muted">Share link (discount auto-applies)</p>
         <p className="mt-2 break-all font-mono text-small text-ignite-ink">{shareUrl}</p>
+        {ambassador.comp_claim_token ? (
+          <>
+            <p className="mt-4 text-eyebrow uppercase text-ignite-muted">Guest ticket claim link</p>
+            <p className="mt-2 break-all font-mono text-small text-ignite-ink">
+              {claimUrl(env.siteUrl(), ambassador.comp_claim_token)}
+            </p>
+          </>
+        ) : null}
       </div>
 
       <dl className="mt-6 grid gap-4 sm:grid-cols-3">

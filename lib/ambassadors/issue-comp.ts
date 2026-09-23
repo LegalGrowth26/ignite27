@@ -86,6 +86,21 @@ export type IssueCompResult =
   | { ok: true; bookingReference: string }
   | { ok: false; warning?: string; error?: string };
 
+// Claim-link extras: the guest fills a fuller form than the
+// dashboard's name-and-email (comps still carry no lunch, so no
+// dietary question), and the comp record notes how the ticket was
+// spent.
+export interface CompExtras {
+  details?: {
+    mobile: string;
+    company: string;
+    jobTitle: string;
+    marketingOptIn: boolean;
+  };
+  source?: "dashboard" | "claim_link";
+  auditAction?: "ambassador.comp_issue" | "ambassador.comp_claim";
+}
+
 // Full issuance flow, called from the gated /ambassador server action
 // with the SERVICE client (ownership already verified by the guard;
 // the allowance/active checks re-run inside the locked DB function).
@@ -94,7 +109,7 @@ export async function issueCompTicket(opts: {
   ambassadorId: string;
   actorAppUserId: string;
   recipient: CompRecipient;
-}): Promise<IssueCompResult> {
+} & CompExtras): Promise<IssueCompResult> {
   const { service, ambassadorId, actorAppUserId, recipient } = opts;
 
   const existingRef = await findExistingBookingForEmail(service, recipient.email);
@@ -113,10 +128,10 @@ export async function issueCompTicket(opts: {
   const recipientUserId = await upsertAppUser(service, recipient.email, authUserId, {
     firstName: recipient.firstName,
     surname: recipient.surname,
-    mobile: "",
-    company: "",
-    jobTitle: "",
-    marketingOptIn: false,
+    mobile: opts.details?.mobile ?? "",
+    company: opts.details?.company ?? "",
+    jobTitle: opts.details?.jobTitle ?? "",
+    marketingOptIn: opts.details?.marketingOptIn ?? false,
   });
 
   const bookingReference = generateBookingReference();
@@ -137,6 +152,7 @@ export async function issueCompTicket(opts: {
     p_surname: recipient.surname,
     p_email: recipient.email,
     p_pricing_period: period,
+    p_source: opts.source ?? "dashboard",
   });
   if (rpcErr || !bookingId) {
     const message = rpcErr?.message ?? "unknown error";
@@ -180,9 +196,10 @@ export async function issueCompTicket(opts: {
     `ambassador comp ${bookingReference}`,
   );
 
-  await logAdminAction(actorAppUserId, "ambassador.comp_issue", {
+  await logAdminAction(actorAppUserId, opts.auditAction ?? "ambassador.comp_issue", {
     ambassador_id: ambassadorId,
     booking_reference: bookingReference,
+    source: opts.source ?? "dashboard",
   });
 
   return { ok: true, bookingReference };

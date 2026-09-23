@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { requireSuperAdmin } from "@/lib/admin/guard";
 import { ambassadorShareUrl } from "@/lib/ambassadors/attribution";
+import { claimUrl } from "@/lib/ambassadors/claim";
 import { env } from "@/lib/env";
 import {
   adjustAllowanceAction,
@@ -24,6 +25,7 @@ interface AmbassadorAdminRow {
   ambassador_type: "speaker" | "partner";
   comp_allowance: number;
   discount_percent: number | null;
+  comp_claim_token: string | null;
   link_clicks: number;
   deactivated_at: string | null;
 }
@@ -37,7 +39,7 @@ export default async function AdminAmbassadorsPage() {
   const { data, error } = await client
     .from("ambassadors")
     .select(
-      "id, slug, display_name, company, ambassador_type, comp_allowance, discount_percent, link_clicks, deactivated_at",
+      "id, slug, display_name, company, ambassador_type, comp_allowance, discount_percent, comp_claim_token, link_clicks, deactivated_at",
     )
     .order("created_at", { ascending: true });
   if (error) {
@@ -124,9 +126,15 @@ export default async function AdminAmbassadorsPage() {
                       ) : null}
                     </p>
                     <p className="mt-1 text-small text-ignite-muted">
-                      {r.company ?? "No company"} ·{" "}
+                      {r.company ?? "No company"} · share{" "}
                       <span className="font-mono">{ambassadorShareUrl(siteUrl, r.slug)}</span>
                     </p>
+                    {r.comp_claim_token && r.comp_allowance > 0 ? (
+                      <p className="mt-1 text-small text-ignite-muted">
+                        guest tickets{" "}
+                        <span className="font-mono">{claimUrl(siteUrl, r.comp_claim_token)}</span>
+                      </p>
+                    ) : null}
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                   <Link

@@ -38,7 +38,7 @@ export function compTicketsLine(allowance: number): string | null {
 export function discountLines(promo: AmbassadorPromoDetails | null): string[] | null {
   if (!promo) return null;
   const lines = [
-    `Your discount code is ${promo.code}. It takes ${promo.percentOff}% off for anyone who uses it at checkout.`,
+    `Your discount code is ${promo.code}. It takes ${promo.percentOff}% off for anyone who uses it at checkout, and anyone who books through your share link gets it applied automatically, no code to type.`,
   ];
   if (promo.limits) {
     const { maxRedemptions, expiresAt } = promo.limits;
@@ -55,4 +55,12 @@ export function discountLines(promo: AmbassadorPromoDetails | null): string[] | 
     }
   }
   return lines;
+}
+
+// Guest ticket claim link line, shown under the comps block whenever
+// there is an allowance to spend. The URL itself is rendered by the
+// email component; this is just the explanation.
+export function claimLinkLine(allowance: number): string | null {
+  if (allowance <= 0) return null;
+  return "Or share your guest ticket link and let people claim their own: they fill in their details, the ticket lands in their inbox, and the link stops working the moment your tickets are gone.";
 }

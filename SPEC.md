@@ -525,12 +525,31 @@ dashboard at /ambassador.
   bookings.ambassador_id when the slug resolves to an ACTIVE
   ambassador. Both delegate and exhibitor bookings count as attributed.
   Clicks are counted coarsely (every ?ref= hit, no dedupe).
+  **Discount auto-apply (September 2026):** when the referring
+  ambassador has a personal code, the delegate and exhibitor checkouts
+  pre-apply it (Stripe discounts parameter; replaces the typed-code
+  field, the two being mutually exclusive). Any resolution failure
+  degrades to a plain checkout. Group checkout keeps its own tiered
+  discount (no stacking, unchanged).
 - **Comp tickets:** admin-set allowance per ambassador. Issuing one
   creates a REAL regular-delegate booking at £0 (payment_status comp,
   no lunch, no Stripe object, terms_accepted_at null for v1), sends
   the standard confirmation email, and lands in TomCRM tagged
   Delegate27 + CompGuest27. Duplicate recipient emails warn and do not
   double-book. Issuance is atomic against the allowance.
+- **Comp claim links (September 2026):** every ambassador also has a
+  stable /claim/<token> link, shown on their dashboard (and to admin)
+  only while allowance remains. A guest opens it, fills a short form
+  (name, email, optional mobile/company/job title, marketing opt-in,
+  honeypot-protected), and books their own comp: same £0 booking, same
+  confirmation email, same CRM path, attributed to the ambassador and
+  recorded with source 'claim_link'. Enforcement is the same row-locked
+  database function, so simultaneous claims can never overspend; at
+  zero remaining the page becomes a friendly "all of <name>'s guest
+  tickets have been claimed" state. The dashboard type-an-email flow
+  REMAINS alongside (both spend the same atomically-enforced
+  allowance): sending a named ticket directly and letting guests claim
+  serve different moments.
 - **Attribution to CRM:** attributed PAID bookings carry an extra
   AmbassadorRef27 tag on top of their standard tag.
 - **Deactivation:** link stops attributing, dashboard locks, history

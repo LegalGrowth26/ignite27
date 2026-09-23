@@ -11,7 +11,9 @@ import { env } from "@/lib/env";
 import { sendTransactionalEmail } from "@/lib/resend/send";
 import { getStripe } from "@/lib/stripe/client";
 import { ambassadorShareUrl } from "./attribution";
+import { claimUrl } from "./claim";
 import {
+  claimLinkLine,
   compTicketsLine,
   discountLines,
   type AmbassadorPromoDetails,
@@ -29,6 +31,7 @@ interface AmbassadorRecord {
   comp_allowance: number;
   discount_percent: number | null;
   promo_code: string | null;
+  comp_claim_token: string | null;
   users: { email: string; first_name: string | null } | null;
 }
 
@@ -72,7 +75,7 @@ export async function sendAmbassadorWelcome(
   const { data, error } = await service
     .from("ambassadors")
     .select(
-      "slug, display_name, comp_allowance, discount_percent, promo_code, users ( email, first_name )",
+      "slug, display_name, comp_allowance, discount_percent, promo_code, comp_claim_token, users ( email, first_name )",
     )
     .eq("id", ambassadorId)
     .maybeSingle();
@@ -94,6 +97,11 @@ export async function sendAmbassadorWelcome(
     setPasswordUrl: await generateSetPasswordLink(email),
     compLine: compTicketsLine(record.comp_allowance),
     discountLines: discountLines(await resolvePromoDetails(record)),
+    claimUrl:
+      record.comp_allowance > 0 && record.comp_claim_token
+        ? claimUrl(siteUrl, record.comp_claim_token)
+        : null,
+    claimLine: claimLinkLine(record.comp_allowance),
   };
 
   const html = await render(AmbassadorInviteEmail(props));

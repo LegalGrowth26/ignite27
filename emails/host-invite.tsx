@@ -31,6 +31,9 @@ export interface HostInviteProps {
   accessNote: string;
   compLine: string | null;
   discountLines: string[] | null;
+  // Guest ticket claim link + explanation, null without an allowance.
+  claimUrl: string | null;
+  claimLine: string | null;
   // A line from Tom or Paul, written per invite; null omits the block.
   personalLine: string | null;
 }
@@ -117,6 +120,8 @@ export function HostInviteEmail(props: HostInviteProps) {
     accessNote,
     compLine,
     discountLines,
+    claimUrl,
+    claimLine,
     personalLine,
   } = props;
   return (
@@ -177,7 +182,20 @@ export function HostInviteEmail(props: HostInviteProps) {
 
           {compLine ? (
             <div style={PERK_BOX}>
-              <Text style={{ ...PARAGRAPH, margin: 0 }}>{compLine}</Text>
+              <Text style={{ ...PARAGRAPH, margin: claimUrl ? "0 0 8px 0" : 0 }}>
+                {compLine}
+              </Text>
+              {claimUrl && claimLine ? (
+                <>
+                  <Text style={{ ...PARAGRAPH, margin: "0 0 8px 0" }}>{claimLine}</Text>
+                  <Text style={{ ...PARAGRAPH, margin: 0 }}>
+                    <strong>Your guest ticket link:</strong>{" "}
+                    <Link style={LINK} href={claimUrl}>
+                      {claimUrl}
+                    </Link>
+                  </Text>
+                </>
+              ) : null}
             </div>
           ) : null}
 
@@ -237,6 +255,9 @@ export function renderHostInvitePlainText(props: HostInviteProps): string {
     `Your share link: ${props.shareUrl}`,
     "Share it anywhere. When someone follows it and books, the booking counts as yours (we remember their click for 90 days).",
     ...(props.compLine ? ["", props.compLine] : []),
+    ...(props.compLine && props.claimUrl && props.claimLine
+      ? [props.claimLine, `Your guest ticket link: ${props.claimUrl}`]
+      : []),
     ...(props.discountLines ? ["", ...props.discountLines] : []),
     "",
     props.accessIntro,

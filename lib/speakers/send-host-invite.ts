@@ -7,7 +7,8 @@ import {
 } from "@/emails/host-invite";
 import { buildCouponParams, buildPromotionCodeParams } from "@/lib/admin/stripe-codes";
 import { ambassadorShareUrl } from "@/lib/ambassadors/attribution";
-import { compTicketsLine, discountLines } from "@/lib/ambassadors/welcome";
+import { claimUrl as buildClaimUrl } from "@/lib/ambassadors/claim";
+import { claimLinkLine, compTicketsLine, discountLines } from "@/lib/ambassadors/welcome";
 import { generateSetPasswordLink } from "@/lib/bookings/send-confirmation";
 import { env } from "@/lib/env";
 import { sendTransactionalEmail } from "@/lib/resend/send";
@@ -201,21 +202,28 @@ export async function inviteWorkshopHost(
   // host defaults).
   let compLine: string | null = null;
   let emailDiscountLines: string[] | null = null;
+  let emailClaimUrl: string | null = null;
+  let emailClaimLine: string | null = null;
   let shareSlug = profile.slug;
   if (ambassador.ready && ambassador.slug) {
     shareSlug = ambassador.slug;
     const { data: ambRow } = await service
       .from("ambassadors")
-      .select("comp_allowance, discount_percent, promo_code")
+      .select("comp_allowance, discount_percent, promo_code, comp_claim_token")
       .eq("slug", ambassador.slug)
       .maybeSingle();
     const amb = ambRow as {
       comp_allowance: number;
       discount_percent: number | null;
       promo_code: string | null;
+      comp_claim_token: string | null;
     } | null;
     if (amb) {
       compLine = compTicketsLine(amb.comp_allowance);
+      if (amb.comp_allowance > 0 && amb.comp_claim_token) {
+        emailClaimUrl = buildClaimUrl(env.siteUrl(), amb.comp_claim_token);
+        emailClaimLine = claimLinkLine(amb.comp_allowance);
+      }
       emailDiscountLines = amb.promo_code
         ? discountLines({
             code: amb.promo_code,
@@ -249,6 +257,8 @@ export async function inviteWorkshopHost(
     accessNote: access.note,
     compLine,
     discountLines: emailDiscountLines,
+    claimUrl: emailClaimUrl,
+    claimLine: emailClaimLine,
     personalLine,
   };
 

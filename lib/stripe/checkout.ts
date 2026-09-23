@@ -14,6 +14,10 @@ import {
   getCurrentPricing,
 } from "@/lib/pricing";
 import { REF_METADATA_KEY } from "@/lib/ambassadors/attribution";
+import {
+  resolveAutoApplyPromotionCodeId,
+  sessionDiscountParams,
+} from "@/lib/ambassadors/auto-discount";
 import { getStripe } from "./client";
 import { ensureStripeProducts, STRIPE_PRODUCT_IDS } from "./products";
 
@@ -200,7 +204,14 @@ export async function createDelegateCheckoutSession(
     // use tax_behavior "exclusive", Stripe applies discounts to the
     // ex-VAT amount and recomputes VAT on the discounted total — no
     // app-side arithmetic required.
-    allow_promotion_codes: true,
+    //
+    // Share-link auto-apply: a booker who arrived via an ambassador's
+    // link gets that ambassador's personal code pre-applied (discounts
+    // replaces allow_promotion_codes; the two are mutually exclusive).
+    // Any resolution failure degrades to the plain typed-code field.
+    ...sessionDiscountParams(
+      await resolveAutoApplyPromotionCodeId(stripe, input.refSlug),
+    ),
     expires_at: Math.floor(realNow.getTime() / 1000) + 30 * 60,
   };
   const session = await stripe.checkout.sessions.create(params);

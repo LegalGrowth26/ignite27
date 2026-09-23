@@ -24,6 +24,10 @@ export interface AmbassadorInviteProps {
   setPasswordUrl: string;
   compLine: string | null; // null = no allowance, omit the block
   discountLines: string[] | null; // null = no code, omit the block
+  // Guest ticket claim link + its explanation line, both null when
+  // there is no allowance to spend.
+  claimUrl: string | null;
+  claimLine: string | null;
 }
 
 const WRAPPER = {
@@ -96,7 +100,7 @@ const PERK_BOX = {
 } as const;
 
 export function AmbassadorInviteEmail(props: AmbassadorInviteProps) {
-  const { firstName, shareUrl, dashboardUrl, setPasswordUrl, compLine, discountLines } =
+  const { firstName, shareUrl, dashboardUrl, setPasswordUrl, compLine, discountLines, claimUrl, claimLine } =
     props;
   return (
     <Html>
@@ -134,7 +138,20 @@ export function AmbassadorInviteEmail(props: AmbassadorInviteProps) {
 
           {compLine ? (
             <div style={PERK_BOX}>
-              <Text style={{ ...PARAGRAPH, margin: 0 }}>{compLine}</Text>
+              <Text style={{ ...PARAGRAPH, margin: claimUrl ? "0 0 8px 0" : 0 }}>
+                {compLine}
+              </Text>
+              {claimUrl && claimLine ? (
+                <>
+                  <Text style={{ ...PARAGRAPH, margin: "0 0 8px 0" }}>{claimLine}</Text>
+                  <Text style={{ ...PARAGRAPH, margin: 0 }}>
+                    <strong>Your guest ticket link:</strong>{" "}
+                    <Link style={LINK} href={claimUrl}>
+                      {claimUrl}
+                    </Link>
+                  </Text>
+                </>
+              ) : null}
             </div>
           ) : null}
 
@@ -189,6 +206,9 @@ export function renderAmbassadorInvitePlainText(props: AmbassadorInviteProps): s
     `Your share link: ${props.shareUrl}`,
     "Share it anywhere. When someone follows it and books, the booking counts as yours (we remember their click for 90 days).",
     ...(props.compLine ? ["", props.compLine] : []),
+    ...(props.compLine && props.claimUrl && props.claimLine
+      ? [props.claimLine, `Your guest ticket link: ${props.claimUrl}`]
+      : []),
     ...(props.discountLines ? ["", ...props.discountLines] : []),
     "",
     `Set your password: ${props.setPasswordUrl}`,
