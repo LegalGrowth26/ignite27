@@ -474,8 +474,21 @@ creates the account and sends the invite then.
   admin), enforced server-side in both editors; profile_type is
   admin-only, like the slug. The three seeded speakers defaulted to
   main_stage.
-- Speakers are NOT ambassadors by this feature; that stays a separate
-  add via /admin -> Ambassadors.
+- **Host invites (added September 2026):** workshop hosts are invited
+  from the WORKSHOPS admin, not the speakers section. Draft invitees
+  (name + internal focus note) sit unpublished and account-less until
+  an email is attached; attaching it sends the full invite in one go:
+  account, page published, ambassador provisioning with the confirmed
+  host defaults (comp allowance 2, personal 20% discount code created
+  in Stripe, everything except lunch, no cap, no expiry), and ONE
+  combined welcome email (page + editor + share link + comps + code).
+  An existing ambassador keeps their own numbers untouched. The seed
+  invite list (Dan Ince, Scott Linfoot, Mike Wistow, Chris England,
+  Elsie Green, Aaron Hutchinson) loads via a run-once admin route.
+- MAIN-STAGE speakers are NOT ambassadors by this feature; that stays
+  a separate add via /admin -> Ambassadors. Workshop hosts ARE
+  provisioned as ambassadors by the host invite above (September 2026
+  decision).
 - One-off backfill seeds the three announced speakers from the old
   hardcoded content (published, account-less) and is skip-safe on
   re-run.

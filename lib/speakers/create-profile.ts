@@ -20,6 +20,9 @@ export interface CreateSpeakerInput {
   bio?: string;
   // main_stage (default) | workshop_host | both.
   profileType?: SpeakerProfileType;
+  // Draft invitees (host invite list): page exists but stays
+  // unpublished until the person is actually invited.
+  startUnpublished?: boolean;
 }
 
 export interface CreateSpeakerResult {
@@ -54,6 +57,7 @@ export async function ensureSpeakerProfile(
       bio: (input.bio ?? "").slice(0, 2000),
       photo_path: input.photoPath ?? null,
       profile_type: input.profileType ?? "main_stage",
+      ...(input.startUnpublished ? { published_at: null } : {}),
     })
     .select("id")
     .single();
