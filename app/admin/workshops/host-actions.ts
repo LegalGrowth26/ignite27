@@ -47,8 +47,11 @@ export async function addHostInviteeAction(
       slug: created.slug,
     });
   } catch (err) {
+    // Loud-error rule: the admin sees the real reason, same as the
+    // announcements fix. Super-admin-only surface; nothing sensitive.
     console.error("[admin/hosts] add invitee failed:", err);
-    return { error: "Could not add the invitee. Try again." };
+    const reason = err instanceof Error ? err.message : "unknown error";
+    return { error: `Could not add the invitee: ${reason}` };
   }
 
   revalidatePath("/admin/workshops");
@@ -73,12 +76,11 @@ export async function inviteHostAction(
     result = await inviteWorkshopHost(profileId, email);
   } catch (err) {
     console.error("[admin/hosts] invite failed:", err);
-    return {
-      error:
-        err instanceof Error && /different account/.test(err.message)
-          ? "This page is already linked to a different account."
-          : "Could not send the invite. Try again.",
-    };
+    if (err instanceof Error && /different account/.test(err.message)) {
+      return { error: "This page is already linked to a different account." };
+    }
+    const reason = err instanceof Error ? err.message : "unknown error";
+    return { error: `Could not send the invite: ${reason}` };
   }
 
   await logAdminAction(ctx.appUserId, "host.invite", {
