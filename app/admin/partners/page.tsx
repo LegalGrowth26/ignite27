@@ -20,7 +20,6 @@ interface PartnerRow {
   contact_email: string;
   tier: PartnerTier;
   agreed_price_pence: number;
-  category: string;
   status: "agreed" | "paid" | "ended";
   visible: boolean;
   website_url: string | null;
@@ -40,7 +39,7 @@ export default async function AdminPartnersPage({
     .from("partners")
     .select(
       `id, company_name, contact_name, contact_email, tier,
-       agreed_price_pence, category, status, visible, website_url,
+       agreed_price_pence, status, visible, website_url,
        logo_path, created_at`,
     )
     .order("created_at", { ascending: true });
@@ -79,8 +78,7 @@ export default async function AdminPartnersPage({
         Deals sold by you and invoiced offline; no checkout anywhere. Agreed
         AND paid partners show on the public strip (home + /exhibit) while
         visible; Hide pulls one down without ending the deal, End keeps the
-        record and removes them for good. Adding into an occupied category
-        warns first. Everything is audit-logged.
+        record and removes them for good. Everything is audit-logged.
       </p>
 
       {status === "added" ? (
@@ -108,8 +106,7 @@ export default async function AdminPartnersPage({
                   <p className="text-h3">{p.company_name}</p>
                   <p className="mt-1 text-small text-ignite-muted">
                     {PARTNER_TIER_META[p.tier].label} ·{" "}
-                    {formatPoundsFromPence(p.agreed_price_pence)} ex VAT · {p.category} ·{" "}
-                    {p.status}
+                    {formatPoundsFromPence(p.agreed_price_pence)} ex VAT · {p.status}
                     {p.status !== "ended" ? (p.visible ? " · on the strip" : " · hidden") : ""}
                   </p>
                   <p className="mt-1 text-small text-ignite-muted">

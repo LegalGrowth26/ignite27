@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   buildPartnersStrip,
-  findCategoryClash,
   validatePartner,
   type StripSourceRow,
 } from "./validate";
@@ -12,7 +11,6 @@ const valid = {
   contactEmail: "jane@chattertons.example.com",
   tier: "headline",
   agreedPricePounds: "",
-  category: "legal",
   status: "agreed",
   notes: "",
   websiteUrl: "https://chattertons.example.com",
@@ -33,43 +31,11 @@ describe("validatePartner", () => {
     expect(result.value.agreedPricePence).toBe(250000);
   });
 
-  it("rejects unknown tiers, categories, statuses, and bad URLs", () => {
+  it("rejects unknown tiers, statuses, and bad URLs", () => {
     expect(validatePartner({ ...valid, tier: "platinum" }).ok).toBe(false);
-    expect(validatePartner({ ...valid, category: "astrology" }).ok).toBe(false);
     expect(validatePartner({ ...valid, status: "maybe" }).ok).toBe(false);
     expect(validatePartner({ ...valid, websiteUrl: "javascript:alert(1)" }).ok).toBe(false);
     expect(validatePartner({ ...valid, agreedPricePounds: "lots" }).ok).toBe(false);
-  });
-
-  it("lowercases the category for storage", () => {
-    const result = validatePartner({ ...valid, category: "LEGAL" });
-    expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.category).toBe("legal");
-  });
-});
-
-describe("findCategoryClash", () => {
-  const existing = [
-    { id: "1", company_name: "Chattertons", category: "legal", status: "paid" },
-    { id: "2", company_name: "Old Bank", category: "banking", status: "ended" },
-  ];
-
-  it("warns on a live clash, case-insensitively", () => {
-    expect(findCategoryClash(existing, "Legal")).toEqual({ companyName: "Chattertons" });
-  });
-
-  it("ended partners do not hold their category", () => {
-    expect(findCategoryClash(existing, "banking")).toBeNull();
-  });
-
-  it("'other' never clashes, and editing yourself is not a clash", () => {
-    expect(
-      findCategoryClash(
-        [{ id: "3", company_name: "Misc Co", category: "other", status: "paid" }],
-        "other",
-      ),
-    ).toBeNull();
-    expect(findCategoryClash(existing, "legal", "1")).toBeNull();
   });
 });
 

@@ -35,7 +35,6 @@ export default async function NewPartnerPage() {
             contactEmail: "",
             tier: "partner",
             agreedPricePounds: "",
-            category: "other",
             status: "agreed",
             notes: "",
             websiteUrl: "",
