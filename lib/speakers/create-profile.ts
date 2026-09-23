@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { ensureAuthUser, upsertAppUser } from "@/lib/bookings/create";
+import { ensureAuthUserWithStatus, upsertAppUser } from "@/lib/bookings/create";
 import { pickAvailableSlug, slugifyCompany } from "@/lib/exhibitors/profile";
 import type { SpeakerProfileType } from "./profile";
 
@@ -81,6 +81,11 @@ export async function ensureSpeakerProfile(
 export interface AttachAccountResult {
   appUserId: string;
   created: boolean; // false = the profile already had this account linked
+  // True when the email matched an EXISTING IGNITE! account (a past
+  // booker, ambassador, or earlier invite): the profile attaches to it
+  // and the invite email says to log in with it rather than sending a
+  // set-password link that would reset their live password.
+  accountExisted: boolean;
 }
 
 export async function attachSpeakerAccount(
@@ -90,7 +95,7 @@ export async function attachSpeakerAccount(
   displayName: string,
 ): Promise<AttachAccountResult> {
   const [firstName, ...rest] = displayName.trim().split(/\s+/);
-  const authUserId = await ensureAuthUser(service, email, {
+  const { authUserId, accountExisted } = await ensureAuthUserWithStatus(service, email, {
     first_name: firstName ?? "",
     surname: rest.join(" "),
   });
@@ -114,7 +119,7 @@ export async function attachSpeakerAccount(
     throw new Error(`speaker profile lookup failed: ${readErr?.message ?? "not found"}`);
   }
   const currentUserId = (existing as { user_id: string | null }).user_id;
-  if (currentUserId === appUserId) return { appUserId, created: false };
+  if (currentUserId === appUserId) return { appUserId, created: false, accountExisted };
   if (currentUserId !== null) {
     throw new Error("this speaker page is already linked to a different account");
   }
@@ -125,5 +130,5 @@ export async function attachSpeakerAccount(
     .eq("id", profileId)
     .is("user_id", null);
   if (linkErr) throw new Error(`speaker account link failed: ${linkErr.message}`);
-  return { appUserId, created: true };
+  return { appUserId, created: true, accountExisted };
 }

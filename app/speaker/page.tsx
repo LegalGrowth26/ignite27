@@ -76,7 +76,7 @@ export default async function SpeakerEditorPage({
             <SectionHeader
               eyebrow="Speaker page"
               heading="No speaker page on this account."
-              lede="Speaker pages are set up by the IGNITE! team. If you are speaking at IGNITE! 27 and expected to land in your editor, get in touch and we will link your page to this login."
+              lede="Speaker pages are set up by the IGNITE! team. If you are speaking or hosting at IGNITE! 27 and expected to land in your editor, you may have registered with a different email address: try logging in with the one your invite went to. Otherwise get in touch and we will link your page to this login."
               as="h1"
             />
             <p className="mt-6 text-body">

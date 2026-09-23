@@ -23,7 +23,12 @@ export interface HostInviteProps {
   editorUrl: string;
   shareUrl: string;
   dashboardUrl: string;
-  setPasswordUrl: string;
+  // Access block: /login for existing accounts, a set-password link
+  // for brand-new ones (see lib/speakers/invite-access.ts).
+  accessIntro: string;
+  accessLabel: string;
+  accessUrl: string;
+  accessNote: string;
   compLine: string | null;
   discountLines: string[] | null;
   // A line from Tom or Paul, written per invite; null omits the block.
@@ -106,7 +111,10 @@ export function HostInviteEmail(props: HostInviteProps) {
     editorUrl,
     shareUrl,
     dashboardUrl,
-    setPasswordUrl,
+    accessIntro,
+    accessLabel,
+    accessUrl,
+    accessNote,
     compLine,
     discountLines,
     personalLine,
@@ -189,15 +197,14 @@ export function HostInviteEmail(props: HostInviteProps) {
             </div>
           ) : null}
 
-          <Text style={PARAGRAPH}>Set a password first, then have a look around:</Text>
+          <Text style={PARAGRAPH}>{accessIntro}</Text>
           <Text style={{ ...PARAGRAPH, margin: "16px 0 24px 0" }}>
-            <Link style={BUTTON} href={setPasswordUrl}>
-              Set your password
+            <Link style={BUTTON} href={accessUrl}>
+              {accessLabel}
             </Link>
           </Text>
           <Text style={SMALL}>
-            The set-password link is good for 24 hours; if it expires, request a
-            new one from the login page. Your page editor lives at{" "}
+            {accessNote} Your page editor lives at{" "}
             <Link style={LINK} href={editorUrl}>
               {editorUrl}
             </Link>{" "}
@@ -232,7 +239,9 @@ export function renderHostInvitePlainText(props: HostInviteProps): string {
     ...(props.compLine ? ["", props.compLine] : []),
     ...(props.discountLines ? ["", ...props.discountLines] : []),
     "",
-    `Set your password: ${props.setPasswordUrl}`,
+    props.accessIntro,
+    `${props.accessLabel}: ${props.accessUrl}`,
+    props.accessNote,
     `Your editor: ${props.editorUrl}`,
     `Your dashboard: ${props.dashboardUrl}`,
     "",

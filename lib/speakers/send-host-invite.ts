@@ -15,6 +15,7 @@ import { getStripe } from "@/lib/stripe/client";
 import { ensureStripeProducts } from "@/lib/stripe/products";
 import { createSupabaseServiceClient } from "@/lib/supabase/service-client";
 import { attachSpeakerAccount } from "./create-profile";
+import { inviteAccessBlock, loginUrl } from "./invite-access";
 import {
   ambassadorSlugFromProfileSlug,
   HOST_COMP_ALLOWANCE,
@@ -166,8 +167,10 @@ export async function inviteWorkshopHost(
     throw new Error("that profile is main-stage, not a workshop host");
   }
 
-  // 1. Account.
-  const { appUserId } = await attachSpeakerAccount(
+  // 1. Account: an email matching an existing IGNITE! account attaches
+  // the profile to it (never a second account); the email below then
+  // says to log in with it instead of setting a password.
+  const { appUserId, accountExisted } = await attachSpeakerAccount(
     service,
     profile.id,
     email,
@@ -230,6 +233,7 @@ export async function inviteWorkshopHost(
   }
 
   const siteUrl = env.siteUrl().replace(/\/$/, "");
+  const access = inviteAccessBlock(accountExisted);
   const props: HostInviteProps = {
     firstName:
       profile.display_name.split(/\s+/)[0] ?? profile.display_name,
@@ -237,7 +241,12 @@ export async function inviteWorkshopHost(
     editorUrl: `${siteUrl}/speaker`,
     shareUrl: ambassadorShareUrl(siteUrl, shareSlug),
     dashboardUrl: `${siteUrl}/ambassador`,
-    setPasswordUrl: await generateSetPasswordLink(email),
+    accessIntro: access.intro,
+    accessLabel: access.buttonLabel,
+    accessUrl: access.useSetPasswordLink
+      ? await generateSetPasswordLink(email)
+      : loginUrl(siteUrl),
+    accessNote: access.note,
     compLine,
     discountLines: emailDiscountLines,
     personalLine,
