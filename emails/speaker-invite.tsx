@@ -15,7 +15,12 @@ export interface SpeakerInviteProps {
   firstName: string;
   pageUrl: string;
   editorUrl: string;
-  setPasswordUrl: string;
+  // Access block: /login for existing accounts, a set-password link
+  // for brand-new ones (see lib/speakers/invite-access.ts).
+  accessIntro: string;
+  accessLabel: string;
+  accessUrl: string;
+  accessNote: string;
 }
 
 const WRAPPER = {
@@ -81,7 +86,7 @@ const BUTTON = {
 } as const;
 
 export function SpeakerInviteEmail(props: SpeakerInviteProps) {
-  const { firstName, pageUrl, editorUrl, setPasswordUrl } = props;
+  const { firstName, pageUrl, editorUrl, accessIntro, accessLabel, accessUrl, accessNote } = props;
   return (
     <Html>
       <Head />
@@ -105,15 +110,14 @@ export function SpeakerInviteEmail(props: SpeakerInviteProps) {
             you want people sent. There is also a contact form that forwards
             straight to your inbox without showing your email address.
           </Text>
-          <Text style={PARAGRAPH}>Set a password first, then edit your page:</Text>
+          <Text style={PARAGRAPH}>{accessIntro}</Text>
           <Text style={{ ...PARAGRAPH, margin: "16px 0 24px 0" }}>
-            <Link style={BUTTON} href={setPasswordUrl}>
-              Set your password
+            <Link style={BUTTON} href={accessUrl}>
+              {accessLabel}
             </Link>
           </Text>
           <Text style={SMALL}>
-            The set-password link is good for 24 hours; if it expires, request a
-            new one from the login page. Your editor lives at{" "}
+            {accessNote} Your editor lives at{" "}
             <Link style={LINK} href={editorUrl}>
               {editorUrl}
             </Link>
@@ -137,7 +141,9 @@ export function renderSpeakerInvitePlainText(props: SpeakerInviteProps): string 
     "",
     "Add your photo, bio, what your session covers, your links, and a button. The contact form forwards to your inbox without showing your email address.",
     "",
-    `Set your password: ${props.setPasswordUrl}`,
+    props.accessIntro,
+    `${props.accessLabel}: ${props.accessUrl}`,
+    props.accessNote,
     `Your editor: ${props.editorUrl}`,
     "",
     "The IGNITE! team",

@@ -79,11 +79,12 @@ export async function addSpeakerAction(
   let invited = false;
   if (email) {
     try {
-      await attachSpeakerAccount(service, created.profileId, email, name);
+      const attach = await attachSpeakerAccount(service, created.profileId, email, name);
       await sendSpeakerInvite({
         firstName: name.split(/\s+/)[0] ?? name,
         email,
         slug: created.slug,
+        accountExisted: attach.accountExisted,
       });
       invited = true;
     } catch (err) {
@@ -126,8 +127,10 @@ export async function attachSpeakerEmailAction(
   const profile = data as { slug: string; display_name: string } | null;
   if (!profile) return { error: "Speaker page not found.", values: echoFormValues(formData) };
 
+  let accountExisted = false;
   try {
-    await attachSpeakerAccount(service, profileId, email, profile.display_name);
+    const attach = await attachSpeakerAccount(service, profileId, email, profile.display_name);
+    accountExisted = attach.accountExisted;
   } catch (err) {
     console.error("[admin/speakers] attach failed:", err);
     return {
@@ -145,6 +148,7 @@ export async function attachSpeakerEmailAction(
       firstName: profile.display_name.split(/\s+/)[0] ?? profile.display_name,
       email,
       slug: profile.slug,
+      accountExisted,
     });
     invited = true;
   } catch (err) {

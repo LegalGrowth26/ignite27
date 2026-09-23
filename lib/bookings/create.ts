@@ -96,6 +96,19 @@ export async function ensureAuthUser(
   email: string,
   userMetadata: Record<string, string>,
 ): Promise<string> {
+  const { authUserId } = await ensureAuthUserWithStatus(client, email, userMetadata);
+  return authUserId;
+}
+
+// Same, but also reports whether the account already existed, so the
+// invite flows can say "log in with your existing IGNITE! account"
+// instead of sending a set-password link that would reset a password
+// the person already uses.
+export async function ensureAuthUserWithStatus(
+  client: SupabaseClient,
+  email: string,
+  userMetadata: Record<string, string>,
+): Promise<{ authUserId: string; accountExisted: boolean }> {
   // Generate a high-entropy random password. The user will overwrite it
   // immediately via the set-password flow.
   const bytes = new Uint8Array(24);
@@ -112,7 +125,7 @@ export async function ensureAuthUser(
   });
 
   if (!error && data.user) {
-    return data.user.id;
+    return { authUserId: data.user.id, accountExisted: false };
   }
 
   // If the user already exists, the admin API returns an error we can recover
@@ -143,7 +156,7 @@ export async function ensureAuthUser(
       `auth user reportedly exists but was not found in listUsers: ${email}`,
     );
   }
-  return match.id;
+  return { authUserId: match.id, accountExisted: true };
 }
 
 // Exported for reuse by the exhibitor creation path (exhibitor-create.ts).
