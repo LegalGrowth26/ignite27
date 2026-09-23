@@ -55,7 +55,7 @@ export async function addSpeakerAction(
   const talkTitle = String(formData.get("talkTitle") ?? "").trim();
   const profileType = String(formData.get("profileType") ?? "main_stage") as SpeakerProfileType;
   if (!SPEAKER_PROFILE_TYPES.includes(profileType)) {
-    return { error: "Pick a profile type." };
+    return { error: "Pick a profile type.", values: echoFormValues(formData) };
   }
 
   if (!name || name.length > 120) return { error: "Speaker name is required (max 120 characters).", values: echoFormValues(formData) };
@@ -184,7 +184,7 @@ export async function adminSaveSpeakerAction(
 
   const profileType = String(formData.get("profileType") ?? "main_stage") as SpeakerProfileType;
   if (!SPEAKER_PROFILE_TYPES.includes(profileType)) {
-    return { error: "Pick a profile type." };
+    return { error: "Pick a profile type.", values: echoFormValues(formData) };
   }
   // Same rule as the speaker's own editor: workshop hosts' session
   // data lives in the workshops admin, so talk fields only apply to

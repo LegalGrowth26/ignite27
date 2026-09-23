@@ -70,7 +70,7 @@ export async function createWorkshopAction(
 
   const service = createSupabaseServiceClient();
   const host = await resolveHostProfileId(service, formData.get("hostProfileId"));
-  if ("error" in host) return { error: host.error };
+  if ("error" in host) return { error: host.error, values: echoFormValues(formData) };
 
   const { data, error } = await service
     .from("workshops")
@@ -125,7 +125,7 @@ export async function updateWorkshopAction(
   }
 
   const host = await resolveHostProfileId(service, formData.get("hostProfileId"));
-  if ("error" in host) return { error: host.error };
+  if ("error" in host) return { error: host.error, values: echoFormValues(formData) };
 
   const { error } = await service
     .from("workshops")

@@ -94,18 +94,6 @@ export async function createAmbassadorAction(
       if (roleErr) throw new Error(`role update failed: ${roleErr.message}`);
     }
 
-    const { error: insertErr } = await service.from("ambassadors").insert({
-      user_id: appUserId,
-      slug,
-      display_name: `${firstName} ${surname}`,
-      company: company || null,
-      ambassador_type: type,
-      comp_allowance: allowance,
-      discount_percent: discountPercent,
-    });
-    if (insertErr) {
-      if (/slug/.test(insertErr.message)) {
-        return { error: "That link slug is already taken.", created: null, values: echoFormValues(formData) };
     const { data: insertedRow, error: insertErr } = await service
       .from("ambassadors")
       .insert({
@@ -121,7 +109,7 @@ export async function createAmbassadorAction(
       .single();
     if (insertErr || !insertedRow) {
       if (insertErr && /slug/.test(insertErr.message)) {
-        return { error: "That link slug is already taken.", created: null };
+        return { error: "That link slug is already taken.", created: null, values: echoFormValues(formData) };
       }
       throw new Error(`ambassadors insert failed: ${insertErr?.message}`);
     }
