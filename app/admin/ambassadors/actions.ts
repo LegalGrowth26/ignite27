@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { logAdminAction } from "@/lib/admin/audit";
+import { echoFormValues, type EchoedValues } from "@/lib/admin/form-echo";
 import { requireSuperAdmin } from "@/lib/admin/guard";
 import { normaliseRefSlug } from "@/lib/ambassadors/attribution";
 import { sendAmbassadorWelcome } from "@/lib/ambassadors/send-invite";
@@ -11,6 +12,8 @@ import { createSupabaseServiceClient } from "@/lib/supabase/service-client";
 export interface AmbassadorActionState {
   error: string | null;
   created: string | null;
+  // Echoed on error so React 19's form reset never wipes typed work.
+  values: EchoedValues | null;
 }
 
 // Provision an ambassador: auth account + users row (role upgraded to
@@ -37,12 +40,12 @@ export async function createAmbassadorAction(
   const discountRaw = String(formData.get("discountPercent") ?? "").trim();
   const discountPercent = discountRaw ? Number.parseInt(discountRaw, 10) : null;
 
-  if (!firstName || !surname) return { error: "First name and surname are required.", created: null };
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "That email does not look right.", created: null };
-  if (!slug) return { error: "Link slug must be 2-30 characters: lowercase letters, numbers, hyphens.", created: null };
-  if (!Number.isInteger(allowance) || allowance < 0) return { error: "Comp allowance must be 0 or more.", created: null };
+  if (!firstName || !surname) return { error: "First name and surname are required.", created: null, values: echoFormValues(formData) };
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "That email does not look right.", created: null, values: echoFormValues(formData) };
+  if (!slug) return { error: "Link slug must be 2-30 characters: lowercase letters, numbers, hyphens.", created: null, values: echoFormValues(formData) };
+  if (!Number.isInteger(allowance) || allowance < 0) return { error: "Comp allowance must be 0 or more.", created: null, values: echoFormValues(formData) };
   if (discountPercent !== null && (!Number.isInteger(discountPercent) || discountPercent < 1 || discountPercent > 100)) {
-    return { error: "Discount percent must be between 1 and 100.", created: null };
+    return { error: "Discount percent must be between 1 and 100.", created: null, values: echoFormValues(formData) };
   }
 
   const { data: existingUser } = await service
@@ -52,7 +55,7 @@ export async function createAmbassadorAction(
     .maybeSingle();
   const existing = existingUser as { id: string; role: string } | null;
   if (existing?.role === "ambassador") {
-    return { error: "That email is already an ambassador.", created: null };
+    return { error: "That email is already an ambassador.", created: null, values: echoFormValues(formData) };
   }
   const isSuperAdmin = existing?.role === "super_admin";
   if (isSuperAdmin) {
@@ -62,7 +65,7 @@ export async function createAmbassadorAction(
       .eq("user_id", existing!.id)
       .maybeSingle();
     if (existingAmb) {
-      return { error: "That email is already an ambassador.", created: null };
+      return { error: "That email is already an ambassador.", created: null, values: echoFormValues(formData) };
     }
   }
 
@@ -91,6 +94,18 @@ export async function createAmbassadorAction(
       if (roleErr) throw new Error(`role update failed: ${roleErr.message}`);
     }
 
+    const { error: insertErr } = await service.from("ambassadors").insert({
+      user_id: appUserId,
+      slug,
+      display_name: `${firstName} ${surname}`,
+      company: company || null,
+      ambassador_type: type,
+      comp_allowance: allowance,
+      discount_percent: discountPercent,
+    });
+    if (insertErr) {
+      if (/slug/.test(insertErr.message)) {
+        return { error: "That link slug is already taken.", created: null, values: echoFormValues(formData) };
     const { data: insertedRow, error: insertErr } = await service
       .from("ambassadors")
       .insert({
@@ -129,10 +144,10 @@ export async function createAmbassadorAction(
     });
 
     revalidatePath("/admin/ambassadors");
-    return { error: null, created: slug };
+    return { error: null, created: slug, values: null };
   } catch (err) {
     console.error("[admin/ambassadors] create failed:", err);
-    return { error: "Could not create the ambassador. Check the details and try again.", created: null };
+    return { error: "Could not create the ambassador. Check the details and try again.", created: null, values: echoFormValues(formData) };
   }
 }
 

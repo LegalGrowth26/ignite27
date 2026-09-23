@@ -13,6 +13,7 @@ import {
   type CodeRestriction,
   type CreateCodeInput,
 } from "@/lib/admin/stripe-codes";
+import { echoFormValues, type EchoedValues } from "@/lib/admin/form-echo";
 import { getStripe } from "@/lib/stripe/client";
 import { currentStripeKeyMode } from "@/lib/stripe/mode";
 import { ensureStripeProducts } from "@/lib/stripe/products";
@@ -20,6 +21,8 @@ import { ensureStripeProducts } from "@/lib/stripe/products";
 export interface CodeActionState {
   error: string | null;
   created: string | null;
+  // Echoed on error so React 19's form reset never wipes typed work.
+  values: EchoedValues | null;
 }
 
 // All Stripe calls run server-side with the secret key; nothing Stripe-
@@ -33,7 +36,7 @@ async function createCode(
 ): Promise<CodeActionState> {
   const errors = validateCreateCodeInput(input);
   if (errors.length > 0) {
-    return { error: errors.map((e) => e.message).join(" "), created: null };
+    return { error: errors.map((e) => e.message).join(" "), created: null, values: null };
   }
 
   const stripe = getStripe();
@@ -68,11 +71,11 @@ async function createCode(
       applies_to: input.appliesTo ?? "everything",
     });
     revalidatePath("/admin/discounts");
-    return { error: null, created: promo.code };
+    return { error: null, created: promo.code, values: null };
   } catch (err) {
     const message = err instanceof Error ? err.message : "Stripe call failed";
     // Most common cause: code already exists in Stripe.
-    return { error: `Could not create the code: ${message}`, created: null };
+    return { error: `Could not create the code: ${message}`, created: null, values: null };
   }
 }
 
@@ -105,7 +108,8 @@ export async function createDiscountCodeAction(
     note: String(formData.get("note") ?? "").trim() || null,
   };
 
-  return createCode(input, ctx.appUserId, "discount_code.create");
+  const result = await createCode(input, ctx.appUserId, "discount_code.create");
+  return result.error ? { ...result, values: echoFormValues(formData) } : result;
 }
 
 export async function createCompCodeAction(
@@ -124,11 +128,12 @@ export async function createCompCodeAction(
   const random = Math.random().toString(36).slice(2, 6).toUpperCase();
   const code = slug ? `COMP-${slug}-${random}` : `COMP-${random}`;
 
-  return createCode(
+  const result = await createCode(
     buildCompInput(code, forWho || null),
     ctx.appUserId,
     "discount_code.create_comp",
   );
+  return result.error ? { ...result, values: echoFormValues(formData) } : result;
 }
 
 export async function deactivateCodeAction(promotionCodeId: string): Promise<void> {

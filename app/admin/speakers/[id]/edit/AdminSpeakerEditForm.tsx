@@ -6,6 +6,7 @@ import {
   SOCIAL_PLATFORM_LABELS,
   type SocialPlatform,
 } from "@/lib/exhibitors/profile";
+import type { EchoedValues } from "@/lib/admin/form-echo";
 import {
   showsOnMainStage,
   SPEAKER_PROFILE_TYPES,
@@ -43,8 +44,13 @@ export function AdminSpeakerEditForm({
 }) {
   const [state, formAction, isPending] = useActionState<SpeakerAdminFormState, FormData>(
     adminSaveSpeakerAction.bind(null, profileId),
-    { error: null },
+    { error: null, values: null },
   );
+  // Echoed values from a failed save beat the stored defaults, so
+  // nothing typed is lost to React 19's form reset.
+  const echoed: EchoedValues | null = state.values;
+  const v = (key: keyof AdminSpeakerDefaults) =>
+    (echoed?.[key] as string | undefined) ?? String(defaults[key] ?? "");
   // Talk fields follow the SELECTED type live, so switching someone to
   // workshop host hides them immediately (the action enforces the same
   // rule server-side).
@@ -61,7 +67,7 @@ export function AdminSpeakerEditForm({
         <input
           id="slug"
           name="slug"
-          defaultValue={defaults.slug}
+          defaultValue={v("slug")}
           maxLength={50}
           required
           className={`${INPUT} font-mono`}
@@ -103,7 +109,7 @@ export function AdminSpeakerEditForm({
         <input
           id="displayName"
           name="displayName"
-          defaultValue={defaults.displayName}
+          defaultValue={v("displayName")}
           maxLength={120}
           required
           className={INPUT}
@@ -117,7 +123,7 @@ export function AdminSpeakerEditForm({
         <textarea
           id="bio"
           name="bio"
-          defaultValue={defaults.bio}
+          defaultValue={v("bio")}
           maxLength={2000}
           rows={5}
           className={INPUT}
@@ -133,7 +139,7 @@ export function AdminSpeakerEditForm({
           <input
             id="talkTitle"
             name="talkTitle"
-            defaultValue={defaults.talkTitle}
+            defaultValue={v("talkTitle")}
             maxLength={200}
             className={INPUT}
           />
@@ -145,7 +151,7 @@ export function AdminSpeakerEditForm({
           <textarea
             id="talkDescription"
             name="talkDescription"
-            defaultValue={defaults.talkDescription}
+            defaultValue={v("talkDescription")}
             maxLength={2000}
             rows={5}
             className={INPUT}
@@ -158,7 +164,7 @@ export function AdminSpeakerEditForm({
           <textarea
             id="talkTakeaways"
             name="talkTakeaways"
-            defaultValue={defaults.talkTakeaways}
+            defaultValue={v("talkTakeaways")}
             rows={4}
             className={INPUT}
           />
@@ -178,7 +184,7 @@ export function AdminSpeakerEditForm({
         <input
           id="websiteUrl"
           name="websiteUrl"
-          defaultValue={defaults.websiteUrl}
+          defaultValue={v("websiteUrl")}
           inputMode="url"
           placeholder="https://"
           className={INPUT}
@@ -196,7 +202,7 @@ export function AdminSpeakerEditForm({
               <input
                 id={`social_${platform}`}
                 name={`social_${platform}`}
-                defaultValue={defaults.socialUrls[platform] ?? ""}
+                defaultValue={echoed?.[`social_${platform}`] ?? defaults.socialUrls[platform] ?? ""}
                 inputMode="url"
                 placeholder="https://"
                 className={INPUT}
@@ -214,7 +220,7 @@ export function AdminSpeakerEditForm({
           <input
             id="ctaLabel"
             name="ctaLabel"
-            defaultValue={defaults.ctaLabel}
+            defaultValue={v("ctaLabel")}
             maxLength={40}
             className={INPUT}
           />
@@ -226,7 +232,7 @@ export function AdminSpeakerEditForm({
           <input
             id="ctaUrl"
             name="ctaUrl"
-            defaultValue={defaults.ctaUrl}
+            defaultValue={v("ctaUrl")}
             inputMode="url"
             placeholder="https://"
             className={INPUT}
@@ -241,7 +247,7 @@ export function AdminSpeakerEditForm({
         <input
           id="enquiriesEmail"
           name="enquiriesEmail"
-          defaultValue={defaults.enquiriesEmail}
+          defaultValue={v("enquiriesEmail")}
           inputMode="email"
           className={INPUT}
         />

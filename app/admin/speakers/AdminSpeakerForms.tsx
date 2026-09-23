@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import type { EchoedValues } from "@/lib/admin/form-echo";
 import {
   SPEAKER_PROFILE_TYPES,
   SPEAKER_PROFILE_TYPE_LABELS,
@@ -18,8 +19,10 @@ const LABEL = "block text-small font-medium text-ignite-ink";
 export function AddSpeakerForm() {
   const [state, formAction, isPending] = useActionState<SpeakerAdminFormState, FormData>(
     addSpeakerAction,
-    { error: null },
+    { error: null, values: null },
   );
+  // Failed validation echoes typed values back (React 19 resets forms).
+  const echoed: EchoedValues | null = state.values;
 
   return (
     <form action={formAction} className="grid gap-3 sm:grid-cols-3">
@@ -27,13 +30,13 @@ export function AddSpeakerForm() {
         <label htmlFor="name" className={LABEL}>
           Name <span className="text-ignite-red">*</span>
         </label>
-        <input id="name" name="name" required maxLength={120} className={INPUT} />
+        <input id="name" name="name" required maxLength={120} defaultValue={echoed?.name ?? ""} className={INPUT} />
       </div>
       <div>
         <label htmlFor="email" className={LABEL}>
           Email (optional)
         </label>
-        <input id="email" name="email" inputMode="email" maxLength={200} className={INPUT} />
+        <input id="email" name="email" inputMode="email" maxLength={200} defaultValue={echoed?.email ?? ""} className={INPUT} />
         <p className="mt-1 text-small text-ignite-muted">
           With an email: account + invite go out now. Blank: attach one later.
         </p>
@@ -42,6 +45,7 @@ export function AddSpeakerForm() {
         <label htmlFor="talkTitle" className={LABEL}>
           Talk title (optional)
         </label>
+        <input id="talkTitle" name="talkTitle" maxLength={200} defaultValue={echoed?.talkTitle ?? ""} className={INPUT} />
         <input id="talkTitle" name="talkTitle" maxLength={200} className={INPUT} />
         <p className="mt-1 text-small text-ignite-muted">
           Main-stage only; a host&apos;s workshop title comes from the workshops admin.
@@ -80,13 +84,14 @@ export function AddSpeakerForm() {
 export function AttachEmailForm({ profileId }: { profileId: string }) {
   const [state, formAction, isPending] = useActionState<SpeakerAdminFormState, FormData>(
     attachSpeakerEmailAction.bind(null, profileId),
-    { error: null },
+    { error: null, values: null },
   );
 
   return (
     <form action={formAction} className="flex flex-wrap items-center gap-2">
       <input
         name="email"
+        defaultValue={state.values?.email ?? ""}
         inputMode="email"
         maxLength={200}
         placeholder="speaker@email.com"

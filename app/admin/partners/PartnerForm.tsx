@@ -7,6 +7,7 @@ import {
   PARTNER_TIERS,
   PARTNER_TIER_META,
 } from "@/lib/partners/validate";
+import type { EchoedValues } from "@/lib/admin/form-echo";
 import { savePartnerAction, type PartnerFormState } from "./actions";
 
 const INPUT =
@@ -44,8 +45,13 @@ export function PartnerForm({
 }) {
   const [state, formAction, isPending] = useActionState<PartnerFormState, FormData>(
     savePartnerAction.bind(null, partnerId),
-    { error: null, clashWith: null },
+    { error: null, clashWith: null, values: null },
   );
+  // Echoed values (validation error or clash warning) beat defaults,
+  // so the add-anyway resubmit carries everything already typed.
+  const echoed: EchoedValues | null = state.values;
+  const v = (key: keyof PartnerDefaults) =>
+    (echoed?.[key] as string | undefined) ?? String(defaults[key] ?? "");
 
   return (
     <form action={formAction} className="flex flex-col gap-6">
@@ -57,7 +63,7 @@ export function PartnerForm({
           <input
             id="companyName"
             name="companyName"
-            defaultValue={defaults.companyName}
+            defaultValue={v("companyName")}
             maxLength={200}
             required
             className={INPUT}
@@ -70,7 +76,7 @@ export function PartnerForm({
           <input
             id="websiteUrl"
             name="websiteUrl"
-            defaultValue={defaults.websiteUrl}
+            defaultValue={v("websiteUrl")}
             inputMode="url"
             placeholder="https://"
             className={INPUT}
@@ -83,7 +89,7 @@ export function PartnerForm({
           <input
             id="contactName"
             name="contactName"
-            defaultValue={defaults.contactName}
+            defaultValue={v("contactName")}
             maxLength={120}
             required
             className={INPUT}
@@ -96,7 +102,7 @@ export function PartnerForm({
           <input
             id="contactEmail"
             name="contactEmail"
-            defaultValue={defaults.contactEmail}
+            defaultValue={v("contactEmail")}
             inputMode="email"
             maxLength={200}
             required
@@ -110,7 +116,7 @@ export function PartnerForm({
           <label htmlFor="tier" className={LABEL}>
             Tier <span className="text-ignite-red">*</span>
           </label>
-          <select id="tier" name="tier" defaultValue={defaults.tier} className={INPUT}>
+          <select id="tier" name="tier" defaultValue={v("tier")} className={INPUT}>
             {PARTNER_TIERS.map((t) => (
               <option key={t} value={t}>
                 {PARTNER_TIER_META[t].label} (£
@@ -126,7 +132,7 @@ export function PartnerForm({
           <input
             id="agreedPricePounds"
             name="agreedPricePounds"
-            defaultValue={defaults.agreedPricePounds}
+            defaultValue={v("agreedPricePounds")}
             inputMode="decimal"
             placeholder="Standard tier price"
             className={INPUT}
@@ -137,7 +143,7 @@ export function PartnerForm({
           <label htmlFor="status" className={LABEL}>
             Status <span className="text-ignite-red">*</span>
           </label>
-          <select id="status" name="status" defaultValue={defaults.status} className={INPUT}>
+          <select id="status" name="status" defaultValue={v("status")} className={INPUT}>
             {PARTNER_STATUSES.map((s) => (
               <option key={s} value={s}>
                 {STATUS_LABELS[s]}
@@ -155,7 +161,7 @@ export function PartnerForm({
           <select
             id="category"
             name="category"
-            defaultValue={defaults.category}
+            defaultValue={v("category")}
             className={INPUT}
           >
             {PARTNER_CATEGORIES.map((c) => (
@@ -187,7 +193,7 @@ export function PartnerForm({
         <textarea
           id="notes"
           name="notes"
-          defaultValue={defaults.notes}
+          defaultValue={v("notes")}
           maxLength={2000}
           rows={3}
           className={INPUT}

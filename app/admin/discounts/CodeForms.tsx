@@ -11,10 +11,12 @@ const INPUT =
   "w-full rounded-xl border border-ignite-line bg-ignite-white px-3 py-2 text-small text-ignite-ink focus:border-ignite-red focus:outline-none";
 const LABEL = "block text-small font-medium text-ignite-ink";
 
-const IDLE: CodeActionState = { error: null, created: null };
+const IDLE: CodeActionState = { error: null, created: null, values: null };
 
 export function CreateCodeForm() {
   const [state, formAction, isPending] = useActionState(createDiscountCodeAction, IDLE);
+  // Failed validation echoes typed values back (React 19 resets forms).
+  const v = state.values ?? {};
   const [kind, setKind] = useState<"percent" | "fixed">("percent");
 
   return (
@@ -28,6 +30,7 @@ export function CreateCodeForm() {
           name="code"
           required
           placeholder="STEPHINE20"
+          defaultValue={v.code ?? ""}
           className={`${INPUT} uppercase`}
         />
       </div>
@@ -56,6 +59,7 @@ export function CreateCodeForm() {
               min={1}
               max={100}
               placeholder="20"
+              defaultValue={v.percentOff ?? ""}
               className={INPUT}
             />
           </div>
@@ -69,6 +73,7 @@ export function CreateCodeForm() {
               min={0.01}
               step="0.01"
               placeholder="10.00"
+              defaultValue={v.amountOffPounds ?? ""}
               className={INPUT}
             />
           </div>
@@ -78,13 +83,14 @@ export function CreateCodeForm() {
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label htmlFor="expiresAt" className={LABEL}>Expiry date (optional)</label>
-          <input id="expiresAt" name="expiresAt" type="date" className={INPUT} />
+          <input id="expiresAt" name="expiresAt" type="date" defaultValue={v.expiresAt ?? ""} className={INPUT} />
         </div>
         <div>
           <label htmlFor="maxRedemptions" className={LABEL}>Max uses (optional)</label>
           <input
             id="maxRedemptions"
             name="maxRedemptions"
+            defaultValue={v.maxRedemptions ?? ""}
             type="number"
             min={1}
             placeholder="unlimited"
@@ -95,7 +101,7 @@ export function CreateCodeForm() {
 
       <div>
         <label htmlFor="appliesTo" className={LABEL}>Applies to</label>
-        <select id="appliesTo" name="appliesTo" defaultValue="everything" className={INPUT}>
+        <select id="appliesTo" name="appliesTo" defaultValue={v.appliesTo ?? "everything"} className={INPUT}>
           <option value="everything">Everything (default)</option>
           <option value="delegates_only">Delegates only</option>
           <option value="vip_only">VIP only</option>
@@ -110,7 +116,7 @@ export function CreateCodeForm() {
 
       <div>
         <label htmlFor="note" className={LABEL}>Note (optional, internal)</label>
-        <input id="note" name="note" placeholder="e.g. Stephine's newsletter promo" className={INPUT} />
+        <input id="note" name="note" placeholder="e.g. Stephine's newsletter promo" defaultValue={v.note ?? ""} className={INPUT} />
       </div>
 
       {state.error ? (
@@ -137,12 +143,13 @@ export function CreateCodeForm() {
 
 export function CreateCompForm() {
   const [state, formAction, isPending] = useActionState(createCompCodeAction, IDLE);
+  const v = state.values ?? {};
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
       <div>
         <label htmlFor="compFor" className={LABEL}>Who is it for? (optional note)</label>
-        <input id="compFor" name="compFor" placeholder="e.g. Jane Smith, headline speaker guest" className={INPUT} />
+        <input id="compFor" name="compFor" placeholder="e.g. Jane Smith, headline speaker guest" defaultValue={v.compFor ?? ""} className={INPUT} />
         <p className="mt-1 text-small text-ignite-muted">
           Creates a single-use 100%-off code named COMP-... that you can
           send them. Their booking lands with payment status comp.

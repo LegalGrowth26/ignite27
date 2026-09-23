@@ -6,6 +6,7 @@ import {
   SOCIAL_PLATFORM_LABELS,
   type SocialPlatform,
 } from "@/lib/exhibitors/profile";
+import type { EchoedValues } from "@/lib/admin/form-echo";
 import {
   adminSaveExhibitorProfileAction,
   type AdminProfileFormState,
@@ -39,8 +40,12 @@ export function AdminProfileForm({
 }) {
   const [state, formAction, isPending] = useActionState<AdminProfileFormState, FormData>(
     adminSaveExhibitorProfileAction.bind(null, bookingId),
-    { error: null },
+    { error: null, values: null },
   );
+  // Echoed values from a failed save beat the stored defaults.
+  const echoed: EchoedValues | null = state.values;
+  const v = (key: keyof AdminProfileDefaults) =>
+    (echoed?.[key] as string | undefined) ?? String(defaults[key] ?? "");
 
   return (
     <form action={formAction} className="flex flex-col gap-6">
@@ -51,7 +56,7 @@ export function AdminProfileForm({
         <input
           id="slug"
           name="slug"
-          defaultValue={defaults.slug}
+          defaultValue={v("slug")}
           maxLength={50}
           required
           className={`${INPUT} font-mono`}
@@ -70,7 +75,7 @@ export function AdminProfileForm({
         <input
           id="displayName"
           name="displayName"
-          defaultValue={defaults.displayName}
+          defaultValue={v("displayName")}
           maxLength={120}
           required
           className={INPUT}
@@ -84,7 +89,7 @@ export function AdminProfileForm({
         <textarea
           id="description"
           name="description"
-          defaultValue={defaults.description}
+          defaultValue={v("description")}
           maxLength={2000}
           rows={7}
           className={INPUT}
@@ -98,7 +103,7 @@ export function AdminProfileForm({
         <input
           id="websiteUrl"
           name="websiteUrl"
-          defaultValue={defaults.websiteUrl}
+          defaultValue={v("websiteUrl")}
           inputMode="url"
           placeholder="https://"
           className={INPUT}
@@ -116,7 +121,7 @@ export function AdminProfileForm({
               <input
                 id={`social_${platform}`}
                 name={`social_${platform}`}
-                defaultValue={defaults.socialUrls[platform] ?? ""}
+                defaultValue={echoed?.[`social_${platform}`] ?? defaults.socialUrls[platform] ?? ""}
                 inputMode="url"
                 placeholder="https://"
                 className={INPUT}
@@ -136,7 +141,7 @@ export function AdminProfileForm({
             <input
               id="ctaPrimaryLabel"
               name="ctaPrimaryLabel"
-              defaultValue={defaults.ctaPrimaryLabel}
+              defaultValue={v("ctaPrimaryLabel")}
               maxLength={40}
               className={INPUT}
             />
@@ -148,7 +153,7 @@ export function AdminProfileForm({
             <input
               id="ctaPrimaryUrl"
               name="ctaPrimaryUrl"
-              defaultValue={defaults.ctaPrimaryUrl}
+              defaultValue={v("ctaPrimaryUrl")}
               inputMode="url"
               placeholder="https://"
               className={INPUT}
@@ -161,7 +166,7 @@ export function AdminProfileForm({
             <input
               id="ctaSecondaryLabel"
               name="ctaSecondaryLabel"
-              defaultValue={defaults.ctaSecondaryLabel}
+              defaultValue={v("ctaSecondaryLabel")}
               maxLength={40}
               className={INPUT}
             />
@@ -173,7 +178,7 @@ export function AdminProfileForm({
             <input
               id="ctaSecondaryUrl"
               name="ctaSecondaryUrl"
-              defaultValue={defaults.ctaSecondaryUrl}
+              defaultValue={v("ctaSecondaryUrl")}
               inputMode="url"
               placeholder="https://"
               className={INPUT}
@@ -201,7 +206,7 @@ export function AdminProfileForm({
           <input
             id="contactEmail"
             name="contactEmail"
-            defaultValue={defaults.contactEmail}
+            defaultValue={v("contactEmail")}
             inputMode="email"
             className={INPUT}
           />
