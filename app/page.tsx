@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/Button";
 import { Container } from "@/components/Container";
-import { LatestFromIgnite } from "@/components/LatestFromIgnite";
+import { AnnouncementTicker } from "@/components/AnnouncementTicker";
 import { PartnersStrip } from "@/components/PartnersStrip";
 import { LaunchCountdown } from "@/components/LaunchCountdown";
 import { Section } from "@/components/Section";
@@ -100,9 +100,9 @@ export default function HomePage() {
 
   return (
     <>
+      <AnnouncementTicker />
       <Hero />
       <WhatIsIgnite />
-      <LatestFromIgnite />
       <PartnersStrip emptyFallback="callout" />
       <ValueProps />
       <LastYear />
