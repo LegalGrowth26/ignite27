@@ -13,11 +13,11 @@ import {
 import { publishSpeakerPhotoCopy } from "@/lib/speakers/photo";
 import {
   SPEAKER_PROFILE_TYPES,
-  showsOnMainStage,
   validateSpeakerContent,
   type SpeakerProfileType,
 } from "@/lib/speakers/profile";
 import { sendSpeakerInvite } from "@/lib/speakers/send-invite";
+import { syncHostWorkshopSafe } from "@/lib/workshops/sync";
 import { createSupabaseServiceClient } from "@/lib/supabase/service-client";
 
 // Admin speaker management: add (page live immediately, adding =
@@ -186,17 +186,15 @@ export async function adminSaveSpeakerAction(
   if (!SPEAKER_PROFILE_TYPES.includes(profileType)) {
     return { error: "Pick a profile type.", values: echoFormValues(formData) };
   }
-  // Same rule as the speaker's own editor: workshop hosts' session
-  // data lives in the workshops admin, so talk fields only apply to
-  // main-stage(-and-both) profiles.
-  const editsTalk = showsOnMainStage(profileType);
-
+  // Same rule as the speaker's own editor: everyone edits the talk
+  // fields. For a workshop host they are the workshop's content and
+  // sync onto the linked workshop below (the admin fix-a-typo path).
   const validated = validateSpeakerContent({
     displayName: formData.get("displayName"),
     bio: formData.get("bio"),
-    talkTitle: editsTalk ? formData.get("talkTitle") : "",
-    talkDescription: editsTalk ? formData.get("talkDescription") : "",
-    talkTakeaways: editsTalk ? formData.get("talkTakeaways") : "",
+    talkTitle: formData.get("talkTitle"),
+    talkDescription: formData.get("talkDescription"),
+    talkTakeaways: formData.get("talkTakeaways"),
     websiteUrl: formData.get("websiteUrl"),
     socialLinks: SOCIAL_PLATFORMS.map((platform) => ({
       platform,
@@ -216,13 +214,9 @@ export async function adminSaveSpeakerAction(
       profile_type: profileType,
       display_name: v.displayName,
       bio: v.bio,
-      ...(editsTalk
-        ? {
-            talk_title: v.talkTitle,
-            talk_description: v.talkDescription,
-            talk_takeaways: v.talkTakeaways,
-          }
-        : {}),
+      talk_title: v.talkTitle,
+      talk_description: v.talkDescription,
+      talk_takeaways: v.talkTakeaways,
       website_url: v.websiteUrl,
       social_links: v.socialLinks,
       cta_label: v.ctaLabel,
@@ -237,6 +231,21 @@ export async function adminSaveSpeakerAction(
     console.error("[admin/speakers] save failed:", error.message);
     return { error: "Could not save the page. Try again.", values: echoFormValues(formData) };
   }
+
+  // Workshop hosts: mirror the content onto their linked workshop, the
+  // same sync the host's own editor runs. Never throws.
+  await syncHostWorkshopSafe(
+    service,
+    {
+      id: profileId,
+      profileType,
+      displayName: v.displayName,
+      talkTitle: v.talkTitle,
+      talkDescription: v.talkDescription,
+    },
+    `admin speaker save ${slug}`,
+  );
+  revalidatePath("/workshops");
 
   await logAdminAction(ctx.appUserId, "speaker.edit", {
     speaker_profile_id: profileId,
@@ -256,10 +265,14 @@ export async function unpublishSpeakerAction(profileId: string): Promise<void> {
 
   const { data } = await service
     .from("speaker_profiles")
-    .select("slug, photo_path")
+    .select("slug, photo_path, logo_path")
     .eq("id", profileId)
     .maybeSingle();
-  const profile = data as { slug: string; photo_path: string | null } | null;
+  const profile = data as {
+    slug: string;
+    photo_path: string | null;
+    logo_path: string | null;
+  } | null;
   if (!profile) throw new Error("speaker page not found");
 
   const { error } = await service
@@ -268,10 +281,13 @@ export async function unpublishSpeakerAction(profileId: string): Promise<void> {
     .eq("id", profileId);
   if (error) throw new Error(`unpublish failed: ${error.message}`);
 
-  // Pull the public photo copy down with the page; the private
-  // original stays for republish.
-  if (profile.photo_path) {
-    await service.storage.from("speaker-photos-public").remove([profile.photo_path]);
+  // Pull the public image copies down with the page; the private
+  // originals stay for republish.
+  const toRemove = [profile.photo_path, profile.logo_path].filter(
+    (p): p is string => Boolean(p),
+  );
+  if (toRemove.length > 0) {
+    await service.storage.from("speaker-photos-public").remove(toRemove);
   }
 
   await logAdminAction(ctx.appUserId, "speaker.unpublish", {
@@ -287,10 +303,14 @@ export async function republishSpeakerAction(profileId: string): Promise<void> {
 
   const { data } = await service
     .from("speaker_profiles")
-    .select("slug, photo_path")
+    .select("slug, photo_path, logo_path")
     .eq("id", profileId)
     .maybeSingle();
-  const profile = data as { slug: string; photo_path: string | null } | null;
+  const profile = data as {
+    slug: string;
+    photo_path: string | null;
+    logo_path: string | null;
+  } | null;
   if (!profile) throw new Error("speaker page not found");
 
   const { error } = await service
@@ -299,9 +319,10 @@ export async function republishSpeakerAction(profileId: string): Promise<void> {
     .eq("id", profileId);
   if (error) throw new Error(`republish failed: ${error.message}`);
 
-  if (profile.photo_path) {
-    const { error: copyErr } = await publishSpeakerPhotoCopy(service, profile.photo_path);
-    if (copyErr) console.error("[admin/speakers] photo restore failed:", copyErr);
+  for (const path of [profile.photo_path, profile.logo_path]) {
+    if (!path) continue;
+    const { error: copyErr } = await publishSpeakerPhotoCopy(service, path);
+    if (copyErr) console.error("[admin/speakers] image restore failed:", copyErr);
   }
 
   await logAdminAction(ctx.appUserId, "speaker.republish", {

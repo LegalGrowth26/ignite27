@@ -14,3 +14,13 @@ export const GENERAL_ACCESS_OPENS = new Date("2027-01-04T00:00:00Z");
 // Un-booking closes at the start of event day (21 January 2027, 00:00
 // UK): cancellations are allowed up to and including the day before.
 export const CANCEL_DEADLINE = new Date("2027-01-21T00:00:00Z");
+
+// Every workshop room seats exactly 24. Fixed by decision (September
+// 2026): not an admin field, never host-editable. The database column
+// defaults to this too (20260512).
+export const WORKSHOP_CAPACITY = 24;
+
+// The two workshop rooms. Room and times are admin-only scheduling,
+// set after the host has supplied the content; until then a published
+// workshop shows "time and room to be confirmed".
+export const WORKSHOP_ROOMS = ["Workshop Room One", "Workshop Room Two"] as const;

@@ -9,7 +9,15 @@ import { bookWorkshopAction, cancelWorkshopBookingAction } from "./actions";
 
 const LONDON = "Europe/London";
 
-export function formatWorkshopTime(startsAt: string, endsAt: string): string {
+// A host-completed workshop publishes before the admin schedules it,
+// so times can be null: that is the "to be confirmed" state.
+export const WORKSHOP_TIME_TBC = "Time and room to be confirmed";
+
+export function formatWorkshopTime(
+  startsAt: string | null,
+  endsAt: string | null,
+): string {
+  if (!startsAt || !endsAt) return WORKSHOP_TIME_TBC;
   const start = new Date(startsAt);
   const end = new Date(endsAt);
   const time = new Intl.DateTimeFormat("en-GB", {
@@ -21,7 +29,9 @@ export function formatWorkshopTime(startsAt: string, endsAt: string): string {
   return `${time.format(start)} to ${time.format(end)}`;
 }
 
-export function formatWorkshopDate(startsAt: string): string {
+export function formatWorkshopDate(startsAt: string | null): string {
+  // Unscheduled workshops still happen on event day.
+  if (!startsAt) return "Thursday 21 January 2027";
   return new Intl.DateTimeFormat("en-GB", {
     weekday: "long",
     day: "numeric",

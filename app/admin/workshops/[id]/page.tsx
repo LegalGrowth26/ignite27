@@ -11,8 +11,8 @@ export const metadata: Metadata = {
 interface WorkshopRow {
   id: string;
   title: string;
-  starts_at: string;
-  ends_at: string;
+  starts_at: string | null;
+  ends_at: string | null;
   room: string | null;
   capacity: number;
   published_at: string | null;
@@ -86,15 +86,21 @@ export default async function WorkshopAttendeesPage({
       </Link>
       <h1 className="mt-4 text-h1">{workshop.title}</h1>
       <p className="mt-2 text-small text-ignite-muted">
-        {ukDateTime(workshop.starts_at)} to{" "}
-        {new Intl.DateTimeFormat("en-GB", {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-          timeZone: "Europe/London",
-        }).format(new Date(workshop.ends_at))}
+        {workshop.starts_at && workshop.ends_at ? (
+          <>
+            {ukDateTime(workshop.starts_at)} to{" "}
+            {new Intl.DateTimeFormat("en-GB", {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: false,
+              timeZone: "Europe/London",
+            }).format(new Date(workshop.ends_at))}
+          </>
+        ) : (
+          "Not scheduled yet"
+        )}
         {workshop.room ? ` · ${workshop.room}` : ""} · {bookings.length}/{workshop.capacity}{" "}
-        booked · {workshop.published_at ? "Published" : "Draft"}
+        booked · {workshop.published_at ? "Published" : "Unpublished"}
       </p>
 
       {bookings.length === 0 ? (

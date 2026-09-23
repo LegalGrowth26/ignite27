@@ -14,7 +14,7 @@ interface HostProfileRow {
   id: string;
   slug: string;
   display_name: string;
-  talk_title: string; // internal focus note for hosts, never rendered publicly
+  talk_title: string; // the host's workshop title (their editor writes it)
   user_id: string | null;
   published_at: string | null;
   users: { email: string } | null;
@@ -35,8 +35,8 @@ interface AdminWorkshopRow {
   title: string;
   speaker_name: string | null;
   room: string | null;
-  starts_at: string;
-  ends_at: string;
+  starts_at: string | null;
+  ends_at: string | null;
   capacity: number;
   published_at: string | null;
   workshop_bookings: Array<{ count: number }>;
@@ -49,6 +49,13 @@ function ukTime(iso: string): string {
     hour12: false,
     timeZone: "Europe/London",
   }).format(new Date(iso));
+}
+
+function scheduleLabel(w: AdminWorkshopRow): string {
+  if (!w.starts_at || !w.ends_at) {
+    return w.room ? `Not scheduled yet · ${w.room}` : "Not scheduled yet";
+  }
+  return `${ukTime(w.starts_at)} to ${ukTime(w.ends_at)}${w.room ? ` · ${w.room}` : ""}`;
 }
 
 export default async function AdminWorkshopsPage({
@@ -64,7 +71,7 @@ export default async function AdminWorkshopsPage({
     .select(
       "id, title, speaker_name, room, starts_at, ends_at, capacity, published_at, workshop_bookings(count)",
     )
-    .order("starts_at", { ascending: true });
+    .order("starts_at", { ascending: true, nullsFirst: false });
 
   const { data: hostData, error: hostErr } = await client
     .from("speaker_profiles")
@@ -105,20 +112,17 @@ export default async function AdminWorkshopsPage({
           >
             Export attendee CSV
           </a>
-          <Link
-            href="/admin/workshops/new"
-            className="rounded-full bg-ignite-red px-5 py-2 text-small font-semibold text-ignite-white hover:bg-ignite-red/90"
-          >
-            New workshop
-          </Link>
         </div>
       </div>
 
       <p className="mt-3 max-w-3xl text-small text-ignite-muted">
-        Workshops are created as drafts; publish when ready and they appear
-        on /workshops. Booking opens 1 January (VIPs) and 4 January
-        (everyone), enforced server-side. Unpublishing hides a workshop but
-        keeps its bookings.
+        Hosts write their own workshop (title, description, images) from
+        their /speaker editor; it appears on /workshops automatically as
+        &quot;time and room to be confirmed&quot;. You schedule the room and
+        times from Schedule below, updating the live page in place. Every
+        room seats 24. Booking opens 1 January (VIPs) and 4 January
+        (everyone), enforced server-side. Unpublish is the safety net: it
+        hides a workshop but keeps its bookings.
       </p>
 
       {status && HOST_STATUS_NOTES[status] ? (
@@ -127,21 +131,16 @@ export default async function AdminWorkshopsPage({
         </p>
       ) : null}
 
-      {status === "created" ? (
-        <p className="mt-4 rounded-xl border border-ignite-line bg-ignite-white p-3 text-small">
-          Workshop created as a draft. Publish it when the details are final.
-        </p>
-      ) : null}
       {status === "saved" ? (
         <p className="mt-4 rounded-xl border border-ignite-line bg-ignite-white p-3 text-small">
-          Workshop saved.
+          Schedule saved.
         </p>
       ) : null}
 
       {rows.length === 0 ? (
         <p className="mt-8 rounded-2xl border border-ignite-line bg-ignite-white p-6 text-body text-ignite-muted">
-          No workshops yet. Eight are planned for the day; create the first
-          one above.
+          No workshops yet. They appear here as soon as a host completes
+          their workshop details in their editor.
         </p>
       ) : (
         <div className="mt-6 grid gap-4">
@@ -153,10 +152,9 @@ export default async function AdminWorkshopsPage({
                   <div>
                     <p className="text-h3">{w.title}</p>
                     <p className="mt-1 text-small text-ignite-muted">
-                      {ukTime(w.starts_at)} to {ukTime(w.ends_at)}
-                      {w.room ? ` · ${w.room}` : ""}
+                      {scheduleLabel(w)}
                       {w.speaker_name ? ` · ${w.speaker_name}` : ""} · {booked}/{w.capacity} booked ·{" "}
-                      {w.published_at ? "Published" : "Draft"}
+                      {w.published_at ? "Published" : "Unpublished"}
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
@@ -170,7 +168,7 @@ export default async function AdminWorkshopsPage({
                       href={`/admin/workshops/${w.id}/edit`}
                       className="rounded-full border border-ignite-line px-4 py-2 text-small font-semibold text-ignite-ink hover:border-ignite-red"
                     >
-                      Edit
+                      Schedule
                     </Link>
                     {w.published_at ? (
                       <form action={unpublishWorkshopAction.bind(null, w.id)}>
@@ -201,11 +199,12 @@ export default async function AdminWorkshopsPage({
 
       <h2 className="mt-12 text-h2">Workshop hosts</h2>
       <p className="mt-3 max-w-3xl text-small text-ignite-muted">
-        Invite hosts from here. A draft invitee is just a name on the list;
-        attaching their email sends the full invite: account, live page at
-        /speakers/&lt;slug&gt;, 2 comp tickets, and their personal 20% code
-        (everything except lunch). Link them to their workshop with the Host
-        field on the workshop form.
+        Invite hosts from here with a name, an email, and (optionally) a
+        personal line for the invite. That sends the full kit: account, live
+        page at /speakers/&lt;slug&gt;, 2 comp tickets, and their personal
+        20% code (everything except lunch). The host writes their own
+        workshop from their editor; it goes live on /workshops the moment
+        they save it, and you schedule the room and time above.
       </p>
 
       <div className="mt-4 rounded-2xl border border-ignite-line bg-ignite-white p-5">
@@ -226,7 +225,7 @@ export default async function AdminWorkshopsPage({
                 <div>
                   <p className="text-h3">{h.display_name}</p>
                   <p className="mt-1 text-small text-ignite-muted">
-                    {h.talk_title || "No focus note"} ·{" "}
+                    {h.talk_title || "No workshop content yet"} ·{" "}
                     {h.published_at ? `Live at /speakers/${h.slug}` : "Draft (page unpublished)"} ·{" "}
                     {h.user_id ? `Invited: ${h.users?.email ?? "linked"}` : "Not invited yet"}
                   </p>

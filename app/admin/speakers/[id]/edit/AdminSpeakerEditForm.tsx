@@ -130,11 +130,17 @@ export function AdminSpeakerEditForm({
         />
       </div>
 
-      {showsOnMainStage(profileType) ? (
+      {!showsOnMainStage(profileType) ? (
+        <p className="rounded-xl border border-ignite-line bg-ignite-cream p-3 text-small text-ignite-muted">
+          These fields are this host&apos;s workshop: title, what it covers,
+          what you&apos;ll leave with. They normally write it themselves; edits
+          here sync onto the linked workshop on save.
+        </p>
+      ) : null}
       <div className="grid gap-3">
         <div>
           <label htmlFor="talkTitle" className={LABEL}>
-            Talk title
+            {showsOnMainStage(profileType) ? "Talk title" : "Workshop title"}
           </label>
           <input
             id="talkTitle"
@@ -146,7 +152,7 @@ export function AdminSpeakerEditForm({
         </div>
         <div>
           <label htmlFor="talkDescription" className={LABEL}>
-            Talk description
+            {showsOnMainStage(profileType) ? "Talk description" : "What the workshop covers"}
           </label>
           <textarea
             id="talkDescription"
@@ -159,7 +165,9 @@ export function AdminSpeakerEditForm({
         </div>
         <div>
           <label htmlFor="talkTakeaways" className={LABEL}>
-            What people will learn (one per line, up to 6)
+            {showsOnMainStage(profileType)
+              ? "What people will learn (one per line, up to 6)"
+              : "What you'll leave with (one per line, up to 6)"}
           </label>
           <textarea
             id="talkTakeaways"
@@ -170,12 +178,6 @@ export function AdminSpeakerEditForm({
           />
         </div>
       </div>
-      ) : (
-        <p className="rounded-xl border border-ignite-line bg-ignite-cream p-3 text-small text-ignite-muted">
-          Workshop hosts&apos; session data lives in the workshops admin; link
-          this profile from the workshop&apos;s Host field there.
-        </p>
-      )}
 
       <div>
         <label htmlFor="websiteUrl" className={LABEL}>

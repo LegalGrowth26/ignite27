@@ -53,7 +53,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 const LONDON = "Europe/London";
 
-function ukTimeRange(startsAt: string, endsAt: string): string {
+function ukTimeRange(startsAt: string | null, endsAt: string | null): string {
+  // Published-but-unscheduled workshops show the TBC state.
+  if (!startsAt || !endsAt) return "Time and room to be confirmed";
   const fmt = new Intl.DateTimeFormat("en-GB", {
     hour: "2-digit",
     minute: "2-digit",
@@ -171,6 +173,13 @@ export default async function SpeakerPage({ params, searchParams }: PageProps) {
                   {hostWorkshopRows[0].title}
                 </p>
               ) : null}
+              {isHost && speaker.logoUrl ? (
+                <img
+                  src={speaker.logoUrl}
+                  alt={`${speaker.displayName}'s company logo`}
+                  className="mt-4 h-10 w-auto max-w-[180px] rounded bg-ignite-white/90 object-contain p-1"
+                />
+              ) : null}
             </div>
           </div>
         </Container>
@@ -187,10 +196,11 @@ export default async function SpeakerPage({ params, searchParams }: PageProps) {
                 />
               ) : null}
 
-              {onMainStage &&
-              (talkParagraphs.length > 0 || speaker.talkTakeaways.length > 0) ? (
+              {talkParagraphs.length > 0 || speaker.talkTakeaways.length > 0 ? (
                 <div className={isHost ? "mt-10" : ""}>
-                  <h2 className="text-h2">The session.</h2>
+                  <h2 className="text-h2">
+                    {onMainStage ? "The session." : "What the workshop covers."}
+                  </h2>
                   {talkParagraphs.map((p, i) => (
                     <p key={i} className="mt-4 text-body text-ignite-ink">
                       {p}
@@ -198,7 +208,9 @@ export default async function SpeakerPage({ params, searchParams }: PageProps) {
                   ))}
                   {speaker.talkTakeaways.length > 0 ? (
                     <>
-                      <h3 className="mt-6 text-h3">What you&apos;ll learn</h3>
+                      <h3 className="mt-6 text-h3">
+                        {onMainStage ? "What you'll learn" : "What you'll leave with"}
+                      </h3>
                       <ul className="mt-3 grid gap-2">
                         {speaker.talkTakeaways.map((t) => (
                           <li key={t} className="flex gap-3 text-body text-ignite-ink">

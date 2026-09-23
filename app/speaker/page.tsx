@@ -9,7 +9,6 @@ import type { SocialPlatform } from "@/lib/exhibitors/profile";
 import { parseSocialLinks } from "@/lib/exhibitors/profiles";
 import {
   parseStoredTakeaways,
-  showsOnMainStage,
   type SpeakerProfileType,
 } from "@/lib/speakers/profile";
 import { createSupabaseServerClient } from "@/lib/supabase/server-client";
@@ -27,6 +26,7 @@ interface ProfileRow {
   slug: string;
   display_name: string;
   photo_path: string | null;
+  logo_path: string | null;
   bio: string;
   talk_title: string;
   talk_description: string;
@@ -59,7 +59,7 @@ export default async function SpeakerEditorPage({
     ? await supabase
         .from("speaker_profiles")
         .select(
-          `id, slug, display_name, photo_path, bio, talk_title,
+          `id, slug, display_name, photo_path, logo_path, bio, talk_title,
            talk_description, talk_takeaways, website_url, social_links,
            cta_label, cta_url, enquiries_email, profile_type, published_at`,
         )
@@ -101,6 +101,7 @@ export default async function SpeakerEditorPage({
   const defaults: SpeakerEditorDefaults = {
     displayName: profile.display_name,
     hasPhoto: Boolean(profile.photo_path),
+    hasLogo: Boolean(profile.logo_path),
     bio: profile.bio,
     talkTitle: profile.talk_title,
     talkDescription: profile.talk_description,
@@ -144,10 +145,7 @@ export default async function SpeakerEditorPage({
             )}
           </p>
           <div className="mt-8">
-            <SpeakerEditorForm
-              defaults={defaults}
-              showTalkFields={showsOnMainStage(profile.profile_type)}
-            />
+            <SpeakerEditorForm defaults={defaults} profileType={profile.profile_type} />
           </div>
         </div>
       </Container>

@@ -477,15 +477,23 @@ creates the account and sends the invite then.
   and a linked but UNPUBLISHED profile falls back too, never a dead
   link); the host's page swaps the talk block for their workshop(s)
   (title, time, room, booking link; no live spaces-left figure).
-  One canonical URL for everyone: /speakers/<slug>. Hosts do not
-  edit talk fields (their session data lives in the workshops
-  admin), enforced server-side in both editors; profile_type is
+  One canonical URL for everyone: /speakers/<slug>. Hosts write
+  their OWN workshop content (September 2026 refinement): the talk
+  fields in their editor are the workshop's title, what it covers,
+  and "what you'll leave with", synced onto the linked workshop row
+  on every save (their editor and the admin speaker editor alike).
+  Hosts also upload a company logo (raster only; shown on their
+  page). A 'both' profile's talk fields remain their main-stage
+  talk, so a 'both' host's workshop stays admin-managed (accepted
+  limitation; no such profile exists today). profile_type is
   admin-only, like the slug. The three seeded speakers defaulted to
   main_stage.
 - **Host invites (added September 2026):** workshop hosts are invited
   from the WORKSHOPS admin, not the speakers section. Draft invitees
-  (name + internal focus note) sit unpublished and account-less until
-  an email is attached; attaching it sends the full invite in one go:
+  (name ONLY: everything about the workshop is the host's to write)
+  sit unpublished and account-less until an email is attached;
+  attaching it (with an optional personal line rendered in the email)
+  sends the full invite in one go:
   account, page published, ambassador provisioning with the confirmed
   host defaults (comp allowance 2, personal 20% discount code created
   in Stripe, everything except lunch, no cap, no expiry), and ONE
@@ -570,9 +578,23 @@ For each booking, the system stores:
 
 ## Workshop booking (built September 2026)
 
-- Around 8 workshops, managed from /admin/workshops (draft/published;
-  capacity set per workshop, 1 to 1000). Published workshops appear on
-  /workshops with detail pages.
+- Around 8 workshops. Division of labour (September 2026 refinement):
+  the HOST owns the content, the admin owns the schedule.
+  - The host writes title, description, and takeaways from their
+    /speaker editor; the first complete save CREATES the linked
+    workshop and PUBLISHES it immediately: it appears on /workshops
+    in a "time and room to be confirmed" state. There is no admin
+    create form.
+  - Admin (/admin/workshops) schedules the room and times later,
+    updating the published row in place; no second publish step.
+    Rooms are fixed: Workshop Room One / Workshop Room Two.
+    Unpublish remains as the safety net (hides the workshop, keeps
+    its bookings); publish brings it back.
+  - Capacity is ALWAYS 24 (fixed constant and database default),
+    never an admin field, never host-editable.
+- Published workshops appear on /workshops with detail pages;
+  unscheduled ones sort after scheduled ones and read "time and room
+  to be confirmed".
 - Workshops are FREE for ticket holders. Anyone holding a completed
   booking (paid live or comp, active) can book, for themselves only in
   v1 (a contact booking for colleagues is a noted follow-up).

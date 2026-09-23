@@ -6,10 +6,11 @@ import { resolveOwnAppUserId } from "@/lib/account/queries";
 import { SOCIAL_PLATFORMS } from "@/lib/exhibitors/profile";
 import { publishSpeakerPhotoCopy } from "@/lib/speakers/photo";
 import {
-  showsOnMainStage,
+  hostsWorkshops,
   validateSpeakerContent,
   type SpeakerProfileType,
 } from "@/lib/speakers/profile";
+import { syncHostWorkshopSafe } from "@/lib/workshops/sync";
 import { createSupabaseServerClient } from "@/lib/supabase/server-client";
 import { createSupabaseServiceClient } from "@/lib/supabase/service-client";
 
@@ -56,17 +57,18 @@ export async function saveSpeakerProfileAction(
     photo_path: string | null;
     profile_type: SpeakerProfileType;
   };
-  // Workshop hosts do not edit the talk block: their session data
-  // lives in the workshops admin. Server-side gate, not just hidden
-  // fields; stored talk values (if any) survive untouched.
-  const editsTalk = showsOnMainStage(profile.profile_type);
+  // Everyone edits the talk fields now. For a main-stage speaker they
+  // are the talk; for a workshop host they ARE the workshop (title,
+  // what it covers, what you'll leave with), synced onto the linked
+  // workshop row after the save below.
+  const isHost = hostsWorkshops(profile.profile_type);
 
   const validated = validateSpeakerContent({
     displayName: formData.get("displayName"),
     bio: formData.get("bio"),
-    talkTitle: editsTalk ? formData.get("talkTitle") : "",
-    talkDescription: editsTalk ? formData.get("talkDescription") : "",
-    talkTakeaways: editsTalk ? formData.get("talkTakeaways") : "",
+    talkTitle: formData.get("talkTitle"),
+    talkDescription: formData.get("talkDescription"),
+    talkTakeaways: formData.get("talkTakeaways"),
     websiteUrl: formData.get("websiteUrl"),
     socialLinks: SOCIAL_PLATFORMS.map((platform) => ({
       platform,
@@ -97,24 +99,41 @@ export async function saveSpeakerProfileAction(
     }
   }
 
+  // Hosts can also upload a company logo, same private bucket and
+  // pipeline at {profileId}/logo.{ext}. Raster only (no SVG): logos
+  // here are end-user uploads, and SVG is a stored-XSS vector when
+  // fetched directly from the public bucket.
+  let logoPath: string | null = null;
+  const logo = formData.get("logo");
+  if (isHost && logo instanceof File && logo.size > 0) {
+    const ext = ALLOWED_PHOTO_TYPES[logo.type];
+    if (!ext) return { error: "Logo must be a JPG, PNG, or WebP file." };
+    if (logo.size > MAX_PHOTO_BYTES) return { error: "Logo must be 2MB or smaller." };
+    logoPath = `${profile.id}/logo.${ext}`;
+    const { error: uploadErr } = await supabase.storage
+      .from("speaker-photos")
+      .upload(logoPath, logo, { upsert: true, contentType: logo.type });
+    if (uploadErr) {
+      console.error("[speaker-editor] logo upload failed:", uploadErr.message);
+      return { error: "Logo upload failed. Try again or skip the logo for now." };
+    }
+  }
+
   const { data: updated, error: updateErr } = await supabase
     .from("speaker_profiles")
     .update({
       display_name: v.displayName,
       bio: v.bio,
-      ...(editsTalk
-        ? {
-            talk_title: v.talkTitle,
-            talk_description: v.talkDescription,
-            talk_takeaways: v.talkTakeaways,
-          }
-        : {}),
+      talk_title: v.talkTitle,
+      talk_description: v.talkDescription,
+      talk_takeaways: v.talkTakeaways,
       website_url: v.websiteUrl,
       social_links: v.socialLinks,
       cta_label: v.ctaLabel,
       cta_url: v.ctaUrl,
       enquiries_email: v.enquiriesEmail,
       ...(photoPath ? { photo_path: photoPath } : {}),
+      ...(logoPath ? { logo_path: logoPath } : {}),
     })
     .eq("id", profile.id)
     .select("slug");
@@ -124,14 +143,32 @@ export async function saveSpeakerProfileAction(
   }
   const slug = (updated as Array<{ slug: string }> | null)?.[0]?.slug ?? profile.slug;
 
-  // Publish the photo copy so the public page (which never reads the
-  // private bucket) can show it. A copy failure does not fail the save.
-  if (photoPath) {
-    const { error: copyErr } = await publishSpeakerPhotoCopy(
-      createSupabaseServiceClient(),
-      photoPath,
+  // Publish the photo/logo copies so the public pages (which never
+  // read the private bucket) can show them. A copy failure does not
+  // fail the save.
+  const service = createSupabaseServiceClient();
+  for (const path of [photoPath, logoPath]) {
+    if (!path) continue;
+    const { error: copyErr } = await publishSpeakerPhotoCopy(service, path);
+    if (copyErr) console.error("[speaker-editor] public image copy failed:", copyErr);
+  }
+
+  // Workshop hosts: mirror the saved content onto the linked workshop.
+  // First complete save CREATES and auto-publishes it (time and room to
+  // be confirmed); later saves update content in place. Never throws.
+  if (profile.profile_type === "workshop_host") {
+    await syncHostWorkshopSafe(
+      service,
+      {
+        id: profile.id,
+        profileType: profile.profile_type,
+        displayName: v.displayName,
+        talkTitle: v.talkTitle,
+        talkDescription: v.talkDescription,
+      },
+      `host editor save ${profile.slug}`,
     );
-    if (copyErr) console.error("[speaker-editor] public photo copy failed:", copyErr);
+    revalidatePath("/workshops");
   }
 
   revalidatePath(`/speakers/${slug}`);
