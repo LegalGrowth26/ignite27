@@ -1,0 +1,67 @@
+name: CI
+
+# Typecheck, unit tests, and a real production build on every PR and
+# on every push to main. This is the gate that stops a broken merge
+# reaching Vercel: with the branch protection rule enabled (Settings →
+# Branches → main → require the "CI / checks" status), a red PR
+# cannot be merged.
+#
+# Playwright end-to-end tests are NOT run here: they need a running
+# app against live Supabase/Stripe test credentials, which this
+# workflow deliberately does not hold. The build uses dummy env values
+# (nothing here talks to a real service; the app reads env lazily at
+# request time).
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy-anon-key
+      SUPABASE_SERVICE_ROLE_KEY: dummy-service-key
+      STRIPE_SECRET_KEY: sk_test_dummy
+      STRIPE_WEBHOOK_SECRET: whsec_dummy
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_dummy
+      RESEND_API_KEY: re_dummy
+      RESEND_FROM_EMAIL: tom@lincolnshiremarketing.co.uk
+      RESEND_REPLY_TO_EMAIL: tom@lincolnshiremarketing.co.uk
+      NEXT_PUBLIC_SITE_URL: http://localhost:3111
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        # Version comes from the packageManager field in package.json.
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        env:
+          # Chromium is never used in this job; skip the download.
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Production build
+        run: pnpm build
