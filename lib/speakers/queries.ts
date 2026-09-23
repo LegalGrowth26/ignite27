@@ -16,6 +16,7 @@ export interface SpeakerProfileRow {
   slug: string;
   display_name: string;
   photo_path: string | null;
+  logo_path: string | null;
   bio: string;
   talk_title: string;
   talk_description: string;
@@ -38,6 +39,7 @@ export interface SpeakerCardData {
 export interface SpeakerPageData extends SpeakerCardData {
   id: string;
   profileType: SpeakerProfileType;
+  logoUrl: string | null;
   bio: string;
   talkDescription: string;
   talkTakeaways: string[];
@@ -70,6 +72,7 @@ export function toSpeakerPage(row: SpeakerProfileRow): SpeakerPageData {
     displayName: row.display_name,
     talkTitle: row.talk_title,
     photoUrl: row.photo_path ? publicPhotoUrl(row.photo_path) : null,
+    logoUrl: row.logo_path ? publicPhotoUrl(row.logo_path) : null,
     bio: row.bio,
     talkDescription: row.talk_description,
     talkTakeaways: parseStoredTakeaways(row.talk_takeaways),
@@ -80,7 +83,7 @@ export function toSpeakerPage(row: SpeakerProfileRow): SpeakerPageData {
 }
 
 const PUBLIC_COLUMNS =
-  "id, slug, display_name, photo_path, bio, talk_title, talk_description, " +
+  "id, slug, display_name, photo_path, logo_path, bio, talk_title, talk_description, " +
   "talk_takeaways, website_url, social_links, cta_label, cta_url, " +
   "profile_type, published_at";
 
@@ -130,8 +133,8 @@ export async function fetchPublishedSpeakerBySlug(
 export interface HostWorkshopRow {
   id: string;
   title: string;
-  starts_at: string;
-  ends_at: string;
+  starts_at: string | null;
+  ends_at: string | null;
   room: string | null;
 }
 
@@ -144,7 +147,7 @@ export async function fetchHostWorkshops(
     .select("id, title, starts_at, ends_at, room")
     .eq("host_profile_id", profileId)
     .not("published_at", "is", null)
-    .order("starts_at", { ascending: true });
+    .order("starts_at", { ascending: true, nullsFirst: false });
   if (error) throw new Error(`host workshops query failed: ${error.message}`);
   return (data ?? []) as unknown as HostWorkshopRow[];
 }

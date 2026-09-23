@@ -1,24 +1,22 @@
-// Pure validation for the admin workshop form, shared by create and
-// edit actions and unit-tested without a database.
+// Pure validation for the admin workshop SCHEDULE form, shared by the
+// edit action and unit-tested without a database. Content (title,
+// description) belongs to the host and never passes through here;
+// capacity is the fixed WORKSHOP_CAPACITY constant, not a field.
 
-export interface WorkshopInput {
-  title: string;
-  description: string;
+import { WORKSHOP_ROOMS } from "./config";
+
+export interface WorkshopScheduleInput {
   speakerName: string | null;
   room: string | null;
-  startsAt: Date;
-  endsAt: Date;
-  capacity: number;
+  startsAt: Date | null;
+  endsAt: Date | null;
 }
 
-export type WorkshopValidation =
-  | { ok: true; value: WorkshopInput }
+export type WorkshopScheduleValidation =
+  | { ok: true; value: WorkshopScheduleInput }
   | { ok: false; error: string };
 
-const MAX_TITLE = 200;
-const MAX_DESCRIPTION = 5000;
 const MAX_SPEAKER = 120;
-const MAX_ROOM = 120;
 
 function str(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
@@ -35,60 +33,43 @@ function parseTime(value: unknown): Date | null {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-export function validateWorkshop(input: {
-  title?: unknown;
-  description?: unknown;
+export function validateWorkshopSchedule(input: {
   speakerName?: unknown;
   room?: unknown;
   startsAt?: unknown;
   endsAt?: unknown;
-  capacity?: unknown;
-}): WorkshopValidation {
-  const title = str(input.title);
-  if (!title || title.length > MAX_TITLE) {
-    return { ok: false, error: `Title is required (max ${MAX_TITLE} characters).` };
-  }
-
-  const description = str(input.description);
-  if (description.length > MAX_DESCRIPTION) {
-    return { ok: false, error: `Description is too long (max ${MAX_DESCRIPTION} characters).` };
-  }
-
+}): WorkshopScheduleValidation {
   const speakerName = str(input.speakerName);
   if (speakerName.length > MAX_SPEAKER) {
     return { ok: false, error: `Speaker name is too long (max ${MAX_SPEAKER} characters).` };
   }
 
   const room = str(input.room);
-  if (room.length > MAX_ROOM) {
-    return { ok: false, error: `Room is too long (max ${MAX_ROOM} characters).` };
+  if (room && !(WORKSHOP_ROOMS as readonly string[]).includes(room)) {
+    return { ok: false, error: "Pick a room from the list, or leave it unscheduled." };
   }
 
+  const startsRaw = str(input.startsAt);
+  const endsRaw = str(input.endsAt);
+  if ((startsRaw && !endsRaw) || (!startsRaw && endsRaw)) {
+    return { ok: false, error: "Set both the start and end time, or neither." };
+  }
   const startsAt = parseTime(input.startsAt);
   const endsAt = parseTime(input.endsAt);
-  if (!startsAt || !endsAt) {
-    return { ok: false, error: "Start and end times are both required." };
+  if (startsRaw && (!startsAt || !endsAt)) {
+    return { ok: false, error: "Those times do not look right." };
   }
-  if (endsAt.getTime() <= startsAt.getTime()) {
+  if (startsAt && endsAt && endsAt.getTime() <= startsAt.getTime()) {
     return { ok: false, error: "The end time must be after the start time." };
-  }
-
-  const capacityRaw = str(input.capacity);
-  const capacity = Number.parseInt(capacityRaw, 10);
-  if (!Number.isInteger(capacity) || capacity < 1 || capacity > 1000) {
-    return { ok: false, error: "Capacity must be a whole number between 1 and 1000." };
   }
 
   return {
     ok: true,
     value: {
-      title,
-      description,
       speakerName: speakerName || null,
       room: room || null,
       startsAt,
       endsAt,
-      capacity,
     },
   };
 }

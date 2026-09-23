@@ -5,13 +5,16 @@ import { redirect } from "next/navigation";
 import { logAdminAction } from "@/lib/admin/audit";
 import { requireSuperAdmin } from "@/lib/admin/guard";
 import { echoFormValues, type EchoedValues } from "@/lib/admin/form-echo";
-import { validateWorkshop } from "@/lib/workshops/validate";
+import { validateWorkshopSchedule } from "@/lib/workshops/validate";
 import { createSupabaseServiceClient } from "@/lib/supabase/service-client";
 
-// Admin workshop CRUD. Draft/published via published_at; unpublish
-// hides a workshop from the public list but keeps its bookings, so it
-// can come back without anyone losing a place. Every action lands in
-// admin_audit.
+// Admin side of the workshop split (decision, September 2026): the
+// HOST owns the content (title, description, takeaways, images) via
+// their /speaker editor, which creates and auto-publishes the linked
+// workshop in a "time and room to be confirmed" state. The admin owns
+// the SCHEDULE: room and times, edited here and updating the published
+// row in place. There is no admin create; unpublish stays as the
+// safety net and publish brings a workshop back.
 
 export interface WorkshopFormState {
   error: string | null;
@@ -47,107 +50,46 @@ async function resolveHostProfileId(
   return { id: value };
 }
 
-function workshopRowFromForm(formData: FormData) {
-  return validateWorkshop({
-    title: formData.get("title"),
-    description: formData.get("description"),
-    speakerName: formData.get("speakerName"),
-    room: formData.get("room"),
-    startsAt: formData.get("startsAt"),
-    endsAt: formData.get("endsAt"),
-    capacity: formData.get("capacity"),
-  });
-}
-
-export async function createWorkshopAction(
-  _prev: WorkshopFormState,
-  formData: FormData,
-): Promise<WorkshopFormState> {
-  const ctx = await requireSuperAdmin();
-  const validated = workshopRowFromForm(formData);
-  if (!validated.ok) return { error: validated.error, values: echoFormValues(formData) };
-  const v = validated.value;
-
-  const service = createSupabaseServiceClient();
-  const host = await resolveHostProfileId(service, formData.get("hostProfileId"));
-  if ("error" in host) return { error: host.error, values: echoFormValues(formData) };
-
-  const { data, error } = await service
-    .from("workshops")
-    .insert({
-      title: v.title,
-      description: v.description,
-      speaker_name: v.speakerName,
-      host_profile_id: host.id,
-      room: v.room,
-      starts_at: v.startsAt.toISOString(),
-      ends_at: v.endsAt.toISOString(),
-      capacity: v.capacity,
-      published_at: null, // created as draft; publish is explicit
-    })
-    .select("id")
-    .single();
-  if (error) {
-    console.error("[admin/workshops] create failed:", error.message);
-    return { error: "Could not create the workshop. Try again.", values: echoFormValues(formData) };
-  }
-
-  await logAdminAction(ctx.appUserId, "workshop.create", {
-    workshop_id: (data as { id: string }).id,
-    title: v.title,
-  });
-  revalidatePath("/admin/workshops");
-  redirect("/admin/workshops?status=created");
-}
-
-export async function updateWorkshopAction(
+export async function updateWorkshopScheduleAction(
   workshopId: string,
   _prev: WorkshopFormState,
   formData: FormData,
 ): Promise<WorkshopFormState> {
   const ctx = await requireSuperAdmin();
-  const validated = workshopRowFromForm(formData);
+  const validated = validateWorkshopSchedule({
+    speakerName: formData.get("speakerName"),
+    room: formData.get("room"),
+    startsAt: formData.get("startsAt"),
+    endsAt: formData.get("endsAt"),
+  });
   if (!validated.ok) return { error: validated.error, values: echoFormValues(formData) };
   const v = validated.value;
 
   const service = createSupabaseServiceClient();
-
-  // Never shrink a room below the people already booked into it.
-  const { count } = await service
-    .from("workshop_bookings")
-    .select("id", { count: "exact", head: true })
-    .eq("workshop_id", workshopId);
-  if ((count ?? 0) > v.capacity) {
-    return {
-      error: `${count} people are already booked; capacity cannot go below that.`,
-      values: echoFormValues(formData),
-    };
-  }
-
   const host = await resolveHostProfileId(service, formData.get("hostProfileId"));
   if ("error" in host) return { error: host.error, values: echoFormValues(formData) };
 
+  // Schedule columns only: content and capacity are never written here.
   const { error } = await service
     .from("workshops")
     .update({
-      title: v.title,
-      description: v.description,
       speaker_name: v.speakerName,
       host_profile_id: host.id,
       room: v.room,
-      starts_at: v.startsAt.toISOString(),
-      ends_at: v.endsAt.toISOString(),
-      capacity: v.capacity,
+      starts_at: v.startsAt ? v.startsAt.toISOString() : null,
+      ends_at: v.endsAt ? v.endsAt.toISOString() : null,
     })
     .eq("id", workshopId);
   if (error) {
-    console.error("[admin/workshops] update failed:", error.message);
-    return { error: "Could not save the workshop. Try again.", values: echoFormValues(formData) };
+    console.error("[admin/workshops] schedule update failed:", error.message);
+    return { error: "Could not save the schedule. Try again.", values: echoFormValues(formData) };
   }
 
-  await logAdminAction(ctx.appUserId, "workshop.update", {
+  await logAdminAction(ctx.appUserId, "workshop.schedule", {
     workshop_id: workshopId,
-    title: v.title,
+    room: v.room,
+    starts_at: v.startsAt?.toISOString() ?? null,
+    ends_at: v.endsAt?.toISOString() ?? null,
   });
   revalidatePath("/admin/workshops");
   revalidatePath("/workshops");

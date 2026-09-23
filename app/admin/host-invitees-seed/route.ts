@@ -9,10 +9,16 @@ export const dynamic = "force-dynamic";
 
 // One-off seed for the workshop host invite list (names verified:
 // Linfoot not Linford, Dan's surname is Ince). Each becomes a DRAFT
-// invitee: an unpublished, account-less workshop_host profile with the
-// focus recorded as an internal note. Tom attaches emails from
-// /admin/workshops when ready, which sends the full invite (account,
-// live page, 2 comps, 20% code).
+// invitee: an unpublished, account-less workshop_host profile, name
+// only. Everything about the workshop (title, description, takeaways)
+// is the host's to write in their editor, so the agreed focus areas
+// live here as comments for reference, not as stored content:
+//   Dan Ince: LinkedIn · Scott Linfoot: AI · Mike Wistow: structured
+//   problem solving, seeing the wood for the trees (Wood For The
+//   Trees partnership, Aegir Consulting) · Chris England: video ·
+//   Elsie Green: network building · Aaron Hutchinson: sales.
+// Tom attaches emails from /admin/workshops when ready, which sends
+// the full invite (account, live page, 2 comps, 20% code).
 //
 // Safe to run repeatedly: existing slugs are skipped.
 //
@@ -20,18 +26,13 @@ export const dynamic = "force-dynamic";
 // then from the browser console on any /admin page run
 //   fetch('/admin/host-invitees-seed', { method: 'POST' }).then(r => r.json()).then(console.log)
 
-const SEED_HOSTS: ReadonlyArray<{ name: string; slug: string; focus: string }> = [
-  { name: "Dan Ince", slug: "dan-ince", focus: "LinkedIn" },
-  { name: "Scott Linfoot", slug: "scott-linfoot", focus: "AI" },
-  {
-    name: "Mike Wistow",
-    slug: "mike-wistow",
-    focus:
-      "Structured problem solving: seeing the wood for the trees (Wood For The Trees partnership, Aegir Consulting)",
-  },
-  { name: "Chris England", slug: "chris-england", focus: "Video" },
-  { name: "Elsie Green", slug: "elsie-green", focus: "Network building" },
-  { name: "Aaron Hutchinson", slug: "aaron-hutchinson", focus: "Sales" },
+const SEED_HOSTS: ReadonlyArray<{ name: string; slug: string }> = [
+  { name: "Dan Ince", slug: "dan-ince" },
+  { name: "Scott Linfoot", slug: "scott-linfoot" },
+  { name: "Mike Wistow", slug: "mike-wistow" },
+  { name: "Chris England", slug: "chris-england" },
+  { name: "Elsie Green", slug: "elsie-green" },
+  { name: "Aaron Hutchinson", slug: "aaron-hutchinson" },
 ];
 
 export async function POST(): Promise<Response> {
@@ -55,7 +56,7 @@ export async function POST(): Promise<Response> {
     }
     await ensureSpeakerProfile(service, {
       displayName: seed.name,
-      talkTitle: seed.focus,
+      talkTitle: "",
       profileType: "workshop_host",
       startUnpublished: true,
     });

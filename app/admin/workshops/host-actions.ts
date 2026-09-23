@@ -25,20 +25,16 @@ export async function addHostInviteeAction(
 ): Promise<HostFormState> {
   const ctx = await requireSuperAdmin();
   const name = String(formData.get("name") ?? "").trim();
-  const focus = String(formData.get("focus") ?? "").trim();
   if (!name || name.length > 120) {
     return { error: "Host name is required (max 120 characters)." };
-  }
-  if (focus.length > 200) {
-    return { error: "Keep the focus note under 200 characters." };
   }
 
   try {
     const created = await ensureSpeakerProfile(createSupabaseServiceClient(), {
       displayName: name,
-      // Internal note only: talk_title never renders for workshop
-      // hosts (their session data comes from the linked workshop).
-      talkTitle: focus,
+      // Name only, by decision: everything about the workshop (title,
+      // description, takeaways) is the host's to write in their editor.
+      talkTitle: "",
       profileType: "workshop_host",
       startUnpublished: true,
     });
@@ -67,10 +63,14 @@ export async function inviteHostAction(
   const ctx = await requireSuperAdmin();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   if (!isEmail(email)) return { error: "That email does not look right." };
+  const personalLine = String(formData.get("personalLine") ?? "").trim();
+  if (personalLine.length > 300) {
+    return { error: "Keep the personal line under 300 characters." };
+  }
 
   let result;
   try {
-    result = await inviteWorkshopHost(profileId, email);
+    result = await inviteWorkshopHost(profileId, email, personalLine || null);
   } catch (err) {
     console.error("[admin/hosts] invite failed:", err);
     return {

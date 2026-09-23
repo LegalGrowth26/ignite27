@@ -147,6 +147,9 @@ async function ensureHostAmbassador(
 export async function inviteWorkshopHost(
   profileId: string,
   email: string,
+  // Optional note from the admin, rendered as a personal line at the
+  // top of the invite email (and nowhere else; it is not stored).
+  personalLine: string | null = null,
 ): Promise<HostInviteResult> {
   const service = createSupabaseServiceClient();
 
@@ -237,6 +240,7 @@ export async function inviteWorkshopHost(
     setPasswordUrl: await generateSetPasswordLink(email),
     compLine,
     discountLines: emailDiscountLines,
+    personalLine,
   };
 
   let emailSent = false;

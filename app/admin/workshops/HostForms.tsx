@@ -24,18 +24,6 @@ export function AddHostInviteeForm() {
         </label>
         <input id="host-name" name="name" required maxLength={120} className={`${INPUT} w-56`} />
       </div>
-      <div>
-        <label htmlFor="host-focus" className="block text-small font-medium text-ignite-ink">
-          Focus (internal note)
-        </label>
-        <input
-          id="host-focus"
-          name="focus"
-          maxLength={200}
-          placeholder="e.g. LinkedIn"
-          className={`${INPUT} w-72`}
-        />
-      </div>
       <button
         type="submit"
         disabled={isPending}
@@ -65,6 +53,13 @@ export function InviteHostForm({ profileId }: { profileId: string }) {
         placeholder="host@email.com"
         aria-label="Host email"
         className={`${INPUT} w-56`}
+      />
+      <input
+        name="personalLine"
+        maxLength={300}
+        placeholder="Personal line for the invite (optional)"
+        aria-label="Personal line for the invite (optional)"
+        className={`${INPUT} w-72`}
       />
       <button
         type="submit"

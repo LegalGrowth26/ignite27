@@ -11,8 +11,10 @@ export interface WorkshopRow {
   description: string;
   speaker_name: string | null;
   room: string | null;
-  starts_at: string;
-  ends_at: string;
+  // Null until the admin schedules the slot: a published workshop can
+  // be live in the "time and room to be confirmed" state.
+  starts_at: string | null;
+  ends_at: string | null;
   capacity: number;
   published_at: string | null;
 }
@@ -73,7 +75,8 @@ export async function fetchPublishedWorkshops(
     .from("workshops")
     .select(PUBLIC_WORKSHOP_COLUMNS)
     .not("published_at", "is", null)
-    .order("starts_at", { ascending: true });
+    // Scheduled first in time order; "to be confirmed" workshops last.
+    .order("starts_at", { ascending: true, nullsFirst: false });
   if (error) throw new Error(`workshops query failed: ${error.message}`);
   return ((data ?? []) as unknown as RawPublicWorkshop[]).map(toPublicWorkshop);
 }

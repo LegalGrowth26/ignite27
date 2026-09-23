@@ -26,6 +26,8 @@ export interface HostInviteProps {
   setPasswordUrl: string;
   compLine: string | null;
   discountLines: string[] | null;
+  // A line from Tom or Paul, written per invite; null omits the block.
+  personalLine: string | null;
 }
 
 const WRAPPER = {
@@ -107,6 +109,7 @@ export function HostInviteEmail(props: HostInviteProps) {
     setPasswordUrl,
     compLine,
     discountLines,
+    personalLine,
   } = props;
   return (
     <Html>
@@ -123,6 +126,12 @@ export function HostInviteEmail(props: HostInviteProps) {
             hosting.
           </Text>
 
+          {personalLine ? (
+            <Text style={{ ...PARAGRAPH, fontStyle: "italic" }}>
+              &ldquo;{personalLine}&rdquo;
+            </Text>
+          ) : null}
+
           <div style={PERK_BOX}>
             <Text style={{ ...PARAGRAPH, margin: "0 0 8px 0" }}>
               <strong>Your page:</strong>{" "}
@@ -131,13 +140,16 @@ export function HostInviteEmail(props: HostInviteProps) {
               </Link>
             </Text>
             <Text style={{ ...SMALL, margin: 0 }}>
-              Add your photo, bio and links from your editor at{" "}
+              Your workshop is yours to sell: add the title, what it covers,
+              what people will leave with, your headshot and your logo from
+              your editor at{" "}
               <Link style={LINK} href={editorUrl}>
                 {editorUrl}
               </Link>
-              . Your workshop&apos;s title and time appear on the page
-              automatically once it is confirmed, and there is a contact form
-              that forwards to your inbox without showing your email address.
+              . It appears on the workshops page as soon as you save it. The
+              room and time are on us; we&apos;ll confirm those with you.
+              There is also a contact form that forwards to your inbox
+              without showing your email address.
             </Text>
           </div>
 
@@ -210,9 +222,10 @@ export function renderHostInvitePlainText(props: HostInviteProps): string {
     "IGNITE! 27, you're hosting a workshop",
     "",
     `Hi ${props.firstName}, brilliant to have you on board. The workshops are where IGNITE! gets properly practical, and yours is one of the reasons people will book. Here is everything that comes with hosting.`,
+    ...(props.personalLine ? ["", `"${props.personalLine}"`] : []),
     "",
     `Your page: ${props.pageUrl}`,
-    `Edit it (photo, bio, links) at ${props.editorUrl}. Your workshop's title and time appear automatically once confirmed, and the contact form forwards to your inbox without showing your email address.`,
+    `Your workshop is yours to sell: add the title, what it covers, what people will leave with, your headshot and your logo at ${props.editorUrl}. It appears on the workshops page as soon as you save it. The room and time are on us; we'll confirm those with you. The contact form forwards to your inbox without showing your email address.`,
     "",
     `Your share link: ${props.shareUrl}`,
     "Share it anywhere. When someone follows it and books, the booking counts as yours (we remember their click for 90 days).",

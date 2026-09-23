@@ -9,15 +9,12 @@ const INPUT =
 const LABEL = "block text-small font-medium text-ignite-ink";
 const HELP = "mt-1 text-small text-ignite-muted";
 
-export interface WorkshopDefaults {
-  title: string;
-  description: string;
+export interface ScheduleDefaults {
   speakerName: string;
   hostProfileId: string; // "" = no linked host
-  room: string;
-  startsAt: string; // datetime-local value (UK time)
+  room: string; // "" = not scheduled yet
+  startsAt: string; // datetime-local value (UK time), "" = TBC
   endsAt: string;
-  capacity: string;
 }
 
 export interface HostOption {
@@ -25,18 +22,20 @@ export interface HostOption {
   name: string;
 }
 
-export function WorkshopForm({
+// Schedule only: the workshop's title and description belong to the
+// host (edited from their /speaker page, synced automatically), and
+// capacity is fixed at 24 everywhere. The admin sets the room and
+// times here; a published workshop shows "time and room to be
+// confirmed" until they are.
+export function WorkshopScheduleForm({
   action,
   defaults,
-  submitLabel,
+  rooms,
   hostOptions,
 }: {
   action: (prev: WorkshopFormState, formData: FormData) => Promise<WorkshopFormState>;
-  defaults: WorkshopDefaults;
-  submitLabel: string;
-  // Speaker profiles typed workshop_host or both. Linking one puts
-  // the host's name and page on the workshop; the free-text field
-  // below stays as the fallback for unlinked hosts.
+  defaults: ScheduleDefaults;
+  rooms: readonly string[];
   hostOptions: HostOption[];
 }) {
   const [state, formAction, isPending] = useActionState<WorkshopFormState, FormData>(
@@ -46,39 +45,10 @@ export function WorkshopForm({
   // Failed validation echoes typed values back; they win over defaults
   // so nothing the admin entered is lost to React 19's form reset.
   const echoed: EchoedValues | null = state.values;
-  const v = (key: keyof WorkshopDefaults) => echoed?.[key] ?? defaults[key];
+  const v = (key: keyof ScheduleDefaults) => echoed?.[key] ?? defaults[key];
 
   return (
     <form action={formAction} className="flex flex-col gap-6">
-      <div>
-        <label htmlFor="title" className={LABEL}>
-          Title <span className="text-ignite-red">*</span>
-        </label>
-        <input
-          id="title"
-          name="title"
-          defaultValue={v("title")}
-          maxLength={200}
-          required
-          className={INPUT}
-        />
-      </div>
-
-      <div>
-        <label htmlFor="description" className={LABEL}>
-          Description
-        </label>
-        <textarea
-          id="description"
-          name="description"
-          defaultValue={v("description")}
-          maxLength={5000}
-          rows={6}
-          className={INPUT}
-        />
-        <p className={HELP}>Blank lines start a new paragraph on the public page.</p>
-      </div>
-
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
           <label htmlFor="hostProfileId" className={LABEL}>
@@ -87,7 +57,7 @@ export function WorkshopForm({
           <select
             id="hostProfileId"
             name="hostProfileId"
-            defaultValue={defaults.hostProfileId}
+            defaultValue={v("hostProfileId")}
             className={INPUT}
           >
             <option value="">No linked host</option>
@@ -98,8 +68,8 @@ export function WorkshopForm({
             ))}
           </select>
           <p className={HELP}>
-            Workshop-host and both-type profiles only. Add hosts in
-            /admin/speakers; the workshop then shows and links their page.
+            Workshop-host and both-type profiles only. The workshop shows
+            and links their page.
           </p>
         </div>
         <div>
@@ -115,63 +85,52 @@ export function WorkshopForm({
           />
           <p className={HELP}>Shown only when no linked host is set.</p>
         </div>
-        <div>
-          <label htmlFor="room" className={LABEL}>
-            Room (optional)
-          </label>
-          <input
-            id="room"
-            name="room"
-            defaultValue={v("room")}
-            maxLength={120}
-            className={INPUT}
-          />
-        </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
         <div>
+          <label htmlFor="room" className={LABEL}>
+            Room
+          </label>
+          <select id="room" name="room" defaultValue={v("room")} className={INPUT}>
+            <option value="">To be confirmed</option>
+            {rooms.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
           <label htmlFor="startsAt" className={LABEL}>
-            Starts (UK time) <span className="text-ignite-red">*</span>
+            Starts (UK time)
           </label>
           <input
             id="startsAt"
             name="startsAt"
             type="datetime-local"
             defaultValue={v("startsAt")}
-            required
             className={INPUT}
           />
         </div>
         <div>
           <label htmlFor="endsAt" className={LABEL}>
-            Ends (UK time) <span className="text-ignite-red">*</span>
+            Ends (UK time)
           </label>
           <input
             id="endsAt"
             name="endsAt"
             type="datetime-local"
             defaultValue={v("endsAt")}
-            required
-            className={INPUT}
-          />
-        </div>
-        <div>
-          <label htmlFor="capacity" className={LABEL}>
-            Capacity <span className="text-ignite-red">*</span>
-          </label>
-          <input
-            id="capacity"
-            name="capacity"
-            type="number"
-            min={1}
-            max={1000}
-            defaultValue={v("capacity")}
-            required
             className={INPUT}
           />
         </div>
       </div>
+      <p className={HELP}>
+        Leave the times blank while the slot is undecided; the public page
+        says &quot;time and room to be confirmed&quot;. Set both together when
+        scheduling. Event day is Thursday 21 January 2027.
+      </p>
 
       {state.error ? (
         <p className="rounded-xl border border-ignite-red/50 bg-ignite-red/5 p-3 text-small text-ignite-red">
@@ -185,7 +144,7 @@ export function WorkshopForm({
           disabled={isPending}
           className="rounded-full bg-ignite-red px-6 py-3 text-body font-semibold text-ignite-white hover:bg-ignite-red/90 disabled:opacity-50"
         >
-          {isPending ? "Saving..." : submitLabel}
+          {isPending ? "Saving..." : "Save schedule"}
         </button>
       </div>
     </form>

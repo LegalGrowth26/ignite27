@@ -2,11 +2,12 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { requireSuperAdmin } from "@/lib/admin/guard";
-import { updateWorkshopAction } from "../../actions";
-import { WorkshopForm } from "../../WorkshopForm";
+import { WORKSHOP_ROOMS } from "@/lib/workshops/config";
+import { updateWorkshopScheduleAction } from "../../actions";
+import { WorkshopScheduleForm } from "../../WorkshopForm";
 
 export const metadata: Metadata = {
-  title: "Edit workshop · IGNITE! 27",
+  title: "Schedule workshop · IGNITE! 27",
   robots: { index: false, follow: false },
 };
 
@@ -17,16 +18,16 @@ interface Row {
   speaker_name: string | null;
   host_profile_id: string | null;
   room: string | null;
-  starts_at: string;
-  ends_at: string;
+  starts_at: string | null;
+  ends_at: string | null;
   capacity: number;
   published_at: string | null;
 }
 
 // Stored UTC instants are the UK wall-clock times (January = GMT), so
 // slicing the ISO string gives the right datetime-local value.
-function toLocalInput(iso: string): string {
-  return new Date(iso).toISOString().slice(0, 16);
+function toLocalInput(iso: string | null): string {
+  return iso ? new Date(iso).toISOString().slice(0, 16) : "";
 }
 
 export default async function EditWorkshopPage({
@@ -71,26 +72,43 @@ export default async function EditWorkshopPage({
       >
         Back to workshops
       </Link>
-      <h1 className="mt-4 text-h1">Edit workshop</h1>
+      <h1 className="mt-4 text-h1">Schedule workshop</h1>
       <p className="mt-3 text-small text-ignite-muted">
         {workshop.published_at
-          ? "This workshop is published; changes appear on /workshops as soon as you save."
-          : "This workshop is a draft."}
+          ? "This workshop is published; schedule changes appear on /workshops as soon as you save."
+          : "This workshop is unpublished (hidden from /workshops)."}
       </p>
+
+      <div className="mt-6 rounded-2xl border border-ignite-line bg-ignite-cream p-5">
+        <p className="text-small font-semibold uppercase tracking-wide text-ignite-muted">
+          The host&apos;s content (read-only here)
+        </p>
+        <p className="mt-2 text-h3">{workshop.title}</p>
+        {workshop.description ? (
+          <p className="mt-2 whitespace-pre-line text-small text-ignite-ink">
+            {workshop.description}
+          </p>
+        ) : (
+          <p className="mt-2 text-small text-ignite-muted">No description yet.</p>
+        )}
+        <p className="mt-3 text-small text-ignite-muted">
+          Title and description come from the host&apos;s own editor. To fix
+          something on their behalf, edit their profile in /admin/speakers;
+          it syncs here on save. Capacity is fixed at {workshop.capacity}.
+        </p>
+      </div>
+
       <div className="mt-8">
-        <WorkshopForm
-          action={updateWorkshopAction.bind(null, workshop.id)}
-          submitLabel="Save workshop"
+        <WorkshopScheduleForm
+          action={updateWorkshopScheduleAction.bind(null, workshop.id)}
+          rooms={WORKSHOP_ROOMS}
           hostOptions={hostOptions}
           defaults={{
-            title: workshop.title,
-            description: workshop.description,
             speakerName: workshop.speaker_name ?? "",
             hostProfileId: workshop.host_profile_id ?? "",
             room: workshop.room ?? "",
             startsAt: toLocalInput(workshop.starts_at),
             endsAt: toLocalInput(workshop.ends_at),
-            capacity: String(workshop.capacity),
           }}
         />
       </div>

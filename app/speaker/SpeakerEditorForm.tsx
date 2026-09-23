@@ -7,6 +7,7 @@ import {
   SOCIAL_PLATFORM_LABELS,
   type SocialPlatform,
 } from "@/lib/exhibitors/profile";
+import { hostsWorkshops, type SpeakerProfileType } from "@/lib/speakers/profile";
 import { saveSpeakerProfileAction, type SpeakerEditorState } from "./actions";
 
 const INPUT =
@@ -17,6 +18,7 @@ const HELP = "mt-1 text-small text-ignite-muted";
 export interface SpeakerEditorDefaults {
   displayName: string;
   hasPhoto: boolean;
+  hasLogo: boolean;
   bio: string;
   talkTitle: string;
   talkDescription: string;
@@ -30,17 +32,20 @@ export interface SpeakerEditorDefaults {
 
 export function SpeakerEditorForm({
   defaults,
-  showTalkFields,
+  profileType,
 }: {
   defaults: SpeakerEditorDefaults;
-  // Workshop hosts do not edit the talk block: their session data
-  // lives in the workshops admin (the action enforces this too).
-  showTalkFields: boolean;
+  // Everyone edits the session fields. For a workshop host they ARE
+  // the workshop (synced to /workshops on save), so the labels talk
+  // about the workshop; for main-stage (and both) they are the talk.
+  profileType: SpeakerProfileType;
 }) {
   const [state, formAction, isPending] = useActionState<SpeakerEditorState, FormData>(
     saveSpeakerProfileAction,
     { error: null },
   );
+  const isHost = hostsWorkshops(profileType);
+  const workshopLabels = profileType === "workshop_host";
 
   return (
     <form action={formAction} className="flex flex-col gap-6">
@@ -87,21 +92,37 @@ export function SpeakerEditorForm({
         <p className={HELP}>Blank lines start a new paragraph.</p>
       </div>
 
-      {!showTalkFields ? (
-        <p className="rounded-xl border border-ignite-line bg-ignite-cream p-3 text-small text-ignite-muted">
-          Your workshop&apos;s title, time, and description are managed by the
-          IGNITE! team and shown on your page automatically. Spot something
-          wrong? Reply to your invite email.
-        </p>
+      {isHost ? (
+        <div>
+          <label htmlFor="logo" className={LABEL}>
+            Your logo {defaults.hasLogo ? "(already uploaded, choose a file to replace it)" : "(optional)"}
+          </label>
+          <input
+            id="logo"
+            name="logo"
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            className="mt-1 w-full text-small"
+          />
+          <p className={HELP}>JPG, PNG, or WebP up to 2MB. Shown on your page.</p>
+        </div>
       ) : null}
 
-      {showTalkFields ? (
       <fieldset className="rounded-2xl border border-ignite-line p-4">
-        <legend className="px-2 text-body font-semibold text-ignite-ink">Your session</legend>
+        <legend className="px-2 text-body font-semibold text-ignite-ink">
+          {workshopLabels ? "Your workshop" : "Your session"}
+        </legend>
+        {workshopLabels ? (
+          <p className={`${HELP} mb-3 mt-0`}>
+            This is the bit that sells your workshop, and it is yours to
+            write. It goes live on the workshops page as soon as you save.
+            The room and time are on us; we&apos;ll confirm those with you.
+          </p>
+        ) : null}
         <div className="grid gap-3">
           <div>
             <label htmlFor="talkTitle" className={LABEL}>
-              Talk title
+              {workshopLabels ? "Workshop title" : "Talk title"}
             </label>
             <input
               id="talkTitle"
@@ -113,7 +134,7 @@ export function SpeakerEditorForm({
           </div>
           <div>
             <label htmlFor="talkDescription" className={LABEL}>
-              What the session covers
+              {workshopLabels ? "What your workshop covers" : "What the session covers"}
             </label>
             <textarea
               id="talkDescription"
@@ -126,7 +147,9 @@ export function SpeakerEditorForm({
           </div>
           <div>
             <label htmlFor="talkTakeaways" className={LABEL}>
-              What people will learn (one per line, up to 6)
+              {workshopLabels
+                ? "What you'll leave with (one per line, up to 6)"
+                : "What people will learn (one per line, up to 6)"}
             </label>
             <textarea
               id="talkTakeaways"
@@ -138,7 +161,6 @@ export function SpeakerEditorForm({
           </div>
         </div>
       </fieldset>
-      ) : null}
 
       <div>
         <label htmlFor="websiteUrl" className={LABEL}>
