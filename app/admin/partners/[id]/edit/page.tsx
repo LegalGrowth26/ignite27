@@ -16,7 +16,6 @@ interface Row {
   contact_email: string;
   tier: string;
   agreed_price_pence: number;
-  category: string;
   status: string;
   notes: string;
   website_url: string | null;
@@ -35,7 +34,7 @@ export default async function EditPartnerPage({
     .from("partners")
     .select(
       `id, company_name, contact_name, contact_email, tier,
-       agreed_price_pence, category, status, notes, website_url, logo_path`,
+       agreed_price_pence, status, notes, website_url, logo_path`,
     )
     .eq("id", id)
     .maybeSingle();
@@ -68,7 +67,6 @@ export default async function EditPartnerPage({
             contactEmail: partner.contact_email,
             tier: partner.tier,
             agreedPricePounds: String(partner.agreed_price_pence / 100),
-            category: partner.category,
             status: partner.status,
             notes: partner.notes,
             websiteUrl: partner.website_url ?? "",

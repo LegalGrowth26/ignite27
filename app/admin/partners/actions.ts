@@ -5,19 +5,19 @@ import { redirect } from "next/navigation";
 import { logAdminAction } from "@/lib/admin/audit";
 import { requireSuperAdmin } from "@/lib/admin/guard";
 import { echoFormValues, type EchoedValues } from "@/lib/admin/form-echo";
-import { findCategoryClash, validatePartner } from "@/lib/partners/validate";
+import { validatePartner } from "@/lib/partners/validate";
 import { createSupabaseServiceClient } from "@/lib/supabase/service-client";
 
 // Partner CRUD: offline deals recorded here, no checkout anywhere.
-// Category exclusivity WARNS (never blocks): the first submit into an
-// occupied category comes back with the clash named and an explicit
-// "add anyway" tick is required. Everything audit-logged; no deletes,
-// "ended" keeps the record and drops the partner off the site.
+// Category exclusivity was REMOVED (September 2026 decision): the
+// column stays in the database untouched, but nothing collects,
+// checks, or displays it any more. Everything audit-logged; no
+// deletes, "ended" keeps the record and drops the partner off the
+// site.
 
 export interface PartnerFormState {
   error: string | null;
-  clashWith: string | null;
-  // Echoed on error AND on a clash warning: the add-anyway resubmit
+  // Echoed on error: the failed resubmit
   // must carry everything the admin typed (React 19 resets the form).
   values: EchoedValues | null;
 }
@@ -51,42 +51,12 @@ export async function savePartnerAction(
     contactEmail: formData.get("contactEmail"),
     tier: formData.get("tier"),
     agreedPricePounds: formData.get("agreedPricePounds"),
-    category: formData.get("category"),
     status: formData.get("status"),
     notes: formData.get("notes"),
     websiteUrl: formData.get("websiteUrl"),
   });
-  if (!validated.ok) return { error: validated.error, clashWith: null, values: echoFormValues(formData) };
+  if (!validated.ok) return { error: validated.error, values: echoFormValues(formData) };
   const v = validated.value;
-
-  // Exclusivity warn-not-block: name the clash and require the tick.
-  const clashConfirmed = formData.get("confirmClash") === "on";
-  if (!clashConfirmed) {
-    const { data: existingRows, error: existingErr } = await service
-      .from("partners")
-      .select("id, company_name, category, status");
-    if (existingErr) {
-      console.error("[admin/partners] clash lookup failed:", existingErr.message);
-      return { error: "Could not check category exclusivity. Try again.", clashWith: null, values: echoFormValues(formData) };
-    }
-    const clash = findCategoryClash(
-      (existingRows ?? []) as Array<{
-        id: string;
-        company_name: string;
-        category: string;
-        status: string;
-      }>,
-      v.category,
-      partnerId ?? undefined,
-    );
-    if (clash) {
-      return {
-        error: null,
-        clashWith: clash.companyName,
-        values: echoFormValues(formData),
-      };
-    }
-  }
 
   const row = {
     company_name: v.companyName,
@@ -94,7 +64,6 @@ export async function savePartnerAction(
     contact_email: v.contactEmail,
     tier: v.tier,
     agreed_price_pence: v.agreedPricePence,
-    category: v.category,
     status: v.status,
     notes: v.notes,
     website_url: v.websiteUrl,
@@ -105,17 +74,20 @@ export async function savePartnerAction(
     const { error } = await service.from("partners").update(row).eq("id", id);
     if (error) {
       console.error("[admin/partners] update failed:", error.message);
-      return { error: "Could not save the partner. Try again.", clashWith: null, values: echoFormValues(formData) };
+      return { error: "Could not save the partner. Try again.", values: echoFormValues(formData) };
     }
   } else {
+    // category is NOT NULL in the database and the column is kept (no
+    // destructive migration), so creates write the neutral catch-all;
+    // updates leave whatever an older record already has.
     const { data, error } = await service
       .from("partners")
-      .insert(row)
+      .insert({ ...row, category: "other" })
       .select("id")
       .single();
     if (error || !data) {
       console.error("[admin/partners] insert failed:", error?.message);
-      return { error: "Could not add the partner. Try again.", clashWith: null, values: echoFormValues(formData) };
+      return { error: "Could not add the partner. Try again.", values: echoFormValues(formData) };
     }
     id = (data as { id: string }).id;
   }
@@ -125,15 +97,15 @@ export async function savePartnerAction(
   const logo = formData.get("logo");
   if (logo instanceof File && logo.size > 0) {
     const ext = ALLOWED_LOGO_TYPES[logo.type];
-    if (!ext) return { error: "Logo must be a PNG, JPG, WebP, or SVG file.", clashWith: null, values: echoFormValues(formData) };
-    if (logo.size > MAX_LOGO_BYTES) return { error: "Logo must be 2MB or smaller.", clashWith: null, values: echoFormValues(formData) };
+    if (!ext) return { error: "Logo must be a PNG, JPG, WebP, or SVG file.", values: echoFormValues(formData) };
+    if (logo.size > MAX_LOGO_BYTES) return { error: "Logo must be 2MB or smaller.", values: echoFormValues(formData) };
     const logoPath = `${id}/logo.${ext}`;
     const { error: uploadErr } = await service.storage
       .from("partner-logos")
       .upload(logoPath, logo, { upsert: true, contentType: logo.type });
     if (uploadErr) {
       console.error("[admin/partners] logo upload failed:", uploadErr.message);
-      return { error: "Partner saved, but the logo upload failed. Try the logo again.", clashWith: null, values: echoFormValues(formData) };
+      return { error: "Partner saved, but the logo upload failed. Try the logo again.", values: echoFormValues(formData) };
     }
     const { error: linkErr } = await service
       .from("partners")
@@ -148,10 +120,8 @@ export async function savePartnerAction(
     partner_id: id,
     company_name: v.companyName,
     tier: v.tier,
-    category: v.category,
     status: v.status,
     agreed_price_pence: v.agreedPricePence,
-    clash_confirmed: clashConfirmed,
   });
 
   revalidatePartnerSurfaces();

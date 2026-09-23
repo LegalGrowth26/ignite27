@@ -1,6 +1,7 @@
-// Partner validation, tiers, and the category exclusivity check. Pure
-// and unit-tested; the admin actions and the public strip both build
-// on this.
+// Partner validation and tiers. Pure and unit-tested; the admin
+// actions and the public strip both build on this. (The category
+// exclusivity check was removed September 2026; the database column
+// remains but is no longer collected or displayed.)
 
 export const PARTNER_TIERS = ["headline", "speakers_den", "partner"] as const;
 export type PartnerTier = (typeof PARTNER_TIERS)[number];
@@ -24,28 +25,6 @@ export const PARTNER_TIER_ORDER: readonly PartnerTier[] = [
   "partner",
 ];
 
-// The exclusivity list (fixed dropdown, approved). Stored lowercase.
-export const PARTNER_CATEGORIES = [
-  "legal",
-  "accountancy",
-  "banking",
-  "insurance",
-  "hr",
-  "recruitment",
-  "tech and cyber",
-  "creative and communications",
-  "leadership and development",
-  "growth",
-  "funding and investment",
-  "commercial property",
-  "sustainability",
-  "education",
-  "wellbeing",
-  "food and hospitality",
-  "other",
-] as const;
-export type PartnerCategory = (typeof PARTNER_CATEGORIES)[number];
-
 export const PARTNER_STATUSES = ["agreed", "paid", "ended"] as const;
 export type PartnerStatus = (typeof PARTNER_STATUSES)[number];
 
@@ -55,7 +34,6 @@ export interface PartnerInput {
   contactEmail: string;
   tier: PartnerTier;
   agreedPricePence: number;
-  category: PartnerCategory;
   status: PartnerStatus;
   notes: string;
   websiteUrl: string | null;
@@ -84,7 +62,6 @@ export function validatePartner(input: {
   contactEmail?: unknown;
   tier?: unknown;
   agreedPricePounds?: unknown; // form field in whole pounds; "" = tier default
-  category?: unknown;
   status?: unknown;
   notes?: unknown;
   websiteUrl?: unknown;
@@ -119,11 +96,6 @@ export function validatePartner(input: {
     agreedPricePence = Math.round(pounds * 100);
   }
 
-  const category = str(input.category).toLowerCase() as PartnerCategory;
-  if (!PARTNER_CATEGORIES.includes(category)) {
-    return { ok: false, error: "Pick a category from the list." };
-  }
-
   const status = str(input.status) as PartnerStatus;
   if (!PARTNER_STATUSES.includes(status)) {
     return { ok: false, error: "Pick a status." };
@@ -147,37 +119,11 @@ export function validatePartner(input: {
       contactEmail,
       tier,
       agreedPricePence,
-      category,
       status,
       notes,
       websiteUrl: websiteUrl || null,
     },
   };
-}
-
-// Category exclusivity: WARN (never block) when another non-ended
-// partner already holds the category. "other" is exempt: it is the
-// catch-all, not a category anyone owns. Case handled by storing
-// lowercase; compare defensively anyway.
-export function findCategoryClash(
-  existing: ReadonlyArray<{
-    id: string;
-    company_name: string;
-    category: string;
-    status: string;
-  }>,
-  category: string,
-  excludeId?: string,
-): { companyName: string } | null {
-  const wanted = category.trim().toLowerCase();
-  if (wanted === "other") return null;
-  const clash = existing.find(
-    (p) =>
-      p.id !== excludeId &&
-      p.status !== "ended" &&
-      p.category.trim().toLowerCase() === wanted,
-  );
-  return clash ? { companyName: clash.company_name } : null;
 }
 
 // Strip rule + ordering: agreed or paid, visible, tier order then name.

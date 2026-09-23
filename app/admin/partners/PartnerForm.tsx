@@ -2,7 +2,6 @@
 
 import { useActionState } from "react";
 import {
-  PARTNER_CATEGORIES,
   PARTNER_STATUSES,
   PARTNER_TIERS,
   PARTNER_TIER_META,
@@ -27,7 +26,6 @@ export interface PartnerDefaults {
   contactEmail: string;
   tier: string;
   agreedPricePounds: string; // "" = standard tier price
-  category: string;
   status: string;
   notes: string;
   websiteUrl: string;
@@ -45,9 +43,9 @@ export function PartnerForm({
 }) {
   const [state, formAction, isPending] = useActionState<PartnerFormState, FormData>(
     savePartnerAction.bind(null, partnerId),
-    { error: null, clashWith: null, values: null },
+    { error: null, values: null },
   );
-  // Echoed values (validation error or clash warning) beat defaults,
+  // Echoed values on a validation error beat defaults,
   // so the add-anyway resubmit carries everything already typed.
   const echoed: EchoedValues | null = state.values;
   const v = (key: keyof PartnerDefaults) =>
@@ -155,23 +153,6 @@ export function PartnerForm({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
-          <label htmlFor="category" className={LABEL}>
-            Category (exclusivity) <span className="text-ignite-red">*</span>
-          </label>
-          <select
-            id="category"
-            name="category"
-            defaultValue={v("category")}
-            className={INPUT}
-          >
-            {PARTNER_CATEGORIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
           <label htmlFor="logo" className={LABEL}>
             Logo {defaults.hasLogo ? "(uploaded, choose a file to replace it)" : "(optional)"}
           </label>
@@ -199,23 +180,6 @@ export function PartnerForm({
           className={INPUT}
         />
       </div>
-
-      {state.clashWith ? (
-        <div className="rounded-xl border-2 border-ignite-red bg-ignite-red/5 p-4">
-          <p className="text-body font-semibold text-ignite-ink">
-            Category clash: {state.clashWith} already holds this category.
-          </p>
-          <label className="mt-3 flex items-start gap-3">
-            <input type="checkbox" name="confirmClash" className="mt-1 h-4 w-4" />
-            <span className="text-body text-ignite-ink">
-              Add anyway (I know about the exclusivity overlap)
-            </span>
-          </label>
-          <p className="mt-2 text-small text-ignite-muted">
-            Tick the box and submit again to save regardless.
-          </p>
-        </div>
-      ) : null}
 
       {state.error ? (
         <p className="rounded-xl border border-ignite-red/50 bg-ignite-red/5 p-3 text-small text-ignite-red">
