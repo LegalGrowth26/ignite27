@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { logAdminAction } from "@/lib/admin/audit";
+import { echoFormValues, type EchoedValues } from "@/lib/admin/form-echo";
 import { requireSuperAdmin } from "@/lib/admin/guard";
 import { SOCIAL_PLATFORMS, validateProfileContent } from "@/lib/exhibitors/profile";
 import { publishLogoCopy } from "@/lib/exhibitors/save-requirements";
@@ -99,6 +100,8 @@ export async function republishExhibitorPageAction(bookingId: string): Promise<v
 
 export interface AdminProfileFormState {
   error: string | null;
+  // Echoed on error so React 19's form reset never wipes typed work.
+  values: EchoedValues | null;
 }
 
 const SLUG_PATTERN = /^[a-z0-9][a-z0-9-]{1,49}$/;
@@ -116,13 +119,14 @@ export async function adminSaveExhibitorProfileAction(
   const service = createSupabaseServiceClient();
 
   const existing = await fetchProfileForAdmin(bookingId);
-  if (!existing) return { error: "No exhibitor page exists for this booking." };
+  if (!existing) return { error: "No exhibitor page exists for this booking.", values: echoFormValues(formData) };
 
   const slug = String(formData.get("slug") ?? "").trim().toLowerCase();
   if (!SLUG_PATTERN.test(slug)) {
     return {
       error:
         "Slug must be 2 to 50 characters of lowercase letters, numbers, and hyphens, starting with a letter or number.",
+      values: echoFormValues(formData),
     };
   }
 
@@ -141,7 +145,7 @@ export async function adminSaveExhibitorProfileAction(
     showContactEmail: formData.get("showContactEmail"),
     contactEmail: formData.get("contactEmail"),
   });
-  if (!validated.ok) return { error: validated.error };
+  if (!validated.ok) return { error: validated.error, values: echoFormValues(formData) };
   const v = validated.value;
 
   const { error: updateErr } = await service
@@ -162,10 +166,10 @@ export async function adminSaveExhibitorProfileAction(
     .eq("booking_id", bookingId);
   if (updateErr) {
     if (/duplicate key|unique/.test(updateErr.message)) {
-      return { error: "That slug is already taken by another exhibitor." };
+      return { error: "That slug is already taken by another exhibitor.", values: echoFormValues(formData) };
     }
     console.error("[admin/exhibitors] page edit failed:", updateErr.message);
-    return { error: "Could not save the page. Try again." };
+    return { error: "Could not save the page. Try again.", values: echoFormValues(formData) };
   }
 
   await logAdminAction(ctx.appUserId, "exhibitor.page_edit", {

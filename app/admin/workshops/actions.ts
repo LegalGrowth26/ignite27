@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { logAdminAction } from "@/lib/admin/audit";
 import { requireSuperAdmin } from "@/lib/admin/guard";
+import { echoFormValues, type EchoedValues } from "@/lib/admin/form-echo";
 import { validateWorkshop } from "@/lib/workshops/validate";
 import { createSupabaseServiceClient } from "@/lib/supabase/service-client";
 
@@ -14,6 +15,8 @@ import { createSupabaseServiceClient } from "@/lib/supabase/service-client";
 
 export interface WorkshopFormState {
   error: string | null;
+  // Echoed on error: React 19 resets the form after every action.
+  values: EchoedValues | null;
 }
 
 function workshopRowFromForm(formData: FormData) {
@@ -34,7 +37,7 @@ export async function createWorkshopAction(
 ): Promise<WorkshopFormState> {
   const ctx = await requireSuperAdmin();
   const validated = workshopRowFromForm(formData);
-  if (!validated.ok) return { error: validated.error };
+  if (!validated.ok) return { error: validated.error, values: echoFormValues(formData) };
   const v = validated.value;
 
   const service = createSupabaseServiceClient();
@@ -54,7 +57,7 @@ export async function createWorkshopAction(
     .single();
   if (error) {
     console.error("[admin/workshops] create failed:", error.message);
-    return { error: "Could not create the workshop. Try again." };
+    return { error: "Could not create the workshop. Try again.", values: echoFormValues(formData) };
   }
 
   await logAdminAction(ctx.appUserId, "workshop.create", {
@@ -72,7 +75,7 @@ export async function updateWorkshopAction(
 ): Promise<WorkshopFormState> {
   const ctx = await requireSuperAdmin();
   const validated = workshopRowFromForm(formData);
-  if (!validated.ok) return { error: validated.error };
+  if (!validated.ok) return { error: validated.error, values: echoFormValues(formData) };
   const v = validated.value;
 
   const service = createSupabaseServiceClient();
@@ -85,6 +88,7 @@ export async function updateWorkshopAction(
   if ((count ?? 0) > v.capacity) {
     return {
       error: `${count} people are already booked; capacity cannot go below that.`,
+      values: echoFormValues(formData),
     };
   }
 
@@ -102,7 +106,7 @@ export async function updateWorkshopAction(
     .eq("id", workshopId);
   if (error) {
     console.error("[admin/workshops] update failed:", error.message);
-    return { error: "Could not save the workshop. Try again." };
+    return { error: "Could not save the workshop. Try again.", values: echoFormValues(formData) };
   }
 
   await logAdminAction(ctx.appUserId, "workshop.update", {

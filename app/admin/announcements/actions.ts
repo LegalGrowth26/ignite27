@@ -8,11 +8,15 @@ import {
   validateAnnouncement,
   type OrderedRow,
 } from "@/lib/announcements/validate";
+import { echoFormValues, type EchoedValues } from "@/lib/admin/form-echo";
 import { createSupabaseServiceClient } from "@/lib/supabase/service-client";
 
 export interface AnnouncementActionState {
   error: string | null;
   ok: string | null;
+  // Echoed back on error so a failed submit never wipes typed work
+  // (React 19 resets uncontrolled form fields after every action).
+  values: EchoedValues | null;
 }
 
 function parseForm(formData: FormData) {
@@ -32,7 +36,9 @@ export async function createAnnouncementAction(
 ): Promise<AnnouncementActionState> {
   const ctx = await requireSuperAdmin();
   const validation = parseForm(formData);
-  if (!validation.ok) return { error: validation.error, ok: null };
+  if (!validation.ok) {
+    return { error: validation.error, ok: null, values: echoFormValues(formData) };
+  }
 
   const service = createSupabaseServiceClient();
   // Append to the end of the current order.
@@ -54,14 +60,22 @@ export async function createAnnouncementAction(
   });
   if (error) {
     console.error("[admin/announcements] create failed:", error.message);
-    return { error: "Could not create the announcement. Try again.", ok: null };
+    return {
+      error: "Could not create the announcement. Try again.",
+      ok: null,
+      values: echoFormValues(formData),
+    };
   }
 
   await logAdminAction(ctx.appUserId, "announcement.create", {
     headline: validation.value.headline,
   });
   revalidatePath("/admin/announcements");
-  return { error: null, ok: "Created as a draft. Publish it below when it reads right." };
+  return {
+    error: null,
+    ok: "Created as a draft. Publish it below when it reads right.",
+    values: null,
+  };
 }
 
 export async function updateAnnouncementAction(
@@ -71,7 +85,9 @@ export async function updateAnnouncementAction(
 ): Promise<AnnouncementActionState> {
   const ctx = await requireSuperAdmin();
   const validation = parseForm(formData);
-  if (!validation.ok) return { error: validation.error, ok: null };
+  if (!validation.ok) {
+    return { error: validation.error, ok: null, values: echoFormValues(formData) };
+  }
 
   const service = createSupabaseServiceClient();
   const { error } = await service
@@ -85,7 +101,11 @@ export async function updateAnnouncementAction(
     .eq("id", announcementId);
   if (error) {
     console.error("[admin/announcements] update failed:", error.message);
-    return { error: "Could not save the changes. Try again.", ok: null };
+    return {
+      error: "Could not save the changes. Try again.",
+      ok: null,
+      values: echoFormValues(formData),
+    };
   }
 
   await logAdminAction(ctx.appUserId, "announcement.update", {
@@ -93,7 +113,7 @@ export async function updateAnnouncementAction(
   });
   revalidatePath("/admin/announcements");
   revalidatePath("/");
-  return { error: null, ok: "Saved." };
+  return { error: null, ok: "Saved.", values: null };
 }
 
 export async function togglePublishAction(announcementId: string): Promise<void> {

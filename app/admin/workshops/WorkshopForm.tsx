@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import type { EchoedValues } from "@/lib/admin/form-echo";
 import type { WorkshopFormState } from "./actions";
 
 const INPUT =
@@ -29,8 +30,12 @@ export function WorkshopForm({
 }) {
   const [state, formAction, isPending] = useActionState<WorkshopFormState, FormData>(
     action,
-    { error: null },
+    { error: null, values: null },
   );
+  // Failed validation echoes typed values back; they win over defaults
+  // so nothing the admin entered is lost to React 19's form reset.
+  const echoed: EchoedValues | null = state.values;
+  const v = (key: keyof WorkshopDefaults) => echoed?.[key] ?? defaults[key];
 
   return (
     <form action={formAction} className="flex flex-col gap-6">
@@ -41,7 +46,7 @@ export function WorkshopForm({
         <input
           id="title"
           name="title"
-          defaultValue={defaults.title}
+          defaultValue={v("title")}
           maxLength={200}
           required
           className={INPUT}
@@ -55,7 +60,7 @@ export function WorkshopForm({
         <textarea
           id="description"
           name="description"
-          defaultValue={defaults.description}
+          defaultValue={v("description")}
           maxLength={5000}
           rows={6}
           className={INPUT}
@@ -71,7 +76,7 @@ export function WorkshopForm({
           <input
             id="speakerName"
             name="speakerName"
-            defaultValue={defaults.speakerName}
+            defaultValue={v("speakerName")}
             maxLength={120}
             className={INPUT}
           />
@@ -83,7 +88,7 @@ export function WorkshopForm({
           <input
             id="room"
             name="room"
-            defaultValue={defaults.room}
+            defaultValue={v("room")}
             maxLength={120}
             className={INPUT}
           />
@@ -99,7 +104,7 @@ export function WorkshopForm({
             id="startsAt"
             name="startsAt"
             type="datetime-local"
-            defaultValue={defaults.startsAt}
+            defaultValue={v("startsAt")}
             required
             className={INPUT}
           />
@@ -112,7 +117,7 @@ export function WorkshopForm({
             id="endsAt"
             name="endsAt"
             type="datetime-local"
-            defaultValue={defaults.endsAt}
+            defaultValue={v("endsAt")}
             required
             className={INPUT}
           />
@@ -127,7 +132,7 @@ export function WorkshopForm({
             type="number"
             min={1}
             max={1000}
-            defaultValue={defaults.capacity}
+            defaultValue={v("capacity")}
             required
             className={INPUT}
           />

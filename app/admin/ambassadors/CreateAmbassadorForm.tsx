@@ -7,10 +7,12 @@ const INPUT =
   "w-full rounded-xl border border-ignite-line bg-ignite-white px-3 py-2 text-small text-ignite-ink focus:border-ignite-red focus:outline-none";
 const LABEL = "block text-small font-medium text-ignite-ink";
 
-const IDLE: AmbassadorActionState = { error: null, created: null };
+const IDLE: AmbassadorActionState = { error: null, created: null, values: null };
 
 export function CreateAmbassadorForm() {
   const [state, formAction, isPending] = useActionState(createAmbassadorAction, IDLE);
+  // Failed validation echoes typed values back (React 19 resets forms).
+  const v = state.values ?? {};
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
@@ -19,27 +21,27 @@ export function CreateAmbassadorForm() {
           <label htmlFor="firstName" className={LABEL}>
             First name <span className="text-ignite-red">*</span>
           </label>
-          <input id="firstName" name="firstName" required className={INPUT} />
+          <input id="firstName" name="firstName" required defaultValue={v.firstName ?? ""} className={INPUT} />
         </div>
         <div>
           <label htmlFor="surname" className={LABEL}>
             Surname <span className="text-ignite-red">*</span>
           </label>
-          <input id="surname" name="surname" required className={INPUT} />
+          <input id="surname" name="surname" required defaultValue={v.surname ?? ""} className={INPUT} />
         </div>
         <div>
           <label htmlFor="email" className={LABEL}>
             Email <span className="text-ignite-red">*</span>
           </label>
-          <input id="email" name="email" type="email" required className={INPUT} />
+          <input id="email" name="email" type="email" required defaultValue={v.email ?? ""} className={INPUT} />
         </div>
         <div>
           <label htmlFor="company" className={LABEL}>Company</label>
-          <input id="company" name="company" className={INPUT} />
+          <input id="company" name="company" defaultValue={v.company ?? ""} className={INPUT} />
         </div>
         <div>
           <label htmlFor="type" className={LABEL}>Type</label>
-          <select id="type" name="type" className={INPUT}>
+          <select id="type" name="type" defaultValue={v.type ?? "speaker"} className={INPUT}>
             <option value="speaker">Speaker</option>
             <option value="partner">Partner</option>
           </select>
@@ -53,6 +55,7 @@ export function CreateAmbassadorForm() {
             name="slug"
             required
             placeholder="stephine"
+            defaultValue={v.slug ?? ""}
             className={`${INPUT} lowercase`}
           />
           <p className="mt-1 text-small text-ignite-muted">
@@ -66,7 +69,7 @@ export function CreateAmbassadorForm() {
             name="compAllowance"
             type="number"
             min={0}
-            defaultValue={0}
+            defaultValue={v.compAllowance ?? 0}
             className={INPUT}
           />
         </div>
@@ -79,6 +82,7 @@ export function CreateAmbassadorForm() {
             min={1}
             max={100}
             placeholder="none"
+            defaultValue={v.discountPercent ?? ""}
             className={INPUT}
           />
           <p className="mt-1 text-small text-ignite-muted">

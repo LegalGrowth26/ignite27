@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { logAdminAction } from "@/lib/admin/audit";
+import { echoFormValues, type EchoedValues } from "@/lib/admin/form-echo";
 import { requireSuperAdmin } from "@/lib/admin/guard";
 import {
   SCHEDULED_EMAIL_AUDIENCES,
@@ -14,6 +15,9 @@ import { createSupabaseServiceClient } from "@/lib/supabase/service-client";
 export interface ScheduledEmailActionState {
   error: string | null;
   ok: string | null;
+  // Echoed on error so React 19's form reset never wipes a drafted
+  // email (losing a full body draft is the worst case of this bug).
+  values: EchoedValues | null;
 }
 
 export async function createScheduledEmailAction(
@@ -27,20 +31,20 @@ export async function createScheduledEmailAction(
   const audienceRaw = String(formData.get("audience") ?? "");
   const sendAtRaw = String(formData.get("sendAt") ?? "").trim();
 
-  if (!subject || subject.length > 200) return { error: "Subject is required (max 200 characters).", ok: null };
-  if (!body) return { error: "The email needs a body.", ok: null };
+  if (!subject || subject.length > 200) return { error: "Subject is required (max 200 characters).", ok: null, values: echoFormValues(formData) };
+  if (!body) return { error: "The email needs a body.", ok: null, values: echoFormValues(formData) };
   const audience = SCHEDULED_EMAIL_AUDIENCES.includes(audienceRaw as ScheduledEmailAudience)
     ? (audienceRaw as ScheduledEmailAudience)
     : null;
-  if (!audience) return { error: "Pick an audience.", ok: null };
+  if (!audience) return { error: "Pick an audience.", ok: null, values: echoFormValues(formData) };
   // datetime-local arrives without a zone; the admin thinks in UK time.
   // Store the instant the UK wall-clock value means.
   const sendAt = sendAtRaw ? new Date(sendAtRaw) : null;
   if (!sendAt || Number.isNaN(sendAt.getTime())) {
-    return { error: "Pick a send date and time.", ok: null };
+    return { error: "Pick a send date and time.", ok: null, values: echoFormValues(formData) };
   }
   if (sendAt.getTime() < Date.now() - 60_000) {
-    return { error: "That send time is in the past.", ok: null };
+    return { error: "That send time is in the past.", ok: null, values: echoFormValues(formData) };
   }
 
   const service = createSupabaseServiceClient();
@@ -53,7 +57,7 @@ export async function createScheduledEmailAction(
   });
   if (error) {
     console.error("[admin/emails] schedule failed:", error.message);
-    return { error: "Could not schedule the email. Try again.", ok: null };
+    return { error: "Could not schedule the email. Try again.", ok: null, values: echoFormValues(formData) };
   }
 
   await logAdminAction(ctx.appUserId, "event_email.schedule", {
@@ -62,7 +66,7 @@ export async function createScheduledEmailAction(
     send_at: sendAt.toISOString(),
   });
   revalidatePath("/admin/emails");
-  return { error: null, ok: `Scheduled. Recipients are resolved when it sends, so late bookers are included.` };
+  return { error: null, ok: `Scheduled. Recipients are resolved when it sends, so late bookers are included.`, values: null };
 }
 
 // Immediate send of the draft content to the signed-in admin only.
@@ -75,7 +79,7 @@ export async function testSendAction(
 
   const subject = String(formData.get("subject") ?? "").trim();
   const body = String(formData.get("body") ?? "").trim();
-  if (!subject || !body) return { error: "Fill in subject and body first.", ok: null };
+  if (!subject || !body) return { error: "Fill in subject and body first.", ok: null, values: echoFormValues(formData) };
 
   const { data: me } = await ctx.client
     .from("users")
@@ -83,7 +87,7 @@ export async function testSendAction(
     .eq("id", ctx.appUserId)
     .maybeSingle();
   const email = (me as { email: string } | null)?.email;
-  if (!email) return { error: "Could not find your email address.", ok: null };
+  if (!email) return { error: "Could not find your email address.", ok: null, values: echoFormValues(formData) };
 
   try {
     const { html, text } = await renderEventUpdate({ subject, body });
@@ -94,10 +98,10 @@ export async function testSendAction(
       text,
       tag: "event-update-test",
     });
-    return { error: null, ok: "Test sent to you. Check your inbox before scheduling." };
+    return { error: null, ok: "Test sent to you. Check your inbox before scheduling.", values: echoFormValues(formData) };
   } catch (err) {
     console.error("[admin/emails] test send failed:", err);
-    return { error: "Test send failed. Check the Vercel logs.", ok: null };
+    return { error: "Test send failed. Check the Vercel logs.", ok: null, values: echoFormValues(formData) };
   }
 }
 

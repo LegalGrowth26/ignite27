@@ -26,16 +26,27 @@ function isHttpUrl(value: string): boolean {
   }
 }
 
+// "Blank" must mean blank: trim alone leaves invisible characters
+// behind (zero-width spaces, word joiners, BOMs pasted in from other
+// apps), which made a field that LOOKS empty fail URL validation with
+// the "or leave it blank" message. Strip those before trimming so
+// empty and whitespace-only inputs normalise to "" and validation
+// treats them as blank, exactly as the message promises.
+function cleanString(value: unknown): string {
+  if (typeof value !== "string") return "";
+  return value.replace(/[​-‍⁠﻿]/g, "").trim();
+}
+
 export function validateAnnouncement(input: {
   headline?: unknown;
   body?: unknown;
   linkUrl?: unknown;
   imageUrl?: unknown;
 }): AnnouncementValidation {
-  const headline = typeof input.headline === "string" ? input.headline.trim() : "";
-  const body = typeof input.body === "string" ? input.body.trim() : "";
-  const linkRaw = typeof input.linkUrl === "string" ? input.linkUrl.trim() : "";
-  const imageRaw = typeof input.imageUrl === "string" ? input.imageUrl.trim() : "";
+  const headline = cleanString(input.headline);
+  const body = cleanString(input.body);
+  const linkRaw = cleanString(input.linkUrl);
+  const imageRaw = cleanString(input.imageUrl);
 
   if (headline.length === 0 || headline.length > MAX_HEADLINE) {
     return { ok: false, error: `Headline is required (max ${MAX_HEADLINE} characters).` };

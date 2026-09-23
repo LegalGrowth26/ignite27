@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { logAdminAction } from "@/lib/admin/audit";
 import { requireSuperAdmin } from "@/lib/admin/guard";
+import { echoFormValues, type EchoedValues } from "@/lib/admin/form-echo";
 import { findCategoryClash, validatePartner } from "@/lib/partners/validate";
 import { createSupabaseServiceClient } from "@/lib/supabase/service-client";
 
@@ -16,6 +17,9 @@ import { createSupabaseServiceClient } from "@/lib/supabase/service-client";
 export interface PartnerFormState {
   error: string | null;
   clashWith: string | null;
+  // Echoed on error AND on a clash warning: the add-anyway resubmit
+  // must carry everything the admin typed (React 19 resets the form).
+  values: EchoedValues | null;
 }
 
 const MAX_LOGO_BYTES = 2 * 1024 * 1024;
@@ -52,7 +56,7 @@ export async function savePartnerAction(
     notes: formData.get("notes"),
     websiteUrl: formData.get("websiteUrl"),
   });
-  if (!validated.ok) return { error: validated.error, clashWith: null };
+  if (!validated.ok) return { error: validated.error, clashWith: null, values: echoFormValues(formData) };
   const v = validated.value;
 
   // Exclusivity warn-not-block: name the clash and require the tick.
@@ -63,7 +67,7 @@ export async function savePartnerAction(
       .select("id, company_name, category, status");
     if (existingErr) {
       console.error("[admin/partners] clash lookup failed:", existingErr.message);
-      return { error: "Could not check category exclusivity. Try again.", clashWith: null };
+      return { error: "Could not check category exclusivity. Try again.", clashWith: null, values: echoFormValues(formData) };
     }
     const clash = findCategoryClash(
       (existingRows ?? []) as Array<{
@@ -79,6 +83,7 @@ export async function savePartnerAction(
       return {
         error: null,
         clashWith: clash.companyName,
+        values: echoFormValues(formData),
       };
     }
   }
@@ -100,7 +105,7 @@ export async function savePartnerAction(
     const { error } = await service.from("partners").update(row).eq("id", id);
     if (error) {
       console.error("[admin/partners] update failed:", error.message);
-      return { error: "Could not save the partner. Try again.", clashWith: null };
+      return { error: "Could not save the partner. Try again.", clashWith: null, values: echoFormValues(formData) };
     }
   } else {
     const { data, error } = await service
@@ -110,7 +115,7 @@ export async function savePartnerAction(
       .single();
     if (error || !data) {
       console.error("[admin/partners] insert failed:", error?.message);
-      return { error: "Could not add the partner. Try again.", clashWith: null };
+      return { error: "Could not add the partner. Try again.", clashWith: null, values: echoFormValues(formData) };
     }
     id = (data as { id: string }).id;
   }
@@ -120,15 +125,15 @@ export async function savePartnerAction(
   const logo = formData.get("logo");
   if (logo instanceof File && logo.size > 0) {
     const ext = ALLOWED_LOGO_TYPES[logo.type];
-    if (!ext) return { error: "Logo must be a PNG, JPG, WebP, or SVG file.", clashWith: null };
-    if (logo.size > MAX_LOGO_BYTES) return { error: "Logo must be 2MB or smaller.", clashWith: null };
+    if (!ext) return { error: "Logo must be a PNG, JPG, WebP, or SVG file.", clashWith: null, values: echoFormValues(formData) };
+    if (logo.size > MAX_LOGO_BYTES) return { error: "Logo must be 2MB or smaller.", clashWith: null, values: echoFormValues(formData) };
     const logoPath = `${id}/logo.${ext}`;
     const { error: uploadErr } = await service.storage
       .from("partner-logos")
       .upload(logoPath, logo, { upsert: true, contentType: logo.type });
     if (uploadErr) {
       console.error("[admin/partners] logo upload failed:", uploadErr.message);
-      return { error: "Partner saved, but the logo upload failed. Try the logo again.", clashWith: null };
+      return { error: "Partner saved, but the logo upload failed. Try the logo again.", clashWith: null, values: echoFormValues(formData) };
     }
     const { error: linkErr } = await service
       .from("partners")

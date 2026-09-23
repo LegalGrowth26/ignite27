@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { logAdminAction } from "@/lib/admin/audit";
+import { echoFormValues, type EchoedValues } from "@/lib/admin/form-echo";
 import { requireSuperAdmin } from "@/lib/admin/guard";
 import { SOCIAL_PLATFORMS } from "@/lib/exhibitors/profile";
 import {
@@ -22,6 +23,8 @@ import { createSupabaseServiceClient } from "@/lib/supabase/service-client";
 
 export interface SpeakerAdminFormState {
   error: string | null;
+  // Echoed on error so React 19's form reset never wipes typed work.
+  values: EchoedValues | null;
 }
 
 function isEmail(value: string): boolean {
@@ -46,10 +49,10 @@ export async function addSpeakerAction(
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const talkTitle = String(formData.get("talkTitle") ?? "").trim();
 
-  if (!name || name.length > 120) return { error: "Speaker name is required (max 120 characters)." };
-  if (talkTitle.length > 200) return { error: "Talk title is too long (max 200 characters)." };
+  if (!name || name.length > 120) return { error: "Speaker name is required (max 120 characters).", values: echoFormValues(formData) };
+  if (talkTitle.length > 200) return { error: "Talk title is too long (max 200 characters).", values: echoFormValues(formData) };
   if (email && !isEmail(email)) {
-    return { error: "That email does not look right. Leave it blank to attach one later." };
+    return { error: "That email does not look right. Leave it blank to attach one later.", values: echoFormValues(formData) };
   }
 
   let created;
@@ -57,7 +60,7 @@ export async function addSpeakerAction(
     created = await ensureSpeakerProfile(service, { displayName: name, talkTitle });
   } catch (err) {
     console.error("[admin/speakers] create failed:", err);
-    return { error: "Could not create the speaker page. Try again." };
+    return { error: "Could not create the speaker page. Try again.", values: echoFormValues(formData) };
   }
 
   let invited = false;
@@ -99,7 +102,7 @@ export async function attachSpeakerEmailAction(
   const service = createSupabaseServiceClient();
 
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  if (!isEmail(email)) return { error: "That email does not look right." };
+  if (!isEmail(email)) return { error: "That email does not look right.", values: echoFormValues(formData) };
 
   const { data } = await service
     .from("speaker_profiles")
@@ -107,7 +110,7 @@ export async function attachSpeakerEmailAction(
     .eq("id", profileId)
     .maybeSingle();
   const profile = data as { slug: string; display_name: string } | null;
-  if (!profile) return { error: "Speaker page not found." };
+  if (!profile) return { error: "Speaker page not found.", values: echoFormValues(formData) };
 
   try {
     await attachSpeakerAccount(service, profileId, email, profile.display_name);
@@ -118,6 +121,7 @@ export async function attachSpeakerEmailAction(
         err instanceof Error && /different account/.test(err.message)
           ? "This page is already linked to a different account."
           : "Could not attach the account. Try again.",
+      values: echoFormValues(formData),
     };
   }
 
@@ -157,14 +161,11 @@ export async function adminSaveSpeakerAction(
     .eq("id", profileId)
     .maybeSingle();
   const existing = existingData as { slug: string } | null;
-  if (!existing) return { error: "Speaker page not found." };
+  if (!existing) return { error: "Speaker page not found.", values: echoFormValues(formData) };
 
   const slug = String(formData.get("slug") ?? "").trim().toLowerCase();
   if (!SLUG_PATTERN.test(slug)) {
-    return {
-      error:
-        "Slug must be 2 to 50 characters of lowercase letters, numbers, and hyphens.",
-    };
+    return { error: "Slug must be 2 to 50 characters of lowercase letters, numbers, and hyphens.", values: echoFormValues(formData) };
   }
 
   const validated = validateSpeakerContent({
@@ -182,7 +183,7 @@ export async function adminSaveSpeakerAction(
     ctaUrl: formData.get("ctaUrl"),
     enquiriesEmail: formData.get("enquiriesEmail"),
   });
-  if (!validated.ok) return { error: validated.error };
+  if (!validated.ok) return { error: validated.error, values: echoFormValues(formData) };
   const v = validated.value;
 
   const { error } = await service
@@ -203,10 +204,10 @@ export async function adminSaveSpeakerAction(
     .eq("id", profileId);
   if (error) {
     if (/duplicate key|unique/.test(error.message)) {
-      return { error: "That slug is already taken by another speaker." };
+      return { error: "That slug is already taken by another speaker.", values: echoFormValues(formData) };
     }
     console.error("[admin/speakers] save failed:", error.message);
-    return { error: "Could not save the page. Try again." };
+    return { error: "Could not save the page. Try again.", values: echoFormValues(formData) };
   }
 
   await logAdminAction(ctx.appUserId, "speaker.edit", {

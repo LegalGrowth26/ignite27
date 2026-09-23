@@ -74,3 +74,28 @@ describe("computeReorderSwap", () => {
     expect(computeReorderSwap(tied, "b", "up")).toEqual([{ id: "b", sort_order: 99 }]);
   });
 });
+
+describe("blank link handling (regression: 'leave it blank' must work)", () => {
+  const base = { headline: "News", body: "Body text.", imageUrl: "" };
+
+  it("empty and whitespace-only links validate as blank -> null", () => {
+    for (const linkUrl of ["", "   ", "\t"]) {
+      const result = validateAnnouncement({ ...base, linkUrl });
+      expect(result.ok).toBe(true);
+      if (result.ok) expect(result.value.linkUrl).toBeNull();
+    }
+  });
+
+  it("invisible characters (zero-width space, BOM, word joiner) count as blank", () => {
+    for (const linkUrl of ["​", "﻿", "⁠", " ​ "]) {
+      const result = validateAnnouncement({ ...base, linkUrl });
+      expect(result.ok).toBe(true);
+      if (result.ok) expect(result.value.linkUrl).toBeNull();
+    }
+  });
+
+  it("a real but invalid link still fails with the blank option offered", () => {
+    const result = validateAnnouncement({ ...base, linkUrl: "not-a-url" });
+    expect(result.ok).toBe(false);
+  });
+});

@@ -11,7 +11,7 @@ const INPUT =
   "w-full rounded-xl border border-ignite-line bg-ignite-white px-3 py-2 text-small text-ignite-ink focus:border-ignite-red focus:outline-none";
 const LABEL = "block text-small font-medium text-ignite-ink";
 
-const IDLE: ScheduledEmailActionState = { error: null, ok: null };
+const IDLE: ScheduledEmailActionState = { error: null, ok: null, values: null };
 
 // One form, two submit buttons: "Send test to me" posts the same
 // fields to the test action (immediate, admin only); "Schedule" books
@@ -22,6 +22,10 @@ export function ScheduleEmailForm() {
     IDLE,
   );
   const [testState, testAction, testPending] = useActionState(testSendAction, IDLE);
+  // Echoed values from either action keep the draft on screen: a
+  // validation error must not wipe it, and neither should a test send
+  // (React 19 resets the form after every action).
+  const v = testState.values ?? scheduleState.values ?? {};
 
   return (
     <form className="flex flex-col gap-4">
@@ -29,13 +33,13 @@ export function ScheduleEmailForm() {
         <label htmlFor="subject" className={LABEL}>
           Subject <span className="text-ignite-red">*</span>
         </label>
-        <input id="subject" name="subject" required maxLength={200} className={INPUT} />
+        <input id="subject" name="subject" required maxLength={200} defaultValue={v.subject ?? ""} className={INPUT} />
       </div>
       <div>
         <label htmlFor="body" className={LABEL}>
           Body <span className="text-ignite-red">*</span>
         </label>
-        <textarea id="body" name="body" required rows={8} className={INPUT} />
+        <textarea id="body" name="body" required rows={8} defaultValue={v.body ?? ""} className={INPUT} />
         <p className="mt-1 text-small text-ignite-muted">
           Plain paragraphs separated by a blank line. Bare links
           (https://...) become clickable automatically. It renders in the
@@ -45,7 +49,7 @@ export function ScheduleEmailForm() {
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
           <label htmlFor="audience" className={LABEL}>Audience</label>
-          <select id="audience" name="audience" className={INPUT}>
+          <select id="audience" name="audience" defaultValue={v.audience ?? "all_attendees"} className={INPUT}>
             <option value="all_attendees">All attendees</option>
             <option value="delegates">Delegates (includes comp guests)</option>
             <option value="vips">VIPs</option>
@@ -55,7 +59,7 @@ export function ScheduleEmailForm() {
         </div>
         <div>
           <label htmlFor="sendAt" className={LABEL}>Send date and time (UK)</label>
-          <input id="sendAt" name="sendAt" type="datetime-local" className={INPUT} />
+          <input id="sendAt" name="sendAt" type="datetime-local" defaultValue={v.sendAt ?? ""} className={INPUT} />
           <p className="mt-1 text-small text-ignite-muted">
             Sends within about 5 minutes of this time.
           </p>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import type { EchoedValues } from "@/lib/admin/form-echo";
 import {
   createAnnouncementAction,
   updateAnnouncementAction,
@@ -11,64 +12,74 @@ const INPUT =
   "w-full rounded-xl border border-ignite-line bg-ignite-white px-3 py-2 text-small text-ignite-ink focus:border-ignite-red focus:outline-none";
 const LABEL = "block text-small font-medium text-ignite-ink";
 
-const IDLE: AnnouncementActionState = { error: null, ok: null };
+const IDLE: AnnouncementActionState = { error: null, ok: null, values: null };
 
+// React 19 resets uncontrolled form fields after every action, so a
+// failed validation used to wipe everything typed. Echoed values from
+// the action state take precedence over the stored defaults, keeping
+// the admin's work on screen.
 function Fields({
+  idSuffix,
   defaults,
+  echoed,
 }: {
+  idSuffix: string;
   defaults?: { headline: string; body: string; linkUrl: string; imageUrl: string };
+  echoed: EchoedValues | null;
 }) {
+  const value = (key: keyof NonNullable<typeof defaults>) =>
+    echoed?.[key] ?? defaults?.[key] ?? "";
   return (
     <>
       <div>
-        <label htmlFor={`headline-${defaults?.headline ?? "new"}`} className={LABEL}>
+        <label htmlFor={`headline-${idSuffix}`} className={LABEL}>
           Headline <span className="text-ignite-red">*</span>
         </label>
         <input
-          id={`headline-${defaults?.headline ?? "new"}`}
+          id={`headline-${idSuffix}`}
           name="headline"
           required
           maxLength={120}
-          defaultValue={defaults?.headline}
+          defaultValue={value("headline")}
           className={INPUT}
         />
       </div>
       <div>
-        <label htmlFor={`body-${defaults?.headline ?? "new"}`} className={LABEL}>
+        <label htmlFor={`body-${idSuffix}`} className={LABEL}>
           Body <span className="text-ignite-red">*</span>
         </label>
         <textarea
-          id={`body-${defaults?.headline ?? "new"}`}
+          id={`body-${idSuffix}`}
           name="body"
           required
           maxLength={500}
           rows={3}
-          defaultValue={defaults?.body}
+          defaultValue={value("body")}
           className={INPUT}
         />
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
-          <label htmlFor={`link-${defaults?.headline ?? "new"}`} className={LABEL}>
+          <label htmlFor={`link-${idSuffix}`} className={LABEL}>
             Link (optional)
           </label>
           <input
-            id={`link-${defaults?.headline ?? "new"}`}
+            id={`link-${idSuffix}`}
             name="linkUrl"
             placeholder="https://"
-            defaultValue={defaults?.linkUrl}
+            defaultValue={value("linkUrl")}
             className={INPUT}
           />
         </div>
         <div>
-          <label htmlFor={`image-${defaults?.headline ?? "new"}`} className={LABEL}>
+          <label htmlFor={`image-${idSuffix}`} className={LABEL}>
             Image URL (optional)
           </label>
           <input
-            id={`image-${defaults?.headline ?? "new"}`}
+            id={`image-${idSuffix}`}
             name="imageUrl"
             placeholder="/images/photos/photo-01.webp or https://"
-            defaultValue={defaults?.imageUrl}
+            defaultValue={value("imageUrl")}
             className={INPUT}
           />
         </div>
@@ -99,7 +110,7 @@ export function CreateAnnouncementForm() {
   const [state, formAction, isPending] = useActionState(createAnnouncementAction, IDLE);
   return (
     <form action={formAction} className="flex flex-col gap-4">
-      <Fields />
+      <Fields idSuffix="new" echoed={state.values} />
       <Feedback state={state} />
       <button
         type="submit"
@@ -125,7 +136,7 @@ export function EditAnnouncementForm({
   );
   return (
     <form action={formAction} className="flex flex-col gap-4">
-      <Fields defaults={defaults} />
+      <Fields idSuffix={announcementId} defaults={defaults} echoed={state.values} />
       <Feedback state={state} />
       <button
         type="submit"
