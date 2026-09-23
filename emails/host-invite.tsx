@@ -11,19 +11,21 @@ import {
 } from "@react-email/components";
 import * as React from "react";
 
-// Ambassador welcome (September 2026 rewrite): a proper welcome built
-// from the ambassador's actual record. The comps and discount blocks
-// are CONDITIONAL: the caller passes null to omit them entirely, so
-// nobody reads about perks they do not have. Copy lines come from
-// lib/ambassadors/welcome.ts, where every branch is unit-tested.
+// Workshop host welcome: ONE email covering everything a host gets
+// when invited from the workshops admin: their page + editor, their
+// share link, their comp tickets, and their discount code. The comps
+// and discount blocks are conditional (null omits them), and the copy
+// lines come from lib/ambassadors/welcome.ts, unit-tested per branch.
 
-export interface AmbassadorInviteProps {
+export interface HostInviteProps {
   firstName: string;
+  pageUrl: string;
+  editorUrl: string;
   shareUrl: string;
   dashboardUrl: string;
   setPasswordUrl: string;
-  compLine: string | null; // null = no allowance, omit the block
-  discountLines: string[] | null; // null = no code, omit the block
+  compLine: string | null;
+  discountLines: string[] | null;
 }
 
 const WRAPPER = {
@@ -95,28 +97,49 @@ const PERK_BOX = {
   margin: "0 0 16px 0",
 } as const;
 
-export function AmbassadorInviteEmail(props: AmbassadorInviteProps) {
-  const { firstName, shareUrl, dashboardUrl, setPasswordUrl, compLine, discountLines } =
-    props;
+export function HostInviteEmail(props: HostInviteProps) {
+  const {
+    firstName,
+    pageUrl,
+    editorUrl,
+    shareUrl,
+    dashboardUrl,
+    setPasswordUrl,
+    compLine,
+    discountLines,
+  } = props;
   return (
     <Html>
       <Head />
-      <Preview>Welcome aboard. Your IGNITE! 27 ambassador dashboard is ready.</Preview>
+      <Preview>You&apos;re hosting a workshop at IGNITE! 27. Here is your kit.</Preview>
       <Body style={WRAPPER}>
         <Container style={CONTAINER}>
           <Text style={EYEBROW}>IGNITE! 27</Text>
-          <Heading style={HEADING}>You&apos;re an IGNITE! 27 ambassador.</Heading>
+          <Heading style={HEADING}>You&apos;re hosting a workshop at IGNITE! 27.</Heading>
           <Text style={PARAGRAPH}>
-            Hi {firstName}, thank you for helping us fill the room. Ambassadors
-            are the reason IGNITE! feels like a room full of friends rather
-            than a room full of name badges, and we are glad you are one of
-            them.
+            Hi {firstName}, brilliant to have you on board. The workshops are
+            where IGNITE! gets properly practical, and yours is one of the
+            reasons people will book. Here is everything that comes with
+            hosting.
           </Text>
-          <Text style={PARAGRAPH}>
-            You now have your own private dashboard. It shows the clicks your
-            link gets and every ticket you have driven, as it happens. No
-            spreadsheets, no chasing us for numbers.
-          </Text>
+
+          <div style={PERK_BOX}>
+            <Text style={{ ...PARAGRAPH, margin: "0 0 8px 0" }}>
+              <strong>Your page:</strong>{" "}
+              <Link style={LINK} href={pageUrl}>
+                {pageUrl}
+              </Link>
+            </Text>
+            <Text style={{ ...SMALL, margin: 0 }}>
+              Add your photo, bio and links from your editor at{" "}
+              <Link style={LINK} href={editorUrl}>
+                {editorUrl}
+              </Link>
+              . Your workshop&apos;s title and time appear on the page
+              automatically once it is confirmed, and there is a contact form
+              that forwards to your inbox without showing your email address.
+            </Text>
+          </div>
 
           <div style={PERK_BOX}>
             <Text style={{ ...PARAGRAPH, margin: "0 0 8px 0" }}>
@@ -126,9 +149,9 @@ export function AmbassadorInviteEmail(props: AmbassadorInviteProps) {
               </Link>
             </Text>
             <Text style={{ ...SMALL, margin: 0 }}>
-              Share it anywhere: email signature, socials, that WhatsApp group
-              you are in. When someone follows it and books, the booking counts
-              as yours (we remember their click for 90 days).
+              Share it anywhere. When someone follows it and books, the booking
+              counts as yours (we remember their click for 90 days), and your
+              dashboard shows every ticket you have driven.
             </Text>
           </div>
 
@@ -161,8 +184,12 @@ export function AmbassadorInviteEmail(props: AmbassadorInviteProps) {
             </Link>
           </Text>
           <Text style={SMALL}>
-            The set-password link is good for 24 hours. If it expires, request a
-            new one from the login page. Your dashboard lives at{" "}
+            The set-password link is good for 24 hours; if it expires, request a
+            new one from the login page. Your page editor lives at{" "}
+            <Link style={LINK} href={editorUrl}>
+              {editorUrl}
+            </Link>{" "}
+            and your numbers at{" "}
             <Link style={LINK} href={dashboardUrl}>
               {dashboardUrl}
             </Link>
@@ -178,13 +205,14 @@ export function AmbassadorInviteEmail(props: AmbassadorInviteProps) {
   );
 }
 
-export function renderAmbassadorInvitePlainText(props: AmbassadorInviteProps): string {
+export function renderHostInvitePlainText(props: HostInviteProps): string {
   return [
-    "IGNITE! 27, you're an ambassador",
+    "IGNITE! 27, you're hosting a workshop",
     "",
-    `Hi ${props.firstName}, thank you for helping us fill the room. Ambassadors are the reason IGNITE! feels like a room full of friends rather than a room full of name badges, and we are glad you are one of them.`,
+    `Hi ${props.firstName}, brilliant to have you on board. The workshops are where IGNITE! gets properly practical, and yours is one of the reasons people will book. Here is everything that comes with hosting.`,
     "",
-    "You now have your own private dashboard. It shows the clicks your link gets and every ticket you have driven, as it happens.",
+    `Your page: ${props.pageUrl}`,
+    `Edit it (photo, bio, links) at ${props.editorUrl}. Your workshop's title and time appear automatically once confirmed, and the contact form forwards to your inbox without showing your email address.`,
     "",
     `Your share link: ${props.shareUrl}`,
     "Share it anywhere. When someone follows it and books, the booking counts as yours (we remember their click for 90 days).",
@@ -192,6 +220,7 @@ export function renderAmbassadorInvitePlainText(props: AmbassadorInviteProps): s
     ...(props.discountLines ? ["", ...props.discountLines] : []),
     "",
     `Set your password: ${props.setPasswordUrl}`,
+    `Your editor: ${props.editorUrl}`,
     `Your dashboard: ${props.dashboardUrl}`,
     "",
     "Questions? Just reply to this email.",
