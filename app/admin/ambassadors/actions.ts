@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { logAdminAction } from "@/lib/admin/audit";
 import { requireSuperAdmin } from "@/lib/admin/guard";
 import { normaliseRefSlug } from "@/lib/ambassadors/attribution";
-import { sendAmbassadorInvite } from "@/lib/ambassadors/send-invite";
+import { sendAmbassadorWelcome } from "@/lib/ambassadors/send-invite";
 import { ensureAuthUser, upsertAppUser } from "@/lib/bookings/create";
 import { createSupabaseServiceClient } from "@/lib/supabase/service-client";
 
@@ -91,28 +91,34 @@ export async function createAmbassadorAction(
       if (roleErr) throw new Error(`role update failed: ${roleErr.message}`);
     }
 
-    const { error: insertErr } = await service.from("ambassadors").insert({
-      user_id: appUserId,
-      slug,
-      display_name: `${firstName} ${surname}`,
-      company: company || null,
-      ambassador_type: type,
-      comp_allowance: allowance,
-      discount_percent: discountPercent,
-    });
-    if (insertErr) {
-      if (/slug/.test(insertErr.message)) {
+    const { data: insertedRow, error: insertErr } = await service
+      .from("ambassadors")
+      .insert({
+        user_id: appUserId,
+        slug,
+        display_name: `${firstName} ${surname}`,
+        company: company || null,
+        ambassador_type: type,
+        comp_allowance: allowance,
+        discount_percent: discountPercent,
+      })
+      .select("id")
+      .single();
+    if (insertErr || !insertedRow) {
+      if (insertErr && /slug/.test(insertErr.message)) {
         return { error: "That link slug is already taken.", created: null };
       }
-      throw new Error(`ambassadors insert failed: ${insertErr.message}`);
+      throw new Error(`ambassadors insert failed: ${insertErr?.message}`);
     }
 
     try {
-      await sendAmbassadorInvite({ firstName, email, slug, compAllowance: allowance });
+      // Full welcome built from the record just written (perk blocks
+      // render only when they apply). Same path as Resend invite.
+      await sendAmbassadorWelcome(service, (insertedRow as { id: string }).id);
     } catch (err) {
-      // The ambassador exists; a failed invite is recoverable from the
-      // login page's forgot-password flow. Log loudly, don't roll back.
-      console.error("[admin/ambassadors] invite email failed:", err);
+      // The ambassador exists; a failed invite is recoverable via the
+      // Resend invite button. Log loudly, don't roll back.
+      console.error("[admin/ambassadors] welcome email failed:", err);
     }
 
     await logAdminAction(ctx.appUserId, "ambassador.create", {
@@ -177,4 +183,19 @@ export async function toggleAmbassadorActiveAction(ambassadorId: string): Promis
   );
   revalidatePath("/admin/ambassadors");
   revalidatePath("/ambassador");
+}
+
+// Resend the welcome email, rebuilt from the CURRENT record (so an
+// allowance or code granted after creation is reflected). Same sender
+// as the create flow.
+export async function resendAmbassadorInviteAction(ambassadorId: string): Promise<void> {
+  const ctx = await requireSuperAdmin();
+  const service = createSupabaseServiceClient();
+
+  await sendAmbassadorWelcome(service, ambassadorId);
+
+  await logAdminAction(ctx.appUserId, "ambassador.resend_invite", {
+    ambassador_id: ambassadorId,
+  });
+  revalidatePath("/admin/ambassadors");
 }
