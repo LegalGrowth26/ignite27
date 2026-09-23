@@ -8,7 +8,7 @@ import {
   type DietaryRequirement,
 } from "@/lib/bookings/intent";
 import type { ExhibitorIntentFieldError } from "@/lib/bookings/exhibitor-intent";
-import { formatExVatWithGross } from "@/lib/pricing";
+import { formatExVatWithGross, publicStandAvailabilityNote } from "@/lib/pricing";
 import { Button } from "./Button";
 
 interface ExhibitorBookingFormProps {
@@ -221,7 +221,9 @@ export function ExhibitorBookingForm({
         </ul>
         <p className="mt-3 text-h2">{priceLabel}</p>
         <p className="mt-1 text-small text-ignite-muted">
-          {standsRemaining} of 50 stands remaining.
+          {/* Public copy only: exact counts are admin-only; the real
+              number appears at LOW_STANDS_PUBLIC_THRESHOLD or fewer. */}
+          {publicStandAvailabilityNote(standsRemaining)}
         </p>
       </div>
 

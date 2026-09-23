@@ -43,6 +43,8 @@ export {
   EXHIBITOR_STAND_CAP,
   exhibitorStandsRemaining,
   isExhibitorAvailable,
+  LOW_STANDS_PUBLIC_THRESHOLD,
+  publicStandAvailabilityNote,
 } from "./exhibitor";
 
 export {
