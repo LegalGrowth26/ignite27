@@ -42,8 +42,12 @@ export function SpeakerEditorForm({
 }) {
   const [state, formAction, isPending] = useActionState<SpeakerEditorState, FormData>(
     saveSpeakerProfileAction,
-    { error: null },
+    { error: null, values: null },
   );
+  // A failed save echoes typed values back; they win over the stored
+  // defaults so React 19's form reset never wipes work (file pickers
+  // cannot be echoed; everything text comes back).
+  const v = (name: string, fallback: string) => state.values?.[name] ?? fallback;
   const isHost = hostsWorkshops(profileType);
   const workshopLabels = profileType === "workshop_host";
 
@@ -56,7 +60,7 @@ export function SpeakerEditorForm({
         <input
           id="displayName"
           name="displayName"
-          defaultValue={defaults.displayName}
+          defaultValue={v("displayName", defaults.displayName)}
           maxLength={120}
           required
           className={INPUT}
@@ -84,7 +88,7 @@ export function SpeakerEditorForm({
         <textarea
           id="bio"
           name="bio"
-          defaultValue={defaults.bio}
+          defaultValue={v("bio", defaults.bio)}
           maxLength={2000}
           rows={5}
           className={INPUT}
@@ -127,7 +131,7 @@ export function SpeakerEditorForm({
             <input
               id="talkTitle"
               name="talkTitle"
-              defaultValue={defaults.talkTitle}
+              defaultValue={v("talkTitle", defaults.talkTitle)}
               maxLength={200}
               className={INPUT}
             />
@@ -139,7 +143,7 @@ export function SpeakerEditorForm({
             <textarea
               id="talkDescription"
               name="talkDescription"
-              defaultValue={defaults.talkDescription}
+              defaultValue={v("talkDescription", defaults.talkDescription)}
               maxLength={2000}
               rows={5}
               className={INPUT}
@@ -154,7 +158,7 @@ export function SpeakerEditorForm({
             <textarea
               id="talkTakeaways"
               name="talkTakeaways"
-              defaultValue={defaults.talkTakeaways}
+              defaultValue={v("talkTakeaways", defaults.talkTakeaways)}
               rows={4}
               className={INPUT}
             />
@@ -169,7 +173,7 @@ export function SpeakerEditorForm({
         <input
           id="websiteUrl"
           name="websiteUrl"
-          defaultValue={defaults.websiteUrl}
+          defaultValue={v("websiteUrl", defaults.websiteUrl)}
           inputMode="url"
           placeholder="https://"
           className={INPUT}
@@ -187,7 +191,7 @@ export function SpeakerEditorForm({
               <input
                 id={`social_${platform}`}
                 name={`social_${platform}`}
-                defaultValue={defaults.socialUrls[platform] ?? ""}
+                defaultValue={v(`social_${platform}`, defaults.socialUrls[platform] ?? "")}
                 inputMode="url"
                 placeholder="https://"
                 className={INPUT}
@@ -208,7 +212,7 @@ export function SpeakerEditorForm({
             <input
               id="ctaLabel"
               name="ctaLabel"
-              defaultValue={defaults.ctaLabel}
+              defaultValue={v("ctaLabel", defaults.ctaLabel)}
               maxLength={40}
               className={INPUT}
             />
@@ -220,7 +224,7 @@ export function SpeakerEditorForm({
             <input
               id="ctaUrl"
               name="ctaUrl"
-              defaultValue={defaults.ctaUrl}
+              defaultValue={v("ctaUrl", defaults.ctaUrl)}
               inputMode="url"
               placeholder="https://"
               className={INPUT}
@@ -236,7 +240,7 @@ export function SpeakerEditorForm({
         <input
           id="enquiriesEmail"
           name="enquiriesEmail"
-          defaultValue={defaults.enquiriesEmail}
+          defaultValue={v("enquiriesEmail", defaults.enquiriesEmail)}
           inputMode="email"
           className={INPUT}
         />

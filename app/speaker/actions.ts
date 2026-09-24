@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { resolveOwnAppUserId } from "@/lib/account/queries";
 import { SOCIAL_PLATFORMS } from "@/lib/exhibitors/profile";
 import { publishSpeakerPhotoCopy } from "@/lib/speakers/photo";
+import { interpretSpeakerSave } from "@/lib/speakers/save-result";
 import {
   hostsWorkshops,
   validateSpeakerContent,
@@ -24,6 +25,17 @@ const ALLOWED_PHOTO_TYPES: Record<string, string> = {
 
 export interface SpeakerEditorState {
   error: string | null;
+  // Echoed on error so React 19's form reset never wipes typed work
+  // (file inputs cannot be echoed; everything text comes back).
+  values: Record<string, string> | null;
+}
+
+function echoValues(formData: FormData): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [key, value] of formData.entries()) {
+    if (typeof value === "string") out[key] = value;
+  }
+  return out;
 }
 
 // Saves the speaker's own page. USER-scoped client throughout the row
@@ -39,17 +51,25 @@ export async function saveSpeakerProfileAction(
 ): Promise<SpeakerEditorState> {
   const supabase = await createSupabaseServerClient();
   const appUserId = await resolveOwnAppUserId(supabase);
-  if (!appUserId) return { error: "You need to be signed in." };
+  if (!appUserId) return { error: "You need to be signed in.", values: echoValues(formData) };
 
   // Own profile via RLS owner_select; also gives us the id for the
-  // photo path.
+  // photo path. Loud-error rule: a QUERY failure (e.g. two profiles
+  // linked to one login) reads differently from "no page".
   const { data: profileData, error: profileErr } = await supabase
     .from("speaker_profiles")
     .select("id, slug, photo_path, profile_type")
     .eq("user_id", appUserId)
     .maybeSingle();
-  if (profileErr || !profileData) {
-    return { error: "No speaker page is linked to this account." };
+  if (profileErr) {
+    console.error("[speaker-editor] profile lookup failed:", profileErr.message);
+    return {
+      error: `Could not load your page: ${profileErr.message}. Nothing was saved; email tom@lincolnshiremarketing.co.uk if this keeps happening.`,
+      values: echoValues(formData),
+    };
+  }
+  if (!profileData) {
+    return { error: "No speaker page is linked to this account.", values: echoValues(formData) };
   }
   const profile = profileData as {
     id: string;
@@ -78,7 +98,7 @@ export async function saveSpeakerProfileAction(
     ctaUrl: formData.get("ctaUrl"),
     enquiriesEmail: formData.get("enquiriesEmail"),
   });
-  if (!validated.ok) return { error: validated.error };
+  if (!validated.ok) return { error: validated.error, values: echoValues(formData) };
   const v = validated.value;
 
   // Optional photo upload into the PRIVATE bucket at {profileId}/photo.{ext};
@@ -87,15 +107,18 @@ export async function saveSpeakerProfileAction(
   const photo = formData.get("photo");
   if (photo instanceof File && photo.size > 0) {
     const ext = ALLOWED_PHOTO_TYPES[photo.type];
-    if (!ext) return { error: "Photo must be a JPG, PNG, or WebP file." };
-    if (photo.size > MAX_PHOTO_BYTES) return { error: "Photo must be 2MB or smaller." };
+    if (!ext) return { error: "Photo must be a JPG, PNG, or WebP file.", values: echoValues(formData) };
+    if (photo.size > MAX_PHOTO_BYTES) return { error: "Photo must be 2MB or smaller.", values: echoValues(formData) };
     photoPath = `${profile.id}/photo.${ext}`;
     const { error: uploadErr } = await supabase.storage
       .from("speaker-photos")
       .upload(photoPath, photo, { upsert: true, contentType: photo.type });
     if (uploadErr) {
       console.error("[speaker-editor] photo upload failed:", uploadErr.message);
-      return { error: "Photo upload failed. Try again or skip the photo for now." };
+      return {
+        error: `Photo upload failed: ${uploadErr.message}. Try again or skip the photo for now.`,
+        values: echoValues(formData),
+      };
     }
   }
 
@@ -107,15 +130,18 @@ export async function saveSpeakerProfileAction(
   const logo = formData.get("logo");
   if (isHost && logo instanceof File && logo.size > 0) {
     const ext = ALLOWED_PHOTO_TYPES[logo.type];
-    if (!ext) return { error: "Logo must be a JPG, PNG, or WebP file." };
-    if (logo.size > MAX_PHOTO_BYTES) return { error: "Logo must be 2MB or smaller." };
+    if (!ext) return { error: "Logo must be a JPG, PNG, or WebP file.", values: echoValues(formData) };
+    if (logo.size > MAX_PHOTO_BYTES) return { error: "Logo must be 2MB or smaller.", values: echoValues(formData) };
     logoPath = `${profile.id}/logo.${ext}`;
     const { error: uploadErr } = await supabase.storage
       .from("speaker-photos")
       .upload(logoPath, logo, { upsert: true, contentType: logo.type });
     if (uploadErr) {
       console.error("[speaker-editor] logo upload failed:", uploadErr.message);
-      return { error: "Logo upload failed. Try again or skip the logo for now." };
+      return {
+        error: `Logo upload failed: ${uploadErr.message}. Try again or skip the logo for now.`,
+        values: echoValues(formData),
+      };
     }
   }
 
@@ -137,11 +163,28 @@ export async function saveSpeakerProfileAction(
     })
     .eq("id", profile.id)
     .select("slug");
-  if (updateErr) {
-    console.error("[speaker-editor] save failed:", updateErr.message);
-    return { error: "Could not save your page. Try again." };
+  // Zero matched rows is NOT success: under RLS it is what a broken
+  // ownership link looks like (the page loads via the public-read
+  // policy, but owner-update matches nothing). First seen in
+  // production with a relinked account; never report "Saved" for it.
+  const outcome = interpretSpeakerSave({
+    error: updateErr,
+    rows: updated as Array<{ slug: string }> | null,
+    fallbackSlug: profile.slug,
+  });
+  if (!outcome.ok) {
+    console.error(
+      "[speaker-editor] save did not land:",
+      JSON.stringify({
+        profile_id: profile.id,
+        app_user_id: appUserId,
+        db_error: updateErr?.message ?? null,
+        matched_rows: (updated as unknown[] | null)?.length ?? 0,
+      }),
+    );
+    return { error: outcome.error, values: echoValues(formData) };
   }
-  const slug = (updated as Array<{ slug: string }> | null)?.[0]?.slug ?? profile.slug;
+  const slug = outcome.slug;
 
   // Publish the photo/logo copies so the public pages (which never
   // read the private bucket) can show them. A copy failure does not
