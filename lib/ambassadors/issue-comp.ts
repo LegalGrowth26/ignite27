@@ -1,8 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ensureAuthUser, upsertAppUser } from "@/lib/bookings/create";
 import { generateBookingReference } from "@/lib/bookings/reference";
-import { sendDelegateConfirmationEmail } from "@/lib/bookings/send-confirmation";
-import type { ParsedDelegateMetadata } from "@/lib/bookings/intent";
+import { sendCompTicketEmail } from "@/lib/bookings/send-comp-confirmation";
 import { crmTagsForBooking, pushContactToCrmSafe } from "@/lib/crm/ghl";
 import { logAdminAction } from "@/lib/admin/audit";
 import { getActivePeriod } from "@/lib/pricing";
@@ -166,16 +165,28 @@ export async function issueCompTicket(opts: {
     return { ok: false, error: "Could not create the ticket. Try again." };
   }
 
-  // Standard confirmation email, exactly what a paying delegate gets,
-  // rendered as £0 (comp). A failure here logs loudly but the booking
-  // stands; the admin bookings view shows the unsent flag.
+  // Comp-specific confirmation: THE TICKET leads (booked, date, venue,
+  // reference, who gave it); account setup is the quiet second section
+  // with the always-works forgot-password fallback spelled out. A
+  // failure here logs loudly but the booking stands; the admin
+  // bookings view shows the unsent flag.
+  let givenByName: string | null = null;
   try {
-    await sendDelegateConfirmationEmail({
+    const { data: ambRow } = await service
+      .from("ambassadors")
+      .select("display_name")
+      .eq("id", ambassadorId)
+      .maybeSingle();
+    givenByName = (ambRow as { display_name: string } | null)?.display_name ?? null;
+  } catch {
+    givenByName = null; // the email has a warm no-name fallback
+  }
+  try {
+    await sendCompTicketEmail({
       bookingId: bookingId as string,
       bookingReference,
-      parsed: compParsedMetadata(recipient, bookingReference, period ?? "comp"),
-      vatAmountPence: 0,
-      grossPaidPence: 0,
+      recipient: { firstName: recipient.firstName, email: recipient.email },
+      givenByName,
     });
   } catch (err) {
     console.error(
@@ -205,43 +216,3 @@ export async function issueCompTicket(opts: {
   return { ok: true, bookingReference };
 }
 
-// The confirmation-email sender takes the webhook's parsed-metadata
-// shape; comps construct the equivalent directly (no Stripe session).
-function compParsedMetadata(
-  recipient: CompRecipient,
-  bookingReference: string,
-  period: string,
-): ParsedDelegateMetadata {
-  return {
-    bookingReference,
-    termsAcceptedAt: "",
-    termsAcceptedIp: "",
-    intent: {
-      ticketType: "regular",
-      lunchIncluded: false,
-      firstName: recipient.firstName,
-      surname: recipient.surname,
-      email: recipient.email,
-      mobile: "",
-      company: "",
-      jobTitle: "",
-      dietaryRequirement: "none",
-      dietaryOther: "",
-      badgeQrUrl: "",
-      marketingOptIn: false,
-      termsAccepted: false,
-    },
-    pricing: {
-      period,
-      ticketExVatPence: 0,
-      ticketVatPence: 0,
-      ticketIncVatPence: 0,
-      lunchExVatPence: 0,
-      lunchVatPence: 0,
-      lunchIncVatPence: 0,
-      grossExVatPence: 0,
-      grossVatPence: 0,
-      grossIncVatPence: 0,
-    },
-  };
-}
