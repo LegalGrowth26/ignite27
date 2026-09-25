@@ -84,6 +84,18 @@ export function BookingControls({
   }
 
   if (!viewer.signedIn) {
+    // Before ANY window opens (even the VIP one), a sign-in prompt is
+    // a dead end: signing in books nothing. Say when booking opens
+    // instead. From 1 January a signed-out VIP could book after
+    // signing in, so the prompt returns then.
+    if (!workshopAccess(now, true).open) {
+      return (
+        <span className="inline-flex items-center rounded-full border border-ignite-line px-4 py-2 text-small font-semibold text-ignite-muted">
+          Workshop booking opens 1 January for VIP ticket holders and 4
+          January for everyone else.
+        </span>
+      );
+    }
     return (
       <div className="flex flex-wrap items-center gap-3">
         <Link
