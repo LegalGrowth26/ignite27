@@ -7,6 +7,7 @@ import { Section } from "@/components/Section";
 import { SectionHeader } from "@/components/SectionHeader";
 import { fetchOwnBookingDetail, resolveOwnAppUserId } from "@/lib/account/queries";
 import { isTbcAttendeeName } from "@/lib/bookings/exhibitor-intent";
+import { AttendeeEditForm } from "./AttendeeEditForm";
 import type { DietaryRequirement } from "@/lib/bookings/intent";
 import { formatPoundsFromPence } from "@/lib/pricing";
 import { createSupabaseServerClient } from "@/lib/supabase/server-client";
@@ -25,7 +26,7 @@ export const metadata: Metadata = {
 interface BookingDetail {
   id: string;
   booking_reference: string | null;
-  booking_type: "delegate" | "exhibitor";
+  booking_type: "delegate" | "exhibitor" | "partner";
   ticket_type: "regular" | "vip" | "exhibitor";
   pricing_period: string;
   gross_amount_pence: number;
@@ -78,6 +79,7 @@ function periodLabel(value: string): string {
 
 function ticketLabel(booking: BookingDetail): string {
   if (booking.booking_type === "exhibitor") return "Exhibitor";
+  if (booking.booking_type === "partner") return "Partner package (2 places, lunch included)";
   return booking.ticket_type === "vip" ? "VIP" : "Regular";
 }
 
@@ -182,11 +184,12 @@ export default async function BookingDetailPage({
             <DetailRow label="Booking status" value={booking.booking_status} />
           </dl>
 
-          {booking.booking_type === "exhibitor" ? (
-            // Exhibitor bookings show BOTH attendee places. A slot booked
-            // as "Name TBC" renders the confirm-later state; the customer
-            // can send the name via a correction request until self-edit
-            // ships.
+          {booking.booking_type === "exhibitor" || booking.booking_type === "partner" ? (
+            // Multi-place bookings (exhibitor stands and partner
+            // packages) show BOTH attendee places, each self-editable:
+            // name a slot when you know, put it back to TBC when plans
+            // change. Dietary is collected because these places always
+            // include lunch.
             <div className="mt-6 grid gap-4">
               {[...booking.booking_attendees]
                 .sort((a, b) => a.attendee_index - b.attendee_index)
@@ -195,32 +198,30 @@ export default async function BookingDetailPage({
                     key={a.attendee_index}
                     className="rounded-2xl border border-ignite-line bg-ignite-white p-6"
                   >
-                    <h2 className="text-h3">Attendee {a.attendee_index}</h2>
-                    {isTbcAttendeeName(a.first_name, a.surname) ? (
-                      <p className="mt-3 text-body text-ignite-muted">
-                        To be confirmed. Let us know nearer the event. Use
-                        &quot;Request a correction&quot; below to send us their
-                        name and dietary needs, and we&apos;ll add them to the
-                        booking and their badge.
-                      </p>
-                    ) : (
-                      <dl className="mt-4 grid gap-4 sm:grid-cols-2">
-                        <DetailRow label="Name" value={`${a.first_name} ${a.surname}`} />
-                        <DetailRow label="Email" value={a.email} />
-                        {a.mobile ? <DetailRow label="Mobile" value={a.mobile} /> : null}
-                        {a.job_title ? (
-                          <DetailRow label="Job title" value={a.job_title} />
-                        ) : null}
-                        <DetailRow
-                          label="Dietary"
-                          value={
-                            a.dietary_requirement === "other" && a.dietary_other
-                              ? `Other: ${a.dietary_other}`
-                              : DIETARY_LABELS[a.dietary_requirement]
-                          }
-                        />
-                      </dl>
-                    )}
+                    <h2 className="text-h3">
+                      Attendee {a.attendee_index}
+                      {isTbcAttendeeName(a.first_name, a.surname) ? (
+                        <span className="ml-2 rounded-full bg-ignite-cream px-2 py-0.5 text-eyebrow uppercase text-ignite-muted">
+                          To be confirmed
+                        </span>
+                      ) : null}
+                    </h2>
+                    <AttendeeEditForm
+                      bookingId={booking.id}
+                      attendeeIndex={a.attendee_index}
+                      defaults={{
+                        tbc: isTbcAttendeeName(a.first_name, a.surname),
+                        firstName: isTbcAttendeeName(a.first_name, a.surname)
+                          ? ""
+                          : a.first_name,
+                        surname: a.surname,
+                        email: a.email,
+                        mobile: a.mobile ?? "",
+                        jobTitle: a.job_title ?? "",
+                        dietaryRequirement: a.dietary_requirement,
+                        dietaryOther: a.dietary_other ?? "",
+                      }}
+                    />
                   </div>
                 ))}
             </div>

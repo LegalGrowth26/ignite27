@@ -10,7 +10,10 @@ import {
   nextExpiry,
   validateRequestAmountPounds,
 } from "@/lib/partners/payments";
+import { ensurePartnerPackageBooking } from "@/lib/partners/package";
+import { ensurePartnerAmbassador } from "@/lib/partners/provision";
 import { sendPartnerPaymentRequestEmail } from "@/lib/partners/send-payment";
+import { sendPartnerWelcome } from "@/lib/partners/send-welcome";
 import { validatePartner, type PartnerTier } from "@/lib/partners/validate";
 import { createSupabaseServiceClient } from "@/lib/supabase/service-client";
 
@@ -57,6 +60,7 @@ export async function savePartnerAction(
     contactEmail: formData.get("contactEmail"),
     tier: formData.get("tier"),
     agreedPricePounds: formData.get("agreedPricePounds"),
+    compAllowance: formData.get("compAllowance"),
     notes: formData.get("notes"),
     websiteUrl: formData.get("websiteUrl"),
   });
@@ -69,6 +73,7 @@ export async function savePartnerAction(
     contact_email: v.contactEmail,
     tier: v.tier,
     agreed_price_pence: v.agreedPricePence,
+    comp_allowance: v.compAllowance,
     notes: v.notes,
     website_url: v.websiteUrl,
   };
@@ -120,15 +125,159 @@ export async function savePartnerAction(
     }
   }
 
+  // ------------------------------------------------------------------
+  // The package (approved): every save ENSURES the benefits, so adding
+  // a partner provisions everything and re-saving an old record (the
+  // Impact catch-up) heals it. Each step is idempotent and failure-
+  // isolated; flags ride the redirect for the status notes.
+  // ------------------------------------------------------------------
+  const { data: freshData } = await service
+    .from("partners")
+    .select("id, company_name, contact_name, contact_email, tier, agreed_price_pence, package_booking_id, status")
+    .eq("id", id)
+    .maybeSingle();
+  const fresh = freshData as {
+    id: string;
+    company_name: string;
+    contact_name: string;
+    contact_email: string;
+    tier: PartnerTier;
+    agreed_price_pence: number;
+    package_booking_id: string | null;
+    status: string;
+  } | null;
+
+  const flags: string[] = [];
+  if (fresh && fresh.status !== "ended") {
+    let packageCreated = false;
+    let accountExisted = false;
+    let appUserId: string | null = null;
+    try {
+      const pkg = await ensurePartnerPackageBooking(service, fresh);
+      packageCreated = pkg.created;
+      accountExisted = pkg.accountExisted;
+      appUserId = pkg.appUserId;
+    } catch (err) {
+      console.error("[admin/partners] package booking failed:", err);
+      flags.push("package_failed");
+    }
+
+    let provisionState: Awaited<ReturnType<typeof ensurePartnerAmbassador>> | null = null;
+    if (appUserId) {
+      provisionState = await ensurePartnerAmbassador(service, fresh, appUserId, v.compAllowance);
+      if (provisionState.state === "existing_other") flags.push("ambassador_existing");
+      if (provisionState.state === "failed") flags.push("perks_failed");
+      if (provisionState.state === "synced" && provisionState.clampedTo !== null) {
+        flags.push(`allowance_clamped_${provisionState.clampedTo}`);
+      }
+    }
+
+    // Welcome email = the package confirmation (approved: no second
+    // email). Sent once, when something was newly provisioned.
+    if (packageCreated || provisionState?.state === "created") {
+      try {
+        await sendPartnerWelcome(service, fresh.id, accountExisted);
+        flags.push("welcome_sent");
+      } catch (err) {
+        console.error("[admin/partners] welcome email failed:", err);
+        flags.push("welcome_failed");
+      }
+    }
+
+    // Auto-send the FIRST payment request on ADD (approved): full
+    // agreed amount, unless the admin unticked the hold checkbox.
+    if (!partnerId) {
+      const sendNow = formData.get("sendPaymentNow") === "on";
+      if (sendNow && fresh.agreed_price_pence > 0) {
+        try {
+          const payment = await createAndSendPaymentRequest(
+            service,
+            ctx.appUserId,
+            fresh,
+            fresh.agreed_price_pence,
+          );
+          flags.push(payment.emailSent ? "payment_sent" : "payment_email_failed");
+        } catch (err) {
+          console.error("[admin/partners] auto payment request failed:", err);
+          flags.push("payment_failed");
+        }
+      } else {
+        flags.push("payment_held");
+      }
+    }
+  }
+
   await logAdminAction(ctx.appUserId, partnerId ? "partner.update" : "partner.add", {
     partner_id: id,
     company_name: v.companyName,
     tier: v.tier,
     agreed_price_pence: v.agreedPricePence,
+    comp_allowance: v.compAllowance,
+    package_flags: flags,
   });
 
   revalidatePartnerSurfaces();
-  redirect(`/admin/partners?status=${partnerId ? "saved" : "added"}`);
+  const flagQuery = flags.length > 0 ? `&flags=${flags.join(",")}` : "";
+  redirect(`/admin/partners?status=${partnerId ? "saved" : "added"}${flagQuery}`);
+}
+
+// Create one payment request and email its link. Shared by the manual
+// "Send payment request" form and the auto-send on partner add.
+async function createAndSendPaymentRequest(
+  service: ReturnType<typeof createSupabaseServiceClient>,
+  actorAppUserId: string,
+  partner: {
+    id: string;
+    company_name: string;
+    contact_name: string;
+    contact_email: string;
+    tier: PartnerTier;
+  },
+  amountPence: number,
+): Promise<{ requestId: string; emailSent: boolean }> {
+  const expiresAt = nextExpiry(new Date());
+  const { data: inserted, error: insertErr } = await service
+    .from("partner_payment_requests")
+    .insert({
+      partner_id: partner.id,
+      amount_ex_vat_pence: amountPence,
+      expires_at: expiresAt.toISOString(),
+      created_by: actorAppUserId,
+    })
+    .select("id, token")
+    .single();
+  if (insertErr || !inserted) {
+    throw new Error(`payment request insert failed: ${insertErr?.message ?? "unknown"}`);
+  }
+  const request = inserted as { id: string; token: string };
+
+  let emailSent = true;
+  try {
+    await sendPartnerPaymentRequestEmail({
+      partner,
+      amountExVatPence: amountPence,
+      token: request.token,
+      expiresAt,
+      isResend: false,
+    });
+  } catch (err) {
+    emailSent = false;
+    console.error("[admin/partners] payment request email failed:", err);
+  }
+  if (emailSent) {
+    await service
+      .from("partner_payment_requests")
+      .update({ sent_at: new Date().toISOString(), send_count: 1 })
+      .eq("id", request.id);
+  }
+
+  await logAdminAction(actorAppUserId, "partner.payment_request", {
+    partner_id: partner.id,
+    request_id: request.id,
+    amount_ex_vat_pence: amountPence,
+    email_sent: emailSent,
+  });
+  return { requestId: request.id, emailSent };
 }
 
 export async function togglePartnerVisibilityAction(partnerId: string): Promise<void> {
@@ -187,6 +336,31 @@ export async function endPartnershipAction(partnerId: string): Promise<void> {
     console.error("[admin/partners] cancel-on-end failed:", cancelErr.message);
   }
 
+  // Package unwind (approved): the 2 places are cancelled (attendee
+  // rows kept for history, catering counts freed) and the partner-
+  // provisioned ambassador is deactivated (link stops attributing,
+  // claim link goes quiet, history kept).
+  const { data: pkgData } = await service
+    .from("partners")
+    .select("package_booking_id")
+    .eq("id", partnerId)
+    .maybeSingle();
+  const pkgBookingId = (pkgData as { package_booking_id: string | null } | null)
+    ?.package_booking_id;
+  if (pkgBookingId) {
+    const { error: pkgErr } = await service
+      .from("bookings")
+      .update({ booking_status: "cancelled" })
+      .eq("id", pkgBookingId);
+    if (pkgErr) console.error("[admin/partners] package cancel failed:", pkgErr.message);
+  }
+  const { error: ambErr } = await service
+    .from("ambassadors")
+    .update({ deactivated_at: new Date().toISOString() })
+    .eq("partner_id", partnerId)
+    .is("deactivated_at", null);
+  if (ambErr) console.error("[admin/partners] ambassador deactivate failed:", ambErr.message);
+
   await logAdminAction(ctx.appUserId, "partner.end", {
     partner_id: partnerId,
     company_name: partner.company_name,
@@ -235,49 +409,23 @@ export async function sendPaymentRequestAction(
     return { error: "This partnership has ended; no payment requests.", ok: null, values: null };
   }
 
-  const expiresAt = nextExpiry(new Date());
-  const { data: inserted, error: insertErr } = await service
-    .from("partner_payment_requests")
-    .insert({
-      partner_id: partnerId,
-      amount_ex_vat_pence: amount.pence,
-      expires_at: expiresAt.toISOString(),
-      created_by: ctx.appUserId,
-    })
-    .select("id, token")
-    .single();
-  if (insertErr || !inserted) {
-    console.error("[admin/partners] payment request insert failed:", insertErr?.message);
-    return { error: `Could not create the request: ${insertErr?.message ?? "unknown"}`, ok: null, values: echoFormValues(formData) };
-  }
-  const request = inserted as { id: string; token: string };
-
-  let emailSent = true;
+  let emailSent: boolean;
   try {
-    await sendPartnerPaymentRequestEmail({
-      partner,
-      amountExVatPence: amount.pence,
-      token: request.token,
-      expiresAt,
-      isResend: false,
-    });
+    const result = await createAndSendPaymentRequest(
+      service,
+      ctx.appUserId,
+      { ...partner, id: partnerId },
+      amount.pence,
+    );
+    emailSent = result.emailSent;
   } catch (err) {
-    emailSent = false;
-    console.error("[admin/partners] payment request email failed:", err);
+    console.error("[admin/partners] payment request failed:", err);
+    return {
+      error: `Could not create the request: ${err instanceof Error ? err.message : "unknown"}`,
+      ok: null,
+      values: echoFormValues(formData),
+    };
   }
-  if (emailSent) {
-    await service
-      .from("partner_payment_requests")
-      .update({ sent_at: new Date().toISOString(), send_count: 1 })
-      .eq("id", request.id);
-  }
-
-  await logAdminAction(ctx.appUserId, "partner.payment_request", {
-    partner_id: partnerId,
-    request_id: request.id,
-    amount_ex_vat_pence: amount.pence,
-    email_sent: emailSent,
-  });
   revalidatePath(`/admin/partners/${partnerId}/edit`);
   return emailSent
     ? { error: null, ok: `Payment request for ${amountWithVatLabel(amount.pence)} sent to ${partner.contact_email}.`, values: null }
@@ -364,5 +512,17 @@ export async function cancelPaymentRequestAction(requestId: string): Promise<voi
     partner_id: partnerId,
     request_id: requestId,
   });
+  revalidatePath(`/admin/partners/${partnerId}/edit`);
+}
+
+
+// Re-send the package welcome (idempotent: reads the live rows). By
+// this point the contact always has an account, so the email's access
+// block takes the log-in branch.
+export async function resendPartnerWelcomeAction(partnerId: string): Promise<void> {
+  const ctx = await requireSuperAdmin();
+  const service = createSupabaseServiceClient();
+  await sendPartnerWelcome(service, partnerId, true);
+  await logAdminAction(ctx.appUserId, "partner.welcome_resend", { partner_id: partnerId });
   revalidatePath(`/admin/partners/${partnerId}/edit`);
 }

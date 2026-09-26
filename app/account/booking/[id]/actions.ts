@@ -9,6 +9,7 @@ import {
   type SimpleTextEmailProps,
 } from "@/emails/simple-text";
 import { ADMIN_EMAILS } from "@/lib/bookings/admin-notifications";
+import { validateAttendeeEdit } from "@/lib/bookings/attendee-edit";
 import { metadataToParsed } from "@/lib/bookings/intent";
 import { sendDelegateConfirmationEmail } from "@/lib/bookings/send-confirmation";
 import { sendTransactionalEmail } from "@/lib/resend/send";
@@ -297,4 +298,92 @@ export async function submitResendConfirmation(bookingId: string): Promise<void>
   const status = result.ok ? "confirmation_resent" : "error";
   const err = !result.ok ? `&message=${encodeURIComponent(result.message)}` : "";
   redirect(`/account/booking/${bookingId}?status=${status}${err}`);
+}
+
+
+// ---------------------------------------------------------------------------
+// Attendee self-edit on multi-place bookings (exhibitor + partner).
+// RLS is the gate: booking_attendees_owner_update only matches slots
+// on the caller's own active non-delegate booking, and zero matched
+// rows is a LOUD failure, never silent success (learned from the
+// speaker editor).
+// ---------------------------------------------------------------------------
+
+export interface AttendeeEditState {
+  error: string | null;
+  ok: string | null;
+  values: Record<string, string> | null;
+}
+
+function echoAttendee(formData: FormData): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [key, value] of formData.entries()) {
+    if (typeof value === "string") out[key] = value;
+  }
+  return out;
+}
+
+export async function updateAttendeeAction(
+  bookingId: string,
+  attendeeIndex: number,
+  _prev: AttendeeEditState,
+  formData: FormData,
+): Promise<AttendeeEditState> {
+  const supabase = await createSupabaseServerClient();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user?.email) {
+    return { error: "Please log in.", ok: null, values: echoAttendee(formData) };
+  }
+
+  const validated = validateAttendeeEdit({
+    tbc: formData.get("tbc"),
+    firstName: formData.get("firstName"),
+    surname: formData.get("surname"),
+    email: formData.get("email"),
+    mobile: formData.get("mobile"),
+    jobTitle: formData.get("jobTitle"),
+    dietaryRequirement: formData.get("dietaryRequirement"),
+    dietaryOther: formData.get("dietaryOther"),
+    fallbackEmail: userData.user.email,
+  });
+  if (!validated.ok) {
+    return { error: validated.error, ok: null, values: echoAttendee(formData) };
+  }
+
+  const { data: updated, error } = await supabase
+    .from("booking_attendees")
+    .update(validated.row)
+    .eq("booking_id", bookingId)
+    .eq("attendee_index", attendeeIndex)
+    .select("attendee_index");
+  if (error) {
+    console.error("[account/attendee-edit] update failed:", error.message);
+    return {
+      error: `Could not save: ${error.message}`,
+      ok: null,
+      values: echoAttendee(formData),
+    };
+  }
+  if (!updated || updated.length === 0) {
+    console.error(
+      "[account/attendee-edit] zero rows matched",
+      JSON.stringify({ booking_id: bookingId, attendee_index: attendeeIndex }),
+    );
+    return {
+      error:
+        "Your changes did NOT save: this slot is not editable from your login. Nothing you typed is wrong; get in touch and we will sort it.",
+      ok: null,
+      values: echoAttendee(formData),
+    };
+  }
+
+  revalidatePath(`/account/booking/${bookingId}`);
+  return {
+    error: null,
+    ok:
+      validated.row.first_name === "TBC"
+        ? "Saved: this place is back to 'to be confirmed'."
+        : `Saved: ${validated.row.first_name} ${validated.row.surname} is on this place.`,
+    values: null,
+  };
 }

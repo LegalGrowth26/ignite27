@@ -35,10 +35,33 @@ interface PartnerRow {
 export default async function AdminPartnersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; flags?: string }>;
 }) {
   const { client } = await requireSuperAdmin();
-  const { status } = await searchParams;
+  const { status, flags } = await searchParams;
+  const flagList = (flags ?? "").split(",").filter(Boolean);
+  const flagNote = (flag: string): string | null => {
+    if (flag === "welcome_sent")
+      return "Welcome email sent: their two places, guest ticket link, share link, and 20% code, all in one.";
+    if (flag === "welcome_failed")
+      return "The welcome email FAILED to send. Fix and use Resend welcome on the partner's edit page.";
+    if (flag === "package_failed")
+      return "The 2-place package booking could not be created. Re-save the partner to retry; check the logs.";
+    if (flag === "perks_failed")
+      return "Guest-ticket provisioning failed. Re-save the partner to retry; check the logs.";
+    if (flag === "ambassador_existing")
+      return "This contact already has ambassador perks (for example as a workshop host). Their existing links and allowance stay exactly where they are; nothing was overwritten.";
+    if (flag.startsWith("allowance_clamped_"))
+      return `The allowance could not go below guest tickets already used; it is set to ${flag.replace("allowance_clamped_", "")}.`;
+    if (flag === "payment_sent") return "Payment link emailed to the contact for the full agreed amount.";
+    if (flag === "payment_held")
+      return "Payment email held, as ticked. Send it from the Payments panel on the partner's edit page when ready.";
+    if (flag === "payment_email_failed")
+      return "The payment request was created but its email FAILED. Use Resend on the Payments panel.";
+    if (flag === "payment_failed")
+      return "The payment request could not be created. Use Send payment request on the partner's edit page.";
+    return null;
+  };
 
   const { data, error } = await client
     .from("partners")
@@ -114,6 +137,23 @@ export default async function AdminPartnersPage({
         <p className="mt-4 rounded-xl border border-ignite-line bg-ignite-white p-3 text-small">
           Partner added. They are on the public strip now (if visible and not ended).
         </p>
+      ) : null}
+      {flagList.length > 0 ? (
+        <div className="mt-4 grid gap-2">
+          {flagList.map((f) => {
+            const note = flagNote(f);
+            if (!note) return null;
+            const bad = /FAILED|could not/i.test(note);
+            return (
+              <p
+                key={f}
+                className={`rounded-xl border p-3 text-small ${bad ? "border-ignite-red/50 bg-ignite-red/5 text-ignite-red" : "border-ignite-line bg-ignite-white text-ignite-ink"}`}
+              >
+                {note}
+              </p>
+            );
+          })}
+        </div>
       ) : null}
       {status === "saved" ? (
         <p className="mt-4 rounded-xl border border-ignite-line bg-ignite-white p-3 text-small">

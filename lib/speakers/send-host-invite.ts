@@ -5,15 +5,13 @@ import {
   renderHostInvitePlainText,
   type HostInviteProps,
 } from "@/emails/host-invite";
-import { buildCouponParams, buildPromotionCodeParams } from "@/lib/admin/stripe-codes";
 import { ambassadorShareUrl } from "@/lib/ambassadors/attribution";
+import { ensurePercentCode } from "@/lib/ambassadors/ensure-code";
 import { claimUrl as buildClaimUrl } from "@/lib/ambassadors/claim";
 import { claimLinkLine, compTicketsLine, discountLines } from "@/lib/ambassadors/welcome";
 import { generateSetPasswordLink } from "@/lib/bookings/send-confirmation";
 import { env } from "@/lib/env";
 import { sendTransactionalEmail } from "@/lib/resend/send";
-import { getStripe } from "@/lib/stripe/client";
-import { ensureStripeProducts } from "@/lib/stripe/products";
 import { createSupabaseServiceClient } from "@/lib/supabase/service-client";
 import { attachSpeakerAccount } from "./create-profile";
 import { inviteAccessBlock, loginUrl } from "./invite-access";
@@ -57,35 +55,6 @@ interface HostProfileRecord {
   profile_type: string;
   published_at: string | null;
   user_id: string | null;
-}
-
-async function ensureHostCode(code: string): Promise<boolean> {
-  const stripe = getStripe();
-  try {
-    const { data } = await stripe.promotionCodes.list({ code, limit: 1 });
-    if (data[0]) return true;
-    await ensureStripeProducts(stripe);
-    const coupon = await stripe.coupons.create(
-      buildCouponParams({
-        code,
-        kind: "percent",
-        percentOff: HOST_DISCOUNT_PERCENT,
-        appliesTo: "everything_except_lunch",
-        note: "workshop host personal code",
-      }),
-    );
-    await stripe.promotionCodes.create(
-      buildPromotionCodeParams(
-        coupon.id,
-        { code, kind: "percent", percentOff: HOST_DISCOUNT_PERCENT },
-        "host-invite",
-      ),
-    );
-    return true;
-  } catch (err) {
-    console.error(`[host-invite] code provisioning failed for ${code}:`, err);
-    return false;
-  }
 }
 
 async function ensureHostAmbassador(
@@ -189,7 +158,12 @@ export async function inviteWorkshopHost(
 
   // 3 + 4. Perks.
   const code = hostDiscountCode(profile.slug);
-  const codeReady = await ensureHostCode(code);
+  const codeReady = await ensurePercentCode(
+    code,
+    HOST_DISCOUNT_PERCENT,
+    "workshop host personal code",
+    "host-invite",
+  );
   const ambassador = await ensureHostAmbassador(
     service,
     profile,

@@ -79,7 +79,7 @@ async function fetchAttendeeSourceRows(service: SupabaseClient): Promise<Attende
     email: string;
     booking_id: string;
     bookings: {
-      booking_type: "delegate" | "exhibitor";
+      booking_type: "delegate" | "exhibitor" | "partner";
       ticket_type: string;
       booking_status: string;
       payment_status: string;

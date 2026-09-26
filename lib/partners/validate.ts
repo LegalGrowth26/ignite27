@@ -38,6 +38,7 @@ export interface PartnerInput {
   contactEmail: string;
   tier: PartnerTier;
   agreedPricePence: number;
+  compAllowance: number;
   notes: string;
   websiteUrl: string | null;
 }
@@ -65,6 +66,7 @@ export function validatePartner(input: {
   contactEmail?: unknown;
   tier?: unknown;
   agreedPricePounds?: unknown; // form field in whole pounds; "" = tier default
+  compAllowance?: unknown; // built-in comps; "" = the package default of 2
   notes?: unknown;
   websiteUrl?: unknown;
 }): PartnerValidation {
@@ -98,6 +100,13 @@ export function validatePartner(input: {
     agreedPricePence = Math.round(pounds * 100);
   }
 
+  // Built-in comps (approved): default 2 per package, 0 allowed.
+  const allowanceRaw = str(input.compAllowance);
+  const compAllowance = allowanceRaw === "" ? 2 : Number.parseInt(allowanceRaw, 10);
+  if (!Number.isInteger(compAllowance) || compAllowance < 0 || compAllowance > 100) {
+    return { ok: false, error: "Comp allowance must be a whole number, 0 or more." };
+  }
+
   const notes = str(input.notes);
   if (notes.length > 2000) {
     return { ok: false, error: "Notes are too long (max 2000 characters)." };
@@ -116,6 +125,7 @@ export function validatePartner(input: {
       contactEmail,
       tier,
       agreedPricePence,
+      compAllowance,
       notes,
       websiteUrl: websiteUrl || null,
     },
