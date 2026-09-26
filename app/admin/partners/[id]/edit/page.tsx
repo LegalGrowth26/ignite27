@@ -11,6 +11,7 @@ import {
   type PaymentRequestRow,
 } from "@/lib/partners/payments";
 import { PartnerForm } from "../../PartnerForm";
+import { resendPartnerWelcomeAction } from "../../actions";
 import {
   CancelPaymentRequestButton,
   ResendPaymentRequestButton,
@@ -29,6 +30,7 @@ interface Row {
   contact_email: string;
   tier: string;
   agreed_price_pence: number;
+  comp_allowance: number;
   status: string;
   notes: string;
   website_url: string | null;
@@ -47,7 +49,7 @@ export default async function EditPartnerPage({
     .from("partners")
     .select(
       `id, company_name, contact_name, contact_email, tier,
-       agreed_price_pence, status, notes, website_url, logo_path`,
+       agreed_price_pence, comp_allowance, status, notes, website_url, logo_path`,
     )
     .eq("id", id)
     .maybeSingle();
@@ -103,6 +105,7 @@ export default async function EditPartnerPage({
             contactEmail: partner.contact_email,
             tier: partner.tier,
             agreedPricePounds: String(partner.agreed_price_pence / 100),
+            compAllowance: String(partner.comp_allowance ?? 2),
             notes: partner.notes,
             websiteUrl: partner.website_url ?? "",
             hasLogo: Boolean(partner.logo_path),
@@ -110,7 +113,22 @@ export default async function EditPartnerPage({
         />
       </div>
 
-      <h2 className="mt-12 text-h2">Payments</h2>
+      <div className="mt-10 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-small text-ignite-muted">
+          Package welcome (places, guest ticket link, share link, code) went
+          out when the partner was provisioned.
+        </p>
+        <form action={resendPartnerWelcomeAction.bind(null, partner.id)}>
+          <button
+            type="submit"
+            className="rounded-full border border-ignite-line px-4 py-2 text-small font-semibold text-ignite-ink hover:border-ignite-red"
+          >
+            Resend welcome
+          </button>
+        </form>
+      </div>
+
+      <h2 className="mt-8 text-h2">Payments</h2>
       {requestsErr ? (
         <p className="mt-2 rounded-xl border-2 border-ignite-red bg-ignite-red/5 p-3 text-small text-ignite-red">
           Payment ledger unavailable ({requestsErr.message}). If this mentions

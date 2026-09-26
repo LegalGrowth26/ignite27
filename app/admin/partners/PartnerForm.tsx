@@ -1,6 +1,8 @@
 "use client";
 
 import { useActionState } from "react";
+import { useState } from "react";
+import { amountWithVatLabel } from "@/lib/partners/payments";
 import { PARTNER_TIERS, PARTNER_TIER_META } from "@/lib/partners/validate";
 import type { EchoedValues } from "@/lib/admin/form-echo";
 import { savePartnerAction, type PartnerFormState } from "./actions";
@@ -16,6 +18,7 @@ export interface PartnerDefaults {
   contactEmail: string;
   tier: string;
   agreedPricePounds: string; // "" = standard tier price
+  compAllowance: string; // "" = the package default of 2
   notes: string;
   websiteUrl: string;
   hasLogo: boolean;
@@ -34,6 +37,10 @@ export function PartnerForm({
     savePartnerAction.bind(null, partnerId),
     { error: null, values: null },
   );
+  // Live preview for the auto-send notice on ADD: tracks the tier and
+  // any bespoke price so "Saving will email..." is never a surprise.
+  const [previewTier, setPreviewTier] = useState(defaults.tier || PARTNER_TIERS[0]);
+  const [previewPounds, setPreviewPounds] = useState(defaults.agreedPricePounds);
   // Echoed values on a validation error beat defaults,
   // so the add-anyway resubmit carries everything already typed.
   const echoed: EchoedValues | null = state.values;
@@ -103,7 +110,13 @@ export function PartnerForm({
           <label htmlFor="tier" className={LABEL}>
             Tier <span className="text-ignite-red">*</span>
           </label>
-          <select id="tier" name="tier" defaultValue={v("tier")} className={INPUT}>
+          <select
+            id="tier"
+            name="tier"
+            defaultValue={v("tier")}
+            onChange={(e) => setPreviewTier(e.target.value)}
+            className={INPUT}
+          >
             {PARTNER_TIERS.map((t) => (
               <option key={t} value={t}>
                 {PARTNER_TIER_META[t].label} (£
@@ -120,6 +133,7 @@ export function PartnerForm({
             id="agreedPricePounds"
             name="agreedPricePounds"
             defaultValue={v("agreedPricePounds")}
+            onChange={(e) => setPreviewPounds(e.target.value)}
             inputMode="decimal"
             placeholder="Standard tier price"
             className={INPUT}
@@ -145,6 +159,26 @@ export function PartnerForm({
       </div>
 
       <div>
+        <label htmlFor="compAllowance" className={LABEL}>
+          Guest tickets included (comp allowance)
+        </label>
+        <input
+          id="compAllowance"
+          name="compAllowance"
+          type="number"
+          min={0}
+          max={100}
+          defaultValue={v("compAllowance") || "2"}
+          className={INPUT}
+        />
+        <p className={HELP}>
+          Part of the package: saving provisions the contact&apos;s guest
+          ticket claim link, share link, and 20% code, and keeps this number
+          in sync. 0 means no guest tickets.
+        </p>
+      </div>
+
+      <div>
         <label htmlFor="notes" className={LABEL}>
           Notes (admin only)
         </label>
@@ -157,6 +191,37 @@ export function PartnerForm({
           className={INPUT}
         />
       </div>
+
+      {partnerId === null ? (
+        <div className="rounded-2xl border border-ignite-line bg-ignite-cream p-4">
+          <p className="text-body font-semibold text-ignite-ink">
+            Saving will email the contact a payment link for{" "}
+            {amountWithVatLabel(
+              previewPounds.trim() !== "" && Number.isFinite(Number.parseFloat(previewPounds))
+                ? Math.round(Number.parseFloat(previewPounds) * 100)
+                : PARTNER_TIER_META[
+                    (PARTNER_TIERS as readonly string[]).includes(previewTier)
+                      ? (previewTier as (typeof PARTNER_TIERS)[number])
+                      : PARTNER_TIERS[0]
+                  ].standardPricePence,
+            )}
+            .
+          </p>
+          <label className="mt-3 flex items-start gap-3">
+            <input
+              type="checkbox"
+              name="sendPaymentNow"
+              defaultChecked
+              className="mt-1 h-4 w-4"
+            />
+            <span className="text-small text-ignite-ink">
+              Email the payment link now (untick to hold it, e.g. while deal
+              terms are still being finalised; you can send it later from the
+              Payments panel)
+            </span>
+          </label>
+        </div>
+      ) : null}
 
       {state.error ? (
         <p className="rounded-xl border border-ignite-red/50 bg-ignite-red/5 p-3 text-small text-ignite-red">

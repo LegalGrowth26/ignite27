@@ -43,7 +43,9 @@ export interface AttendeeSourceRow {
   surname: string;
   email: string;
   booking_id: string;
-  booking_type: "delegate" | "exhibitor";
+  // 'partner' = the partner package's own places: included in
+  // all_attendees and everyone_except_vips, never in the typed lists.
+  booking_type: "delegate" | "exhibitor" | "partner";
   ticket_type: string;
   booking_status: string;
   payment_status: string;

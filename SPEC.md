@@ -220,7 +220,27 @@ Speakers' Den £2,500, Partner £1,000, each overridable per deal via
 checks, or displays it.
 
 - Recorded in /admin/partners: company, contact, tier, agreed price,
-  notes, website, logo.
+  comp allowance, notes, website, logo.
+- **Partner package (September 2026):** a partnership INCLUDES its
+  benefits, configured on the partner record. Adding a partner
+  creates a £0 booking_type 'partner' booking with 2 delegate places
+  WITH LUNCH for their own people (named attendees, dietary, TBC
+  allowed, self-editable from the contact's account: the same
+  attendee editor also unlocked self-edit on exhibitor bookings), and
+  auto-provisions the contact's ambassador row (type partner, claim
+  link, share link with auto-apply, fixed 20% code) from the form's
+  comp allowance (default 2, 0 allowed). Given-away comps stay
+  WITHOUT lunch. Allowance edits sync to the partner-provisioned row
+  only: the NO-TRAMPLE rule means a contact who already has an
+  unrelated ambassador row (e.g. a workshop host) keeps it untouched
+  and the admin sees a notice. ONE welcome email covers the package
+  and doubles as the booking confirmation. Adding a partner also
+  AUTO-SENDS the first payment request for the full agreed amount
+  (stated on the form before saving, default-on checkbox to hold it).
+  Ending a partnership cancels the package booking and deactivates
+  the partner ambassador, history kept. CRM tag: Partner27. Partner
+  attendees join the all_attendees and everyone_except_vips email
+  audiences and count for workshop booking eligibility.
 - **Payment collection (September 2026):** admin sends payment
   requests from the partner record. Each request snapshots its own
   ex-VAT amount (default: the remaining balance), gets a stable

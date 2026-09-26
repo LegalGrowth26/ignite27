@@ -16,6 +16,30 @@ function row(overrides: Partial<AttendeeSourceRow>): AttendeeSourceRow {
   };
 }
 
+describe("partner package rows in audiences", () => {
+  const partnerRow = {
+    first_name: "Oliver",
+    surname: "Smith",
+    email: "oliver@impact.example.com",
+    booking_id: "b-pp",
+    booking_type: "partner" as const,
+    ticket_type: "regular",
+    booking_status: "active",
+    payment_status: "comp",
+  };
+
+  it("partner attendees receive all_attendees and everyone_except_vips", () => {
+    expect(resolveRecipients([partnerRow], "all_attendees")).toHaveLength(1);
+    expect(resolveRecipients([partnerRow], "everyone_except_vips")).toHaveLength(1);
+  });
+
+  it("partner attendees never leak into the typed lists", () => {
+    expect(resolveRecipients([partnerRow], "delegates")).toHaveLength(0);
+    expect(resolveRecipients([partnerRow], "vips")).toHaveLength(0);
+    expect(resolveRecipients([partnerRow], "exhibitors")).toHaveLength(0);
+  });
+});
+
 describe("resolveRecipients", () => {
   it("all_attendees: paid and comp actives across both booking types", () => {
     const recipients = resolveRecipients(

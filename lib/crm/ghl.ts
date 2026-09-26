@@ -32,20 +32,22 @@ export type CrmTag =
   | "VIP27"
   | "Exhibitor27"
   | "CompGuest27"
-  | "AmbassadorRef27";
+  | "AmbassadorRef27"
+  | "Partner27";
 
 export function crmTagForBooking(
-  bookingType: "delegate" | "exhibitor",
+  bookingType: "delegate" | "exhibitor" | "partner",
   ticketType: string,
 ): CrmTag {
   if (bookingType === "exhibitor") return "Exhibitor27";
+  if (bookingType === "partner") return "Partner27";
   return ticketType === "vip" ? "VIP27" : "Delegate27";
 }
 
 // Full tag set for a booking push. The tags endpoint is additive and
 // set-like, so over-sending an already-present tag is a no-op.
 export function crmTagsForBooking(
-  bookingType: "delegate" | "exhibitor",
+  bookingType: "delegate" | "exhibitor" | "partner",
   ticketType: string,
   opts: { ambassadorComp?: boolean; ambassadorAttributed?: boolean } = {},
 ): CrmTag[] {

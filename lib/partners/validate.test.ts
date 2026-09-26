@@ -16,6 +16,15 @@ const valid = {
 };
 
 describe("validatePartner", () => {
+  it("comp allowance defaults to the package's 2, allows 0, rejects junk", () => {
+    const blank = validatePartner(valid);
+    expect(blank.ok && blank.value.compAllowance).toBe(2);
+    const zero = validatePartner({ ...valid, compAllowance: "0" });
+    expect(zero.ok && zero.value.compAllowance === 0).toBe(true);
+    expect(validatePartner({ ...valid, compAllowance: "-1" }).ok).toBe(false);
+    expect(validatePartner({ ...valid, compAllowance: "lots" }).ok).toBe(false);
+  });
+
   it("defaults the agreed price from the tier when blank", () => {
     const result = validatePartner(valid);
     expect(result.ok).toBe(true);
