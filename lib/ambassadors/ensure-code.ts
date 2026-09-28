@@ -4,7 +4,9 @@ import { ensureStripeProducts } from "@/lib/stripe/products";
 
 // Shared personal-discount-code provisioning for provisioned
 // ambassadors (workshop hosts, partner contacts): a percent-off code
-// applying to everything except lunch, no cap, no expiry. Idempotent
+// applying to ATTENDEE TICKETS ONLY (delegate + VIP; never stands,
+// never lunch: a 20% code must not discount a £249 stand), no cap,
+// no expiry. Idempotent
 // by code string: an existing Stripe promotion code is reused, never
 // duplicated. Returns false instead of throwing so callers treat a
 // Stripe hiccup as a partial-perks state, not a failed invite.
@@ -24,7 +26,7 @@ export async function ensurePercentCode(
         code,
         kind: "percent",
         percentOff,
-        appliesTo: "everything_except_lunch",
+        appliesTo: "attendee_tickets",
         note,
       }),
     );

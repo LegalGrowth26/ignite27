@@ -119,7 +119,7 @@ export default async function AdminBookingsPage(props: { searchParams: SearchPar
                   <td className="px-4 py-3">
                     {b.booking_type === "exhibitor" ? "Exhibitor" : b.ticket_type === "vip" ? "VIP" : "Delegate"}
                   </td>
-                  <td className="px-4 py-3 capitalize">{b.pricing_period}</td>
+                  <td className="px-4 py-3 capitalize">{b.pricing_period ?? "n/a"}</td>
                   <td className="px-4 py-3">{formatPoundsFromPence(b.gross_amount_pence)}</td>
                   <td className="px-4 py-3">
                     {b.promo_code

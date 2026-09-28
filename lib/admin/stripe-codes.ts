@@ -17,6 +17,13 @@ export const CODE_RESTRICTIONS = {
     label: "Exhibitors only",
     products: [STRIPE_PRODUCT_IDS.exhibitor],
   },
+  // The natural attendee-tickets restriction (added September 2026),
+  // and the DEFAULT for new codes and every auto-provisioned host or
+  // partner code: a 20% code should never discount a stand or lunch.
+  attendee_tickets: {
+    label: "Delegate and VIP tickets (not stands, not lunch)",
+    products: [STRIPE_PRODUCT_IDS.delegate, STRIPE_PRODUCT_IDS.vip],
+  },
   everything_except_lunch: {
     label: "Everything except lunch",
     products: [

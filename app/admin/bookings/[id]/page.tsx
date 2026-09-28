@@ -14,7 +14,7 @@ interface Detail {
   booking_reference: string | null;
   booking_type: string;
   ticket_type: string;
-  pricing_period: string;
+  pricing_period: string | null;
   gross_amount_pence: number;
   vat_amount_pence: number;
   promo_code: string | null;
@@ -72,7 +72,7 @@ export default async function AdminBookingDetailPage({
   const rows: ReadonlyArray<[string, string]> = [
     ["Reference", b.booking_reference ?? "PENDING"],
     ["Type", b.booking_type === "exhibitor" ? "Exhibitor" : b.ticket_type === "vip" ? "VIP" : "Delegate"],
-    ["Pricing period", b.pricing_period],
+    ["Pricing period", b.pricing_period ?? "n/a"],
     ["Gross paid", formatPoundsFromPence(b.gross_amount_pence)],
     ["VAT", formatPoundsFromPence(b.vat_amount_pence)],
     ["Promo code", b.promo_code ?? "none"],
