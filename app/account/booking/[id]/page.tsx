@@ -28,7 +28,7 @@ interface BookingDetail {
   booking_reference: string | null;
   booking_type: "delegate" | "exhibitor" | "partner";
   ticket_type: "regular" | "vip" | "exhibitor";
-  pricing_period: string;
+  pricing_period: string | null;
   gross_amount_pence: number;
   vat_amount_pence: number;
   discount_pence: number | null;
@@ -64,7 +64,9 @@ const DIETARY_LABELS: Record<DietaryRequirement, string> = {
   other: "Other",
 };
 
-function periodLabel(value: string): string {
+function periodLabel(value: string | null): string {
+  // Package and out-of-window comp bookings have no sales window.
+  if (!value) return "Not applicable";
   switch (value) {
     case "launch":
       return "Launch";

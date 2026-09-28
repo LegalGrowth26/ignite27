@@ -148,6 +148,7 @@ export async function savePartnerAction(
   } | null;
 
   const flags: string[] = [];
+  let packageError: string | null = null;
   if (fresh && fresh.status !== "ended") {
     let packageCreated = false;
     let accountExisted = false;
@@ -160,6 +161,7 @@ export async function savePartnerAction(
     } catch (err) {
       console.error("[admin/partners] package booking failed:", err);
       flags.push("package_failed");
+      packageError = err instanceof Error ? err.message : "unknown error";
     }
 
     let provisionState: Awaited<ReturnType<typeof ensurePartnerAmbassador>> | null = null;
@@ -218,7 +220,12 @@ export async function savePartnerAction(
 
   revalidatePartnerSurfaces();
   const flagQuery = flags.length > 0 ? `&flags=${flags.join(",")}` : "";
-  redirect(`/admin/partners?status=${partnerId ? "saved" : "added"}${flagQuery}`);
+  // Loud-error rule: the failure note names the real reason, not
+  // "check the logs".
+  const errQuery = packageError
+    ? `&err=${encodeURIComponent(packageError.slice(0, 160))}`
+    : "";
+  redirect(`/admin/partners?status=${partnerId ? "saved" : "added"}${flagQuery}${errQuery}`);
 }
 
 // Create one payment request and email its link. Shared by the manual

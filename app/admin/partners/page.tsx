@@ -35,10 +35,10 @@ interface PartnerRow {
 export default async function AdminPartnersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; flags?: string }>;
+  searchParams: Promise<{ status?: string; flags?: string; err?: string }>;
 }) {
   const { client } = await requireSuperAdmin();
-  const { status, flags } = await searchParams;
+  const { status, flags, err } = await searchParams;
   const flagList = (flags ?? "").split(",").filter(Boolean);
   const flagNote = (flag: string): string | null => {
     if (flag === "welcome_sent")
@@ -46,7 +46,7 @@ export default async function AdminPartnersPage({
     if (flag === "welcome_failed")
       return "The welcome email FAILED to send. Fix and use Resend welcome on the partner's edit page.";
     if (flag === "package_failed")
-      return "The 2-place package booking could not be created. Re-save the partner to retry; check the logs.";
+      return `The 2-place package booking could not be created${err ? `: ${err}` : ""}. Re-save the partner to retry.`;
     if (flag === "perks_failed")
       return "Guest-ticket provisioning failed. Re-save the partner to retry; check the logs.";
     if (flag === "ambassador_existing")

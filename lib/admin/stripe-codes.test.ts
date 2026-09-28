@@ -3,6 +3,7 @@ import type Stripe from "stripe";
 import {
   buildCompInput,
   buildCouponParams,
+  CODE_RESTRICTIONS,
   buildPromotionCodeParams,
   codeStatusLabel,
   toAdminCodeRow,
@@ -222,5 +223,32 @@ describe("code restrictions", () => {
       metadata: {},
     } as unknown as Stripe.PromotionCode);
     expect(legacy.restrictionLabel).toBe("Everything");
+  });
+});
+
+describe("attendee_tickets restriction (September 2026)", () => {
+  it("is exactly delegate + VIP: never stands, never lunch", () => {
+    expect([...CODE_RESTRICTIONS.attendee_tickets.products].sort()).toEqual(
+      ["ignite27_delegate", "ignite27_vip"].sort(),
+    );
+  });
+
+  it("rides onto the coupon's applies_to", () => {
+    const params = buildCouponParams({
+      code: "IMPACT20",
+      kind: "percent",
+      percentOff: 20,
+      appliesTo: "attendee_tickets",
+      note: "partner package personal code",
+    });
+    expect(params.applies_to?.products?.sort()).toEqual(
+      ["ignite27_delegate", "ignite27_vip"].sort(),
+    );
+  });
+
+  it("maps back to its label for the admin list", () => {
+    expect(
+      restrictionLabelFromProducts(["ignite27_vip", "ignite27_delegate"]),
+    ).toBe("Delegate and VIP tickets (not stands, not lunch)");
   });
 });

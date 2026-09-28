@@ -101,8 +101,11 @@ export function CreateCodeForm() {
 
       <div>
         <label htmlFor="appliesTo" className={LABEL}>Applies to</label>
-        <select id="appliesTo" name="appliesTo" defaultValue={v.appliesTo ?? "everything"} className={INPUT}>
-          <option value="everything">Everything (default)</option>
+        <select id="appliesTo" name="appliesTo" defaultValue={v.appliesTo ?? "attendee_tickets"} className={INPUT}>
+          <option value="attendee_tickets">
+            Delegate and VIP tickets (not stands, not lunch) (default)
+          </option>
+          <option value="everything">Everything</option>
           <option value="delegates_only">Delegates only</option>
           <option value="vip_only">VIP only</option>
           <option value="exhibitors_only">Exhibitors only</option>
