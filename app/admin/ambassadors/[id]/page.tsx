@@ -140,9 +140,7 @@ export default async function AdminAmbassadorViewPage({
               {" "}
               (code <span className="font-mono font-semibold">{ambassador.promo_code}</span>)
             </>
-          ) : (
-            " (code goes live in phase 2)"
-          )}
+          ) : null}
         </p>
       ) : null}
 

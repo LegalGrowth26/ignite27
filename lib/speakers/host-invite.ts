@@ -1,3 +1,4 @@
+import { percentCodeFromSlug } from "@/lib/ambassadors/ensure-code";
 // Workshop host invites (September 2026 plan additions): inviting a
 // host from the WORKSHOPS admin gives them the full package in one go:
 //   - their account linked to their (published) host page,
@@ -15,8 +16,12 @@ export const HOST_DISCOUNT_PERCENT = 20;
 // Uppercase alphanumerics only (Stripe codes are case-insensitive and
 // customers type them), capped so even a 50-char slug stays sane.
 export function hostDiscountCode(profileSlug: string): string {
-  const base = profileSlug.replace(/[^a-z0-9]/gi, "").toUpperCase().slice(0, 18);
-  return `${base || "HOST"}${HOST_DISCOUNT_PERCENT}`;
+  const code = percentCodeFromSlug(profileSlug, HOST_DISCOUNT_PERCENT);
+  // Keep the historical HOST20 fallback for a slug with no usable
+  // characters (percentCodeFromSlug falls back to CODE20 there).
+  return code === `CODE${HOST_DISCOUNT_PERCENT}`
+    ? `HOST${HOST_DISCOUNT_PERCENT}`
+    : code;
 }
 
 // Ambassador slugs are capped at 30 chars (profile slugs allow 50):
