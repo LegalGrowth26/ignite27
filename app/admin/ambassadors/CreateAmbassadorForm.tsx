@@ -86,7 +86,8 @@ export function CreateAmbassadorForm() {
             className={INPUT}
           />
           <p className="mt-1 text-small text-ignite-muted">
-            Recorded now; their personal code goes live in phase 2.
+            A personal code is created automatically (delegate and VIP
+            tickets only) and lands in their welcome email.
           </p>
         </div>
       </div>

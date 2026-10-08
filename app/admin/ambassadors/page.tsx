@@ -25,6 +25,7 @@ interface AmbassadorAdminRow {
   ambassador_type: "speaker" | "partner";
   comp_allowance: number;
   discount_percent: number | null;
+  promo_code: string | null;
   comp_claim_token: string | null;
   link_clicks: number;
   deactivated_at: string | null;
@@ -39,7 +40,7 @@ export default async function AdminAmbassadorsPage() {
   const { data, error } = await client
     .from("ambassadors")
     .select(
-      "id, slug, display_name, company, ambassador_type, comp_allowance, discount_percent, comp_claim_token, link_clicks, deactivated_at",
+      "id, slug, display_name, company, ambassador_type, comp_allowance, discount_percent, promo_code, comp_claim_token, link_clicks, deactivated_at",
     )
     .order("created_at", { ascending: true });
   if (error) {
@@ -179,7 +180,11 @@ export default async function AdminAmbassadorsPage() {
                   </div>
                   <div>
                     <dt className="text-eyebrow uppercase text-ignite-muted">Discount</dt>
-                    <dd>{r.discount_percent ? `${r.discount_percent}% (code in phase 2)` : "None"}</dd>
+                    <dd>
+                      {r.discount_percent
+                        ? `${r.discount_percent}%${r.promo_code ? ` (${r.promo_code})` : ""}`
+                        : "None"}
+                    </dd>
                   </div>
                   <div>
                     <dt className="text-eyebrow uppercase text-ignite-muted">Adjust allowance</dt>

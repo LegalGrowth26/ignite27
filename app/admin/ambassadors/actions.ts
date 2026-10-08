@@ -5,6 +5,7 @@ import { logAdminAction } from "@/lib/admin/audit";
 import { echoFormValues, type EchoedValues } from "@/lib/admin/form-echo";
 import { requireSuperAdmin } from "@/lib/admin/guard";
 import { normaliseRefSlug } from "@/lib/ambassadors/attribution";
+import { ensureAmbassadorPromoCode } from "@/lib/ambassadors/ensure-code";
 import { sendAmbassadorWelcome } from "@/lib/ambassadors/send-invite";
 import { ensureAuthUser, upsertAppUser } from "@/lib/bookings/create";
 import { createSupabaseServiceClient } from "@/lib/supabase/service-client";
@@ -114,6 +115,19 @@ export async function createAmbassadorAction(
       throw new Error(`ambassadors insert failed: ${insertErr?.message}`);
     }
 
+    // Personal code BEFORE the welcome email, so the email can show
+    // it (same provisioning as host invites and partner contacts:
+    // attendee tickets only, no cap, no expiry). A Stripe hiccup
+    // leaves promo_code null; Resend invite retries it.
+    if (discountPercent) {
+      await ensureAmbassadorPromoCode(service, {
+        id: (insertedRow as { id: string }).id,
+        slug,
+        discount_percent: discountPercent,
+        promo_code: null,
+      });
+    }
+
     try {
       // Full welcome built from the record just written (perk blocks
       // render only when they apply). Same path as Resend invite.
@@ -194,6 +208,21 @@ export async function toggleAmbassadorActiveAction(ambassadorId: string): Promis
 export async function resendAmbassadorInviteAction(ambassadorId: string): Promise<void> {
   const ctx = await requireSuperAdmin();
   const service = createSupabaseServiceClient();
+
+  // Heal-on-resend: an ambassador with a percentage but no live code
+  // (pre-provisioning rows, or an earlier Stripe hiccup) gets their
+  // code ensured before the welcome goes out.
+  const { data: ambRow } = await service
+    .from("ambassadors")
+    .select("id, slug, discount_percent, promo_code")
+    .eq("id", ambassadorId)
+    .maybeSingle();
+  if (ambRow) {
+    await ensureAmbassadorPromoCode(
+      service,
+      ambRow as { id: string; slug: string; discount_percent: number | null; promo_code: string | null },
+    );
+  }
 
   await sendAmbassadorWelcome(service, ambassadorId);
 

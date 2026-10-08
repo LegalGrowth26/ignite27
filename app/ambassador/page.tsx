@@ -116,24 +116,15 @@ export default async function AmbassadorPage() {
             </div>
           </dl>
 
-          {ambassador.discount_percent ? (
+          {ambassador.discount_percent && ambassador.promo_code ? (
             <div className="mt-6 rounded-2xl border border-ignite-line bg-ignite-white p-6">
               <h2 className="text-h3">Your personal discount</h2>
               <p className="mt-2 text-body text-ignite-ink">
-                {ambassador.promo_code ? (
-                  <>
-                    Share code{" "}
-                    <span className="font-mono font-semibold">{ambassador.promo_code}</span>{" "}
-                    for {ambassador.discount_percent}% off. It is also built
-                    into your share link: anyone booking through it gets the
-                    discount applied automatically.
-                  </>
-                ) : (
-                  <>
-                    A {ambassador.discount_percent}% personal code is being set up
-                    for you. It will appear here when it goes live.
-                  </>
-                )}
+                Share code{" "}
+                <span className="font-mono font-semibold">{ambassador.promo_code}</span>{" "}
+                for {ambassador.discount_percent}% off. It is also built
+                into your share link: anyone booking through it gets the
+                discount applied automatically.
               </p>
             </div>
           ) : null}
