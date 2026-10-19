@@ -1,8 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // vi.mock hoists above imports; vi.hoisted lets shared fns live alongside.
-const { constructEvent, createBooking, sendConfirmation, retrieveSession } = vi.hoisted(() => ({
+const {
+  constructEvent,
+  createBooking,
+  sendConfirmation,
+  retrieveSession,
+  markBookingRefunded,
+  cleanupCrmTagsForRefundSafe,
+  serviceClientHolder,
+} = vi.hoisted(() => ({
   constructEvent: vi.fn(),
+  markBookingRefunded: vi.fn(),
+  cleanupCrmTagsForRefundSafe: vi.fn(),
+  serviceClientHolder: { current: null as unknown },
   createBooking: vi.fn(),
   sendConfirmation: vi.fn(),
   retrieveSession: vi.fn(),
@@ -36,7 +47,12 @@ vi.mock("@/lib/bookings/send-confirmation", () => ({
 }));
 
 vi.mock("@/lib/supabase/service-client", () => ({
-  createSupabaseServiceClient: () => ({}),
+  createSupabaseServiceClient: () => serviceClientHolder.current ?? {},
+}));
+
+vi.mock("@/lib/bookings/refund", () => ({
+  markBookingRefunded: (...args: unknown[]) => markBookingRefunded(...args),
+  cleanupCrmTagsForRefundSafe: (...args: unknown[]) => cleanupCrmTagsForRefundSafe(...args),
 }));
 
 vi.mock("@/lib/env", () => ({
@@ -396,5 +412,84 @@ describe("POST /api/stripe/webhook", () => {
     const res = await POST(buildRequest("{}", "sig"));
     expect(res.status).toBe(200);
     expect(createBooking).not.toHaveBeenCalled();
+  });
+});
+
+
+describe("charge.refunded", () => {
+  it("flips the matched booking to refunded + cancelled and cleans CRM tags", async () => {
+    const booking = {
+      id: "b-1",
+      booking_reference: "I27-REF1",
+      booking_type: "delegate",
+      ticket_type: "regular",
+      payment_status: "paid",
+      booking_status: "active",
+    };
+    serviceClientHolder.current = {
+      from: () => ({
+        select: () => ({
+          eq: () => ({ maybeSingle: async () => ({ data: booking, error: null }) }),
+        }),
+      }),
+    };
+    markBookingRefunded.mockResolvedValue({ matched: true, paymentStatus: "refunded" });
+    cleanupCrmTagsForRefundSafe.mockResolvedValue(undefined);
+    constructEvent.mockReturnValue({
+      id: "evt_refund",
+      type: "charge.refunded",
+      data: {
+        object: {
+          id: "ch_1",
+          payment_intent: "pi_refunded",
+          refunded: true,
+          amount_refunded: 3000,
+        },
+      },
+    });
+
+    const res = await POST(
+      new Request("https://example.test/api/stripe/webhook", {
+        method: "POST",
+        headers: { "stripe-signature": "sig" },
+        body: "{}",
+      }),
+    );
+    expect(res.status).toBe(200);
+    expect(markBookingRefunded).toHaveBeenCalledWith(expect.anything(), "b-1", {
+      fullyRefunded: true,
+      amountRefundedPence: 3000,
+    });
+    expect(cleanupCrmTagsForRefundSafe).toHaveBeenCalled();
+    serviceClientHolder.current = null;
+  });
+
+  it("a refund for an unknown payment intent is logged and acknowledged, never retried", async () => {
+    markBookingRefunded.mockClear();
+    cleanupCrmTagsForRefundSafe.mockClear();
+    serviceClientHolder.current = {
+      from: () => ({
+        select: () => ({
+          eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }),
+        }),
+      }),
+    };
+    constructEvent.mockReturnValue({
+      id: "evt_refund_unknown",
+      type: "charge.refunded",
+      data: { object: { id: "ch_2", payment_intent: "pi_unknown", refunded: true } },
+    });
+
+    const res = await POST(
+      new Request("https://example.test/api/stripe/webhook", {
+        method: "POST",
+        headers: { "stripe-signature": "sig" },
+        body: "{}",
+      }),
+    );
+    expect(res.status).toBe(200);
+    expect(markBookingRefunded).not.toHaveBeenCalled();
+    expect(cleanupCrmTagsForRefundSafe).not.toHaveBeenCalled();
+    serviceClientHolder.current = null;
   });
 });

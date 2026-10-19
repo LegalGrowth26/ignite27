@@ -17,8 +17,11 @@ async function attendeeEmails(
 ): Promise<Response> {
   const { data, error } = await client
     .from("booking_attendees")
-    .select("first_name, surname, email, bookings!inner (booking_type, payment_status)")
+    .select(
+      "first_name, surname, email, bookings!inner (booking_type, payment_status, booking_status)",
+    )
     .eq("bookings.booking_type", bookingType)
+    .eq("bookings.booking_status", "active")
     .in("bookings.payment_status", ["paid", "comp"]);
   if (error) return new Response(`query failed: ${error.message}`, { status: 500 });
 

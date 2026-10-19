@@ -99,6 +99,15 @@ async function ghlPost(path: string, body: unknown): Promise<Response> {
   });
 }
 
+async function ghlDelete(path: string, body: unknown): Promise<Response> {
+  return fetch(`${GHL_API_BASE}${path}`, {
+    method: "DELETE",
+    headers: ghlHeaders(),
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(GHL_TIMEOUT_MS),
+  });
+}
+
 // Throwing core: upsert the contact, then add the tag additively.
 export async function pushContactToCrm(input: CrmContactInput): Promise<void> {
   const upsertRes = await ghlPost("/contacts/upsert", {
@@ -146,6 +155,47 @@ export async function pushContactToCrmSafe(
       `[crm] push FAILED (continuing, booking unaffected) ${maskEmail(input.email)} tags=${input.tags.join("+")}: ${context}`,
       err,
     );
+    return false;
+  }
+}
+
+
+// Remove tags from the contact holding this email, best-effort and
+// never throwing (refunds must stand whatever the CRM does). The
+// upsert is the reliable way to resolve email -> contact id; it
+// changes no fields on an existing contact. The tags DELETE endpoint
+// is set-like: removing an absent tag is a no-op.
+export async function removeContactTagsSafe(
+  email: string,
+  tags: CrmTag[],
+  context: string,
+): Promise<boolean> {
+  if (!isCrmConfigured()) {
+    console.info(`[crm] not configured; skipping tag removal (${context})`);
+    return false;
+  }
+  try {
+    const upsertRes = await ghlPost("/contacts/upsert", {
+      locationId: process.env.GHL_LOCATION_ID,
+      email: email.toLowerCase(),
+    });
+    if (!upsertRes.ok) {
+      throw new Error(`GHL upsert failed: ${upsertRes.status}`);
+    }
+    const upsertJson = (await upsertRes.json()) as { contact?: { id?: string } };
+    const contactId = upsertJson.contact?.id;
+    if (!contactId) throw new Error("GHL upsert returned no contact id");
+
+    const delRes = await ghlDelete(`/contacts/${contactId}/tags`, { tags });
+    if (!delRes.ok) {
+      throw new Error(`GHL tag removal failed: ${delRes.status}`);
+    }
+    console.info(
+      `[crm] removed ${maskEmail(email)} tags=${tags.join(",")}: ${context}`,
+    );
+    return true;
+  } catch (err) {
+    console.error(`[crm] tag removal failed (${context}; continuing):`, err);
     return false;
   }
 }
