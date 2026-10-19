@@ -49,6 +49,9 @@ export async function GET(): Promise<Response> {
        booking_attendees (first_name, surname, email, company, dietary_requirement)`,
     )
     .eq("booking_type", "exhibitor")
+    // The stand build sheet lists stands that are happening; cancelled
+    // and refunded stands drop out.
+    .neq("booking_status", "cancelled")
     .order("created_at", { ascending: true });
   if (error) return new Response(`query failed: ${error.message}`, { status: 500 });
 

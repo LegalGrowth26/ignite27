@@ -12,6 +12,10 @@ import {
   ExhibitorMetadataParseError,
 } from "@/lib/bookings/exhibitor-intent";
 import { env } from "@/lib/env";
+import {
+  cleanupCrmTagsForRefundSafe,
+  markBookingRefunded,
+} from "@/lib/bookings/refund";
 import { sendPartnerPaymentConfirmationEmail } from "@/lib/partners/send-payment";
 import { crmTagsForBooking, pushContactToCrmSafe } from "@/lib/crm/ghl";
 import { ensureExhibitorProfileSafe } from "@/lib/exhibitors/create-profile";
@@ -52,6 +56,9 @@ export async function POST(request: Request) {
       case "checkout.session.expired":
         console.info("[stripe-webhook] checkout.session.expired", event.id);
         return NextResponse.json({ received: true, type: event.type });
+      case "charge.refunded":
+        await handleChargeRefunded(event);
+        return NextResponse.json({ received: true, type: event.type });
       default:
         console.info("[stripe-webhook] ignored event", event.type, event.id);
         return NextResponse.json({ received: true, type: event.type, ignored: true });
@@ -73,6 +80,66 @@ export async function POST(request: Request) {
     }
     return new NextResponse("internal server error", { status: 500 });
   }
+}
+
+// A refund in Stripe (dashboard or our admin) flips the booking here:
+// payment_status refunded/partially_refunded per Stripe's own
+// fully-refunded flag, booking_status cancelled either way (the
+// policy refunds minus fees, so any refund means the person is not
+// coming). Idempotent on redelivery; CRM tag cleanup is best-effort.
+async function handleChargeRefunded(event: Stripe.Event): Promise<void> {
+  const charge = event.data.object as Stripe.Charge;
+  const paymentIntentId =
+    typeof charge.payment_intent === "string"
+      ? charge.payment_intent
+      : charge.payment_intent?.id ?? null;
+  if (!paymentIntentId) {
+    console.warn("[stripe-webhook] charge.refunded without payment_intent", event.id);
+    return;
+  }
+
+  const supabase = createSupabaseServiceClient();
+  const { data, error } = await supabase
+    .from("bookings")
+    .select("id, booking_reference, booking_type, ticket_type, payment_status, booking_status")
+    .eq("stripe_payment_intent_id", paymentIntentId)
+    .maybeSingle();
+  if (error) throw new Error(`refund booking lookup failed: ${error.message}`);
+  if (!data) {
+    // Not a booking: most likely a refunded PARTNER payment, which the
+    // partner ledger does not yet unwind automatically (noted
+    // follow-up). Loud so it is handled by hand.
+    console.error(
+      "[stripe-webhook] REFUND for unknown payment intent (partner payment? handle by hand):",
+      paymentIntentId,
+    );
+    return;
+  }
+  const booking = data as {
+    id: string;
+    booking_reference: string | null;
+    booking_type: string;
+    ticket_type: string;
+    payment_status: string;
+    booking_status: string;
+  };
+
+  const facts = {
+    fullyRefunded: charge.refunded === true,
+    amountRefundedPence: charge.amount_refunded ?? 0,
+  };
+  const result = await markBookingRefunded(supabase, booking.id, facts);
+  console.info(
+    "[stripe-webhook] booking refunded",
+    JSON.stringify({
+      booking_reference: booking.booking_reference,
+      payment_status: result.paymentStatus,
+      amount_refunded_pence: facts.amountRefundedPence,
+      was: `${booking.payment_status}/${booking.booking_status}`,
+    }),
+  );
+
+  await cleanupCrmTagsForRefundSafe(supabase, booking);
 }
 
 async function handleCheckoutSessionCompleted(event: Stripe.Event): Promise<void> {

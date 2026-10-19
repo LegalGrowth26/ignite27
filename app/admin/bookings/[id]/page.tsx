@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { requireSuperAdmin } from "@/lib/admin/guard";
 import { formatPoundsFromPence } from "@/lib/pricing";
+import { RefundForm } from "./RefundForm";
 
 export const metadata: Metadata = {
   title: "Admin booking · IGNITE! 27",
@@ -102,6 +103,20 @@ export default async function AdminBookingDetailPage({
           </div>
         ))}
       </dl>
+
+      {b.payment_status === "paid" && b.stripe_payment_intent_id ? (
+        <div className="mt-8 rounded-2xl border-2 border-ignite-red bg-ignite-white p-6">
+          <h2 className="text-h3">Refund</h2>
+          <p className="mt-2 text-small text-ignite-muted">
+            Issues the refund through Stripe and cancels the booking in one
+            go. Works for payments already refunded in the Stripe dashboard
+            too: it aligns the records.
+          </p>
+          <div className="mt-4">
+            <RefundForm bookingId={b.id} />
+          </div>
+        </div>
+      ) : null}
 
       <h2 className="mt-10 text-h2">Attendees</h2>
       <div className="mt-4 grid gap-4 md:grid-cols-2">
