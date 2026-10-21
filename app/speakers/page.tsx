@@ -8,6 +8,7 @@ import { SectionHeader } from "@/components/SectionHeader";
 import { SpeakerCard } from "@/components/SpeakerCard";
 import { SpeakersSignupForm } from "@/components/SpeakersSignupForm";
 import {
+  fetchPublishedHostCards,
   fetchPublishedSpeakerCards,
   speakerInitials,
   type SpeakerCardData,
@@ -33,8 +34,11 @@ export const metadata: Metadata = {
 // arrays are gone; speakers now manage their own pages.
 export default async function SpeakersPage() {
   let speakers: SpeakerCardData[] = [];
+  let hosts: SpeakerCardData[] = [];
   try {
-    speakers = await fetchPublishedSpeakerCards(createSupabaseServiceClient());
+    const service = createSupabaseServiceClient();
+    speakers = await fetchPublishedSpeakerCards(service);
+    hosts = await fetchPublishedHostCards(service);
   } catch (err) {
     console.error("[speakers] listing failed:", err);
   }
@@ -51,7 +55,11 @@ export default async function SpeakersPage() {
                   ? "On the main stage."
                   : "Speakers are being announced."
               }
-              lede="National-quality speakers, brought to you. Tap any speaker for their session, and drop your email below to hear as each new name lands. Workshop hosts live on the workshops page."
+              lede={
+                hosts.length > 0
+                  ? "National-quality speakers, brought to you. Tap any speaker for their session, and meet the workshop hosts just below."
+                  : "National-quality speakers, brought to you. Tap any speaker for their session, and drop your email below to hear as each new name lands. Workshop hosts live on the workshops page."
+              }
               as="h1"
             />
           </div>
@@ -91,6 +99,45 @@ export default async function SpeakersPage() {
           </div>
         </Container>
       </Section>
+
+      {hosts.length > 0 ? (
+        // Renders nothing at all until the first host has accepted
+        // their invite and submitted something; no empty section.
+        <Section tone="light">
+          <Container>
+            <div className="mx-auto max-w-2xl">
+              <SectionHeader
+                eyebrow="Workshops"
+                heading="Hosting the workshops."
+                lede="Small rooms, practical sessions, run by people who do this for a living. Tap a host for their workshop."
+              />
+            </div>
+            <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {hosts.map((h) => (
+                <Link
+                  key={h.slug}
+                  href={`/speakers/${h.slug}`}
+                  className="block transition-transform hover:-translate-y-0.5"
+                >
+                  <SpeakerCard
+                    name={h.displayName}
+                    topic={h.talkTitle || undefined}
+                    media={
+                      h.photoUrl
+                        ? {
+                            variant: "photo",
+                            src: h.photoUrl,
+                            alt: `Portrait of ${h.displayName}`,
+                          }
+                        : { variant: "initials", initials: speakerInitials(h.displayName) }
+                    }
+                  />
+                </Link>
+              ))}
+            </div>
+          </Container>
+        </Section>
+      ) : null}
 
       <Section tone="light">
         <Container>

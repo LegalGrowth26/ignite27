@@ -151,3 +151,50 @@ export async function fetchHostWorkshops(
   if (error) throw new Error(`host workshops query failed: ${error.message}`);
   return (data ?? []) as unknown as HostWorkshopRow[];
 }
+
+
+// ---------------------------------------------------------------------------
+// Workshop hosts on /speakers (October 2026): their own section below
+// the main stage, built from the SAME self-completed profiles the host
+// invite flow produces. 'both' profiles already sit in the main grid,
+// so this lists pure workshop_host types only; nobody appears twice.
+// ---------------------------------------------------------------------------
+
+// Pure and unit-tested: a host appears once they have ACCEPTED (their
+// invite linked an account; the query checks user_id) and SUBMITTED
+// anything at all: their workshop title (synced from their editor), a
+// bio, or a photo. Partial profiles are welcome: the card falls back
+// to an initials monogram without a photo and stands on the name and
+// workshop title; their profile page already renders graceful blanks.
+export function hostHasSubmitted(row: {
+  talk_title: string | null;
+  bio: string | null;
+  photo_path: string | null;
+}): boolean {
+  return Boolean(
+    (row.talk_title ?? "").trim() || (row.bio ?? "").trim() || row.photo_path,
+  );
+}
+
+export async function fetchPublishedHostCards(
+  client: SupabaseClient,
+): Promise<SpeakerCardData[]> {
+  const { data, error } = await client
+    .from("speaker_profiles")
+    .select("slug, display_name, talk_title, bio, photo_path, user_id")
+    .not("published_at", "is", null)
+    .not("user_id", "is", null)
+    .eq("profile_type", "workshop_host")
+    .order("created_at", { ascending: true });
+  if (error) throw new Error(`host cards query failed: ${error.message}`);
+  type Row = Pick<
+    SpeakerProfileRow,
+    "slug" | "display_name" | "talk_title" | "bio" | "photo_path"
+  >;
+  return ((data ?? []) as Row[]).filter(hostHasSubmitted).map((r) => ({
+    slug: r.slug,
+    displayName: r.display_name,
+    talkTitle: r.talk_title,
+    photoUrl: r.photo_path ? publicPhotoUrl(r.photo_path) : null,
+  }));
+}
