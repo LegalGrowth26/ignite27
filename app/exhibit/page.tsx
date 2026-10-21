@@ -122,7 +122,7 @@ function Hero() {
       <Container className="relative py-20 sm:py-24 md:py-28">
         <div className="max-w-3xl">
           <p className="text-eyebrow uppercase text-ignite-red">Exhibit at IGNITE! 27</p>
-          <h1 className="mt-5 text-h1">A room worth standing in.</h1>
+          <h1 className="mt-5 text-h1">A room worth being in.</h1>
           <p className="mt-5 max-w-2xl text-lead text-white/80">
             Over 50 exhibitors at Kelham Hall on Thursday 21 January 2027. The delegates came to
             meet businesses like yours, not to collect pens.
