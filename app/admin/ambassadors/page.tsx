@@ -3,6 +3,11 @@ import type { Metadata } from "next";
 import { requireSuperAdmin } from "@/lib/admin/guard";
 import { ambassadorShareUrl } from "@/lib/ambassadors/attribution";
 import { claimUrl } from "@/lib/ambassadors/claim";
+import {
+  formatResendDate,
+  latestResendByAmbassador,
+  type ResendAuditRow,
+} from "@/lib/ambassadors/last-resend";
 import { env } from "@/lib/env";
 import {
   adjustAllowanceAction,
@@ -34,7 +39,12 @@ interface AmbassadorAdminRow {
 const INPUT =
   "w-24 rounded-xl border border-ignite-line bg-ignite-white px-3 py-1.5 text-small text-ignite-ink focus:border-ignite-red focus:outline-none";
 
-export default async function AdminAmbassadorsPage() {
+export default async function AdminAmbassadorsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ invite_sent?: string; invite_error?: string; invite_for?: string }>;
+}) {
+  const { invite_sent, invite_error, invite_for } = await searchParams;
   const { client } = await requireSuperAdmin();
 
   const { data, error } = await client
@@ -59,6 +69,18 @@ export default async function AdminAmbassadorsPage() {
     );
   }
   const rows = (data ?? []) as AmbassadorAdminRow[];
+  const nameById = new Map(rows.map((r) => [r.id, r.display_name]));
+
+  // Last "Resend invite" per ambassador, straight from the audit log
+  // (the resend action has always written ambassador.resend_invite, so
+  // no new column is needed and history predating this UI shows too).
+  const { data: resendAudit } = await client
+    .from("admin_audit")
+    .select("created_at, detail")
+    .eq("action", "ambassador.resend_invite")
+    .order("created_at", { ascending: false })
+    .limit(1000);
+  const lastResendById = latestResendByAmbassador((resendAudit ?? []) as ResendAuditRow[]);
 
   // Attributed bookings + comps used, aggregated in one pass each.
   const { data: bookingRows } = await client
@@ -87,6 +109,25 @@ export default async function AdminAmbassadorsPage() {
   return (
     <div>
       <h1 className="text-h1">Ambassadors</h1>
+
+      {invite_sent ? (
+        <div className="mt-6 rounded-2xl border border-ignite-line bg-ignite-white p-4">
+          <p className="text-body font-semibold text-ignite-ink">
+            Invite sent to {nameById.get(invite_sent) ?? "the ambassador"}. It went to their
+            account email with their current code, share link and comp allowance.
+          </p>
+        </div>
+      ) : null}
+      {invite_error ? (
+        <div className="mt-6 rounded-2xl border-2 border-ignite-red bg-ignite-red/5 p-4">
+          <p className="text-body font-semibold text-ignite-red">
+            The invite{invite_for && nameById.has(invite_for) ? ` to ${nameById.get(invite_for)}` : ""} did
+            not send.
+          </p>
+          <p className="mt-2 font-mono text-small text-ignite-ink">{invite_error}</p>
+        </div>
+      ) : null}
+
       <p className="mt-3 max-w-3xl text-small text-ignite-muted">
         Speakers and key partners who help sell tickets. Each gets a
         private dashboard at /ambassador, a trackable share link, and a
@@ -134,6 +175,11 @@ export default async function AdminAmbassadorsPage() {
                       <p className="mt-1 text-small text-ignite-muted">
                         guest tickets{" "}
                         <span className="font-mono">{claimUrl(siteUrl, r.comp_claim_token)}</span>
+                      </p>
+                    ) : null}
+                    {lastResendById.has(r.id) ? (
+                      <p className="mt-1 text-small text-ignite-muted">
+                        last invite sent {formatResendDate(lastResendById.get(r.id)!)}
                       </p>
                     ) : null}
                   </div>

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { logAdminAction } from "@/lib/admin/audit";
 import { echoFormValues, type EchoedValues } from "@/lib/admin/form-echo";
 import { requireSuperAdmin } from "@/lib/admin/guard";
@@ -204,30 +205,48 @@ export async function toggleAmbassadorActiveAction(ambassadorId: string): Promis
 
 // Resend the welcome email, rebuilt from the CURRENT record (so an
 // allowance or code granted after creation is reflected). Same sender
-// as the create flow.
+// as the create flow. The outcome ALWAYS lands back on the list as a
+// banner: ?invite_sent on success, ?invite_error with the real reason
+// on failure (a thrown error here used to dead-end on Next's generic
+// error page, so the button looked like it did nothing).
 export async function resendAmbassadorInviteAction(ambassadorId: string): Promise<void> {
   const ctx = await requireSuperAdmin();
   const service = createSupabaseServiceClient();
 
-  // Heal-on-resend: an ambassador with a percentage but no live code
-  // (pre-provisioning rows, or an earlier Stripe hiccup) gets their
-  // code ensured before the welcome goes out.
-  const { data: ambRow } = await service
-    .from("ambassadors")
-    .select("id, slug, discount_percent, promo_code")
-    .eq("id", ambassadorId)
-    .maybeSingle();
-  if (ambRow) {
+  let failure: string | null = null;
+  try {
+    // Heal-on-resend: an ambassador with a percentage but no live code
+    // (pre-provisioning rows, or an earlier Stripe hiccup) gets their
+    // code ensured before the welcome goes out. If Stripe is down this
+    // throws and NOTHING sends: better no email than a welcome whose
+    // discount block is silently missing.
+    const { data: ambRow, error: ambErr } = await service
+      .from("ambassadors")
+      .select("id, slug, discount_percent, promo_code")
+      .eq("id", ambassadorId)
+      .maybeSingle();
+    if (ambErr) throw new Error(`ambassador lookup failed: ${ambErr.message}`);
+    if (!ambRow) throw new Error("ambassador not found");
     await ensureAmbassadorPromoCode(
       service,
       ambRow as { id: string; slug: string; discount_percent: number | null; promo_code: string | null },
     );
+
+    await sendAmbassadorWelcome(service, ambassadorId);
+
+    await logAdminAction(ctx.appUserId, "ambassador.resend_invite", {
+      ambassador_id: ambassadorId,
+    });
+  } catch (err) {
+    failure = err instanceof Error ? err.message : "unknown error";
+    console.error("[admin/ambassadors] resend invite failed:", failure);
   }
 
-  await sendAmbassadorWelcome(service, ambassadorId);
-
-  await logAdminAction(ctx.appUserId, "ambassador.resend_invite", {
-    ambassador_id: ambassadorId,
-  });
   revalidatePath("/admin/ambassadors");
+  if (failure) {
+    redirect(
+      `/admin/ambassadors?invite_error=${encodeURIComponent(failure.slice(0, 300))}&invite_for=${encodeURIComponent(ambassadorId)}`,
+    );
+  }
+  redirect(`/admin/ambassadors?invite_sent=${encodeURIComponent(ambassadorId)}`);
 }
