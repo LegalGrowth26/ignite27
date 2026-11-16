@@ -129,6 +129,29 @@ export function SiteFooter() {
             ))}
           </ul>
         </div>
+
+        {/* The credit reads as one sentence to screen readers: the
+            logo's alt text completes "powered by Lincolnshire
+            Marketing". White chip because the supplied logo is blue on
+            white and the footer is black. */}
+        <div className="mt-8 flex flex-wrap items-center gap-3 text-small text-white/60">
+          <span>Site and booking system powered by</span>
+          <a
+            href="https://www.lincolnshiremarketing.co.uk"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex rounded-lg bg-ignite-white px-3 py-1.5 transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ignite-red focus-visible:ring-offset-2 focus-visible:ring-offset-ignite-black"
+          >
+            <img
+              src="/images/lincolnshire-marketing.webp"
+              alt="Lincolnshire Marketing"
+              width={360}
+              height={92}
+              loading="lazy"
+              className="h-6 w-auto"
+            />
+          </a>
+        </div>
       </Container>
     </footer>
   );
